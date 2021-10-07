@@ -1,0 +1,165 @@
+/*
+	
+    This file is part of cpp_logic_simulation, a simple C++ framework for the simulation of digital logic circuits.
+    Copyright (C) 2021 Dr Seb N.F. Sikora
+    seb.nf.sikora@protonmail.com
+	
+    cpp_logic_simulation is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    cpp_logic_simulation is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with cpp_logic_simulation.  If not, see <https://www.gnu.org/licenses/>.
+
+*/
+
+#include <string>					// std::string.
+#include <iostream>					// std::cout, std::endl.
+#include <vector>					// std::vector
+#include <unordered_map>			// std::unordered_map
+#include <functional>				// std::hash
+#include <cmath>					// pow()
+#include <fstream>					// std::ifstream
+
+#include "c_core.h"					// Core simulator functionality
+#include "simple_ram.h"
+
+// -----------------------------------------------------------------------------------------------------------------------------------------------------
+SimpleRam::SimpleRam(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states) 
+ : Device(parent_device_pointer, device_name, "ram", {"read", "write", "clk"}, {}, monitor_on, in_pin_default_states, 0) {
+	// We call ConfigureMagic() to create the MagicEngine.
+	ConfigureMagic(this, address_bus_width, data_bus_width);
+	// Then we create all the address and data bus inputs and outputs and set their default states.
+	ConfigureBusses(address_bus_width, data_bus_width, in_pin_default_states);
+	Build();
+	Stabilise();
+}
+
+void SimpleRam::Build() {
+	// This device does not contain any components!
+	// We still need to call MakeProbable() here during Build() if we want to be able to attach logic probes.
+	MakeProbable();
+	PrintInPinStates();
+}
+
+void SimpleRam::ConfigureMagic(Device* parent_device_pointer, int address_bus_width, int data_bus_width) {
+	m_magic_device_flag = true;
+	m_magic_engine_pointer = new SimpleRam_MagicEngine(parent_device_pointer, address_bus_width, data_bus_width);
+	// Create the necessary magic event triggers.
+	AddMagicEventTrap("clk", {true, false}, {{"read", true}, {"write", false}}, "MEM_READ");
+	AddMagicEventTrap("clk", {true, false}, {{"read", false}, {"write", true}}, "MEM_WRITE");
+}
+
+void SimpleRam::ConfigureBusses(int address_bus_width, int data_bus_width, std::unordered_map<std::string, bool> in_pin_default_states) {
+	std::vector<std::string> inputs_to_create;
+	for (int index = 0; index < address_bus_width; index ++) {
+		std::string input_identifier = "a_" + std::to_string(index);
+		inputs_to_create.push_back(input_identifier);
+	}
+	for (int index = 0; index < data_bus_width; index ++) {
+		std::string input_identifier = "d_in_" + std::to_string(index);
+		inputs_to_create.push_back(input_identifier);
+	}
+	std::vector<std::string> outputs_to_create;
+	for (int index = 0; index < data_bus_width; index ++) {
+		std::string output_identifier = "d_out_" + std::to_string(index);
+		outputs_to_create.push_back(output_identifier);
+	}
+	CreateInPins(inputs_to_create, in_pin_default_states);
+	CreateOutPins(outputs_to_create);
+}
+
+// -----------------------------------------------------------------------------------------------------------------------------------------------------
+SimpleRam_MagicEngine::SimpleRam_MagicEngine(Device* parent_device_pointer, int address_bus_width, int data_bus_width) : MagicEngine(parent_device_pointer) {
+	m_address_bus_width = address_bus_width;
+	m_data_bus_width = data_bus_width;
+	ZeroMemory(address_bus_width, data_bus_width);
+	CreatePinIdentifierHashes(address_bus_width, data_bus_width);
+}
+
+void SimpleRam_MagicEngine::UpdateMagic() {
+	// Nothing needs to be routinely updated in this device.
+}
+
+void SimpleRam_MagicEngine::ShutDownMagic() {
+	// Nothing needs to be shutdown in this device.
+}
+
+void SimpleRam_MagicEngine::ZeroMemory(int address_bus_width, int data_bus_width) {
+	for (int i = 1; i <= (pow(2, address_bus_width)); i ++) {
+		std::vector<bool> this_address_contents;
+		for (int j = 0; j < data_bus_width; j ++) {
+			this_address_contents.push_back(false);
+		}
+		m_data.push_back(this_address_contents);
+	}
+}
+
+void SimpleRam_MagicEngine::CreatePinIdentifierHashes(int address_bus_width, int data_bus_width) {
+	for (int index = 0; index < address_bus_width; index ++) {
+		std::string input_identifier = "a_" + std::to_string(index);
+		std::size_t input_identifier_hash = std::hash<std::string>{}(input_identifier);
+		m_address_bus_pin_identifier_hashes.push_back(input_identifier_hash);
+	}
+	for (int index = 0; index < data_bus_width; index ++) {
+		std::string input_identifier = "d_in_" + std::to_string(index);
+		std::size_t input_identifier_hash = std::hash<std::string>{}(input_identifier);
+		m_data_in_bus_pin_identifier_hashes.push_back(input_identifier_hash);
+	}
+	std::vector<std::string> outputs_to_create;
+	for (int index = 0; index < data_bus_width; index ++) {
+		std::string output_identifier = "d_out_" + std::to_string(index);
+		std::size_t output_identifier_hash = std::hash<std::string>{}(output_identifier);
+		m_data_out_bus_pin_identifier_hashes.push_back(output_identifier_hash);
+	}
+}
+
+void SimpleRam_MagicEngine::InvokeMagic(std::string const& incantation) {
+	if (incantation == "MEM_READ") {
+		// Generate address,
+		int address = 0;
+		int address_pin_index = 0;
+		for (const auto& pin_identifier_hash: m_address_bus_pin_identifier_hashes) {
+			bool pin_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+			if (pin_state) {
+				address += pow(2, address_pin_index);
+			}
+			address_pin_index ++;
+		}
+		// Load data from member variable m_data.
+		std::vector<bool> data_at_address = m_data[address];
+		// Convert std::vector<bool> into states and set parent device outputs accordingly.
+		int data_out_pin_index = 0;
+		for (const auto& pin_identifier_hash: m_data_out_bus_pin_identifier_hashes) {
+			if (m_parent_device_pointer->GetOutPinState(pin_identifier_hash) != data_at_address[data_out_pin_index]) {
+				m_parent_device_pointer->Set(pin_identifier_hash, data_at_address[data_out_pin_index]);
+			}
+			data_out_pin_index ++;
+		}
+	} else if (incantation == "MEM_WRITE") {
+		// Generate address,
+		int address = 0;
+		int address_pin_index = 0;
+		for (const auto& pin_identifier_hash: m_address_bus_pin_identifier_hashes) {
+			bool pin_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+			if (pin_state) {
+				address += pow(2, address_pin_index);
+			}
+		}
+		// Get parent device data input pin states and set bits at address correspondingly.
+		int data_in_pin_index = 0;
+		for (const auto& pin_identifier_hash: m_data_in_bus_pin_identifier_hashes) {
+			bool in_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+			m_data[address][data_in_pin_index] = in_state;
+			data_in_pin_index ++;
+		}
+	} else {
+		std::cout << "The incantation appears to do nothing...." << std::endl;
+	}
+}
