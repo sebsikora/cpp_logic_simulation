@@ -44,6 +44,24 @@ struct connection_descriptor {
 	std::size_t target_pin_name_hash;
 };
 
+struct pin {
+	std::string name;
+	int direction;
+	bool state;
+	bool state_changed;
+};
+
+struct sorted_pin_identifiers {
+	struct in {
+		std::vector<std::string> names;
+		std::vector<std::string> hashes;
+	};
+	struct out {
+		std::vector<std::size_t> names;
+		std::vector<std::size_t> hashes;
+	};
+};
+
 // This typedef defines the type 'pointer to a Gate class member function that takes a unordered_map of state 
 // structs to strings as arguments and returns a state struct. This allows us to *dramatically*
 // simplify the code for declaring such function pointers and member functions that take them as

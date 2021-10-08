@@ -64,27 +64,30 @@ bool Component::GetOutPinState(std::size_t pin_name_hash) {
 }
 
 std::vector<std::string> Component::GetInPinNames() {
-	std::vector<std::string> in_pin_names;
-	for (const auto& pin_name: m_sorted_in_pin_names) {
-		in_pin_names.push_back(pin_name);
-	}
-	return in_pin_names;
+	//~std::vector<std::string> in_pin_names;
+	//~for (const auto& pin_name: m_sorted_in_pin_names) {
+		//~in_pin_names.push_back(pin_name);
+	//~}
+	//~return in_pin_names;
+	return m_sorted_in_pin_names;
 }
 
 std::vector<std::string> Component::GetOutPinNames() {
-	std::vector<std::string> out_pin_names;
-	for (const auto& pin_name: m_sorted_out_pin_names) {
-		out_pin_names.push_back(pin_name);
-	}
-	return out_pin_names;
+	//~std::vector<std::string> out_pin_names;
+	//~for (const auto& pin_name: m_sorted_out_pin_names) {
+		//~out_pin_names.push_back(pin_name);
+	//~}
+	//~return out_pin_names;
+	return m_sorted_out_pin_names;
 }
 
 std::vector<std::size_t> Component::GetInPinNameHashes() {
-	std::vector<std::size_t> in_pin_name_hashes;
-	for (const auto& name_hash: m_sorted_in_pin_name_hashes) {
-		in_pin_name_hashes.push_back(name_hash);
-	}
-	return in_pin_name_hashes;
+	//~std::vector<std::size_t> in_pin_name_hashes;
+	//~for (const auto& name_hash: m_sorted_in_pin_name_hashes) {
+		//~in_pin_name_hashes.push_back(name_hash);
+	//~}
+	//~return in_pin_name_hashes;
+	return m_sorted_in_pin_name_hashes;
 }
 
 std::string Component::GetInPinName(std::size_t in_pin_name_hash) {
@@ -117,6 +120,7 @@ std::vector<int> Component::GetPinDirections(std::vector<std::size_t> const& pin
 			pin_directions.push_back(direction);
 		} else {
 			// This terminal doesn't exist !
+			pin_directions.push_back(0);
 		}
 	}
 	return pin_directions;
