@@ -89,32 +89,32 @@ void Gate::Connect(std::string const& origin_pin_name, std::string const& target
 }
 
 void Gate::Set(std::size_t pin_name_hash, bool state_to_set) {
-	bool current_state = m_in_pin_states[pin_name_hash];
-	if (current_state != state_to_set) {
-		m_in_pin_states[pin_name_hash] = state_to_set;
+	bool* current_state = &m_in_pin_states[pin_name_hash];
+	if (*current_state != state_to_set) {
 		if (mg_verbose_output_flag) {
 			std::string pin_name = GetInPinName(pin_name_hash);
-			std::cout << BOLD(FBLU("  ->")) << " Gate " << BOLD("" << m_full_name << "") << " terminal " << BOLD("" << pin_name << "") << " set from " << BoolToChar(current_state) << " to " << BoolToChar(state_to_set);
+			std::cout << BOLD(FBLU("  ->")) << " Gate " << BOLD("" << m_full_name << "") << " terminal " << BOLD("" << pin_name << "") << " set from " << BoolToChar(*current_state) << " to " << BoolToChar(state_to_set);
 		}
+		*current_state = state_to_set;
 		Evaluate();
 	}
 }
 
 void Gate::Evaluate() {
-	bool existing_state = m_out_pin_states[m_sorted_out_pin_name_hashes[0]];
+	bool* existing_state = &m_out_pin_states[m_sorted_out_pin_name_hashes[0]];
 	// The 'this' below is how we call a method function via it's method function pointer. Assuming the pointer and method
 	// are public, we could call it from outside this object via the syntax:
 	// 		([object variable name].*[object variable name].[member pointer variable name])(arguments);
 	// HOWEVER, from inside the object we use the syntax:
 	//		(this->*[member pointer variable name])(arguments);
 	bool new_state = (this->*m_operator_function_pointer)(m_in_pin_states);
-	if (existing_state != new_state) {
+	if (*existing_state != new_state) {
 		if (mg_verbose_output_flag) {
 			std::cout << ". Output " << BOLD(FBLU("-> ")) << BoolToChar(new_state) << std::endl;
 		}
 		// If the gate output has changed add it to the parent Devices propagate_next list, UNLESS this gate
 		// is already queued-up to propagate this tick.
-		m_out_pin_states[m_sorted_out_pin_name_hashes[0]] = new_state;
+		*existing_state = new_state;
 		if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
 			m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 		}
