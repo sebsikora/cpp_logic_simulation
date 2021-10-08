@@ -44,6 +44,7 @@ int main () {
 		auto t2 = high_resolution_clock::now();
 		std::chrono::duration<double, std::milli> ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
 		run_times.push_back(ms_int.count());
+		std::cout << "Run " << std::to_string(i) << " took " << std::to_string(ms_int.count()) << " ms" << std::endl;
 	}
 	int index = 0;
 	for (const auto& run_time: run_times) {

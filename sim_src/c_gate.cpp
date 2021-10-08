@@ -51,16 +51,18 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 	m_sorted_in_pin_names = in_pin_names;
 	std::sort(m_sorted_in_pin_names.begin(), m_sorted_in_pin_names.end(), compareNat);
 	for (const auto& pin_name: m_sorted_in_pin_names) {
-		m_sorted_in_pin_name_hashes.push_back(std::hash<std::string>{}(pin_name));
-	}
-	m_sorted_out_pin_names = {"output"};
-	m_sorted_out_pin_name_hashes = {std::hash<std::string>{}(m_sorted_out_pin_names[0])};
-	// Assign random states to Gate inputs.
-	for (const auto& pin_name_hash: m_sorted_in_pin_name_hashes) {
+		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
+		m_sorted_in_pin_name_hashes.push_back(pin_name_hash);
+		// Assign random states to Gate inputs.
 		bool temp_bool = rand() > (RAND_MAX / 2);
+		pin new_pin = {pin_name, 1, temp_bool, false};
+		//~m_pins[pin_name_hash] = new_pin;
 		m_pin_directions[pin_name_hash] = 1;
 		m_in_pin_states[pin_name_hash] = temp_bool;
 	}
+	m_sorted_out_pin_names = {"output"};
+	m_sorted_out_pin_name_hashes = {std::hash<std::string>{}(m_sorted_out_pin_names[0])};
+	
 	m_out_pin_states[m_sorted_out_pin_name_hashes[0]] = false;
 	m_pin_directions[m_sorted_out_pin_name_hashes[0]] = 2;
 }

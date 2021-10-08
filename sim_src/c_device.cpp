@@ -332,37 +332,41 @@ void Device::Solve() {
 
 void Device::Propagate() {
 	for (const auto& origin_pin_name_hash: m_sorted_in_pin_name_hashes) {
-		if (m_in_pin_state_changed[origin_pin_name_hash]) {
+		bool* state_changed = &m_in_pin_state_changed[origin_pin_name_hash];
+		if (*state_changed) {
+			bool* state = &m_in_pin_states[origin_pin_name_hash];
 			if (mg_verbose_output_flag) {
 				std::string pin_name = GetInPinName(origin_pin_name_hash);
-				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << pin_name << " = " << BoolToChar(m_in_pin_states[origin_pin_name_hash]) << std::endl;
+				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << pin_name << " = " << BoolToChar(*state) << std::endl;
 			}
-			m_in_pin_state_changed[origin_pin_name_hash] = false;
+			*state_changed = false;
 			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[origin_pin_name_hash];
 			for (const auto& connection: connections_to_set) {
 				Component* target_component = connection.second.target_component;
 				std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				target_component->Set(target_pin_name_hash, m_in_pin_states[origin_pin_name_hash]);
+				target_component->Set(target_pin_name_hash, *state);
 			}
 		}
 	}
 	for (const auto& origin_pin_name_hash: m_sorted_out_pin_name_hashes) {
-		if (m_out_pin_state_changed[origin_pin_name_hash]) {
+		bool* state_changed = &m_out_pin_state_changed[origin_pin_name_hash];
+		if (*state_changed) {
+			bool* state = &m_out_pin_states[origin_pin_name_hash];
 			if (mg_verbose_output_flag) {
 				std::string pin_name = GetOutPinName(origin_pin_name_hash);
-				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << pin_name << " = " << BoolToChar(m_out_pin_states[origin_pin_name_hash]) << std::endl;
+				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << pin_name << " = " << BoolToChar(*state) << std::endl;
 			}
-			m_out_pin_state_changed[origin_pin_name_hash] = false;
+			*state_changed = false;
 			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[origin_pin_name_hash];
 			for (const auto& connection: connections_to_set) {
 				Component* target_component = connection.second.target_component;
 				std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				target_component->Set(target_pin_name_hash, m_out_pin_states[origin_pin_name_hash]);
+				target_component->Set(target_pin_name_hash, *state);
 			}
 		}
 	}
 }
-//std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name
+
 void Device::Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) {
 	std::size_t origin_pin_name_hash = std::hash<std::string>{}(origin_pin_name);
 	std::size_t target_component_name_hash = std::hash<std::string>{}(target_component_name);
@@ -403,18 +407,19 @@ void Device::Set(std::size_t pin_name_hash, bool state_to_set) {
 	int terminal_type = m_pin_directions[pin_name_hash];
 	if (terminal_type == 1) {
 		// Device input terminal is being set.
-		bool current_state = m_in_pin_states[pin_name_hash];
+		bool* current_state = &m_in_pin_states[pin_name_hash];
 		// If this would change the input terminal state, check if this triggers a magic event, then propagate this change
 		// to all connected child component inputs.
-		if (state_to_set != current_state) {
+		if (state_to_set != *current_state) {
 			if (mg_verbose_output_flag) {
 				std::string terminal_name = GetInPinName(pin_name_hash);
-				std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << " input terminal " << BOLD("" << terminal_name << "") << " set from " << BoolToChar(current_state) << " to " << BoolToChar(state_to_set) << std::endl;
+				std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << " input terminal " << BOLD("" << terminal_name << "") << " set from " << BoolToChar(*current_state) << " to " << BoolToChar(state_to_set) << std::endl;
 			}
 			if (m_magic_device_flag == true) {
 				m_magic_engine_pointer->CheckMagicEventTrap(pin_name_hash, state_to_set);
 			}
-			m_in_pin_states[pin_name_hash] = state_to_set;
+			*current_state = state_to_set;
+			//~m_in_pin_states[pin_name_hash] = state_to_set;
 			m_in_pin_state_changed[pin_name_hash] = true;
 			// Add device to the parent Devices propagate_next list, UNLESS this device
 			// is already queued-up to propagate this SubTick.
@@ -428,13 +433,14 @@ void Device::Set(std::size_t pin_name_hash, bool state_to_set) {
 		}
 	} else if (terminal_type == 2) {
 		// Device output terminal is being set.
-		bool current_state = m_out_pin_states[pin_name_hash];
-		if (state_to_set != current_state) {
+		bool* current_state = &m_out_pin_states[pin_name_hash];
+		if (state_to_set != *current_state) {
 			if (mg_verbose_output_flag) {
 				std::string terminal_name = GetOutPinName(pin_name_hash);
-				std::cout << BOLD(FYEL("  ->")) << " Device " << BOLD("" << m_full_name << "") << " output terminal " << BOLD("" << terminal_name << "") << " set from " << BoolToChar(current_state) << " to " << BoolToChar(state_to_set) << std::endl;
+				std::cout << BOLD(FYEL("  ->")) << " Device " << BOLD("" << m_full_name << "") << " output terminal " << BOLD("" << terminal_name << "") << " set from " << BoolToChar(*current_state) << " to " << BoolToChar(state_to_set) << std::endl;
 			}
-			m_out_pin_states[pin_name_hash] = state_to_set;
+			*current_state = state_to_set;
+			//~m_out_pin_states[pin_name_hash] = state_to_set;
 			m_out_pin_state_changed[pin_name_hash] = true;
 			// Add device to the parent Devices propagate_next list, UNLESS this device
 			// is already queued-up to propagate this SubTick.
