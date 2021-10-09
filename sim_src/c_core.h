@@ -192,6 +192,7 @@ class Device : public Component {
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		void AddToPropagateNextTick(std::size_t propagation_identifier);
 		bool CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier);
+		bool CheckAndCancelPropagateThisTick(std::size_t propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		
 		// Data.
