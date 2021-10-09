@@ -112,6 +112,8 @@ class Component {
 		std::unordered_map<std::size_t, int> m_pin_directions;
 		std::unordered_map<std::size_t, bool> m_in_pin_states;
 		std::unordered_map<std::size_t, bool> m_out_pin_states;
+		std::unordered_map<std::size_t, pin> m_in_pins;
+		std::unordered_map<std::size_t, pin> m_out_pins;
 		std::vector<std::string> m_sorted_in_pin_names;
 		std::vector<std::string> m_sorted_out_pin_names;
 		std::vector<std::size_t> m_sorted_in_pin_name_hashes;
@@ -197,7 +199,7 @@ class Device : public Component {
 		std::unordered_map<std::size_t, bool> m_in_pin_state_changed;
 		std::unordered_map<std::size_t, bool> m_out_pin_state_changed;
 		std::unordered_map<std::size_t, Component*> m_components;
-		std::unordered_map<std::size_t, bool> m_propagate_next_tick;
+		std::vector<std::size_t> m_propagate_next_tick;
 		std::unordered_map<std::size_t, bool> m_yet_to_propagate_this_tick;
 		std::unordered_map<std::size_t, std::unordered_map<std::size_t, connection_descriptor>> m_ports;
 		bool m_magic_device_flag;

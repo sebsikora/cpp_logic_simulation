@@ -74,27 +74,36 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
+		pin new_in_pin = {pin_name, 0, false, false};
 		if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
 			// If this is a user-defined input, handle as normal.
 			m_pin_directions[pin_name_hash] = 1;
+			new_in_pin.direction = 1;
 			if (IsStringInMapKeys(pin_name, pin_default_states)) {
 				// If this input is in the defaults list set accordingly...
 				m_in_pin_states[pin_name_hash] = pin_default_states[pin_name];
+				new_in_pin.state = pin_default_states[pin_name];
 			} else {
 				// ...otherwise set input state to false.
 				m_in_pin_states[pin_name_hash] = false;
+				new_in_pin.state = false;
 			}
 		} else {
 			// If this is a default 'hidden' input, don't include it in the 'available input' keymap.
 			// This means the input cannot be Set().
 			m_pin_directions[pin_name_hash] = 0;
+			new_in_pin.direction = 0;
 			if (pin_name == "true") {
 				m_in_pin_states[pin_name_hash] = true;
+				new_in_pin.state = true;
 			} else if (pin_name == "false") {
 				m_in_pin_states[pin_name_hash] = false;
+				new_in_pin.state = false;
 			}
 		}
 		m_in_pin_state_changed[pin_name_hash] = false;
+		new_in_pin.state_changed = false;
+		m_in_pins[pin_name_hash] = new_in_pin;
 	}
 	// Concatenate new and existing input state key lists and sort.
 	m_sorted_in_pin_names = pin_names;
@@ -122,6 +131,8 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 		m_out_pin_states[pin_name_hash] = false;
 		m_out_pin_state_changed[pin_name_hash] = false;
 		m_pin_directions[pin_name_hash] = 2;
+		pin new_out_pin = {pin_name, 2, false, false};
+		m_out_pins[pin_name_hash] = new_out_pin;
 	}
 	// Concatenate new and existing output state key lists and sort.
 	m_sorted_out_pin_names = pin_names;
@@ -261,26 +272,30 @@ void Device::Initialise() {
 	for (const auto& out_state: m_out_pin_states) {
 		m_out_pin_state_changed[out_state.first] = true;
 	}
-	if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
-		m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
-	}
+	m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 }
 
 void Device::SubTick(int index) {
 	if (mg_verbose_output_flag) {
 		std::cout << "Iteration: " << std::to_string(index) << std::endl;
 	}
-	std::vector<std::size_t> propagate_this_tick;
-	for (const auto& entry: m_propagate_next_tick) {		// entry.first = component name hash, entry.second = bool
-		propagate_this_tick.push_back(entry.first);
+	
+	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end());
+	m_propagate_next_tick.erase(std::unique(m_propagate_next_tick.begin(), m_propagate_next_tick.end()), m_propagate_next_tick.end()); 
+	std::vector<std::size_t> propagate_this_tick = m_propagate_next_tick;
+	for (const auto& component_name_hash: m_propagate_next_tick) {
+		m_yet_to_propagate_this_tick[component_name_hash] = true;
 	}
 	m_propagate_next_tick.clear();
-	for (const auto& entry: propagate_this_tick) {
-		m_yet_to_propagate_this_tick[entry] = true;
-	}
-	for (const auto& entry: propagate_this_tick) {
-		m_yet_to_propagate_this_tick[entry] = false;
-		Component* current_component = m_components[entry];
+	for (const auto& component_name_hash: propagate_this_tick) {
+		//~bool* yet_to_propagate = &m_yet_to_propagate_this_tick[component_name_hash];
+		//~if (*yet_to_propagate) {
+			//~*yet_to_propagate = false;
+			//~Component* current_component = m_components[component_name_hash];
+			//~current_component->Propagate();
+		//~}
+		m_yet_to_propagate_this_tick[component_name_hash] = false;
+		Component* current_component = m_components[component_name_hash];
 		current_component->Propagate();
 	}
 	if (mg_verbose_output_flag) {
@@ -404,6 +419,11 @@ void Device::Connect(std::string const& origin_pin_name, std::string const& targ
 }
 
 void Device::Set(std::size_t pin_name_hash, bool state_to_set) {
+	//~std::unordered_map<std::size_t, pin>::iterator this_pin = m_in_pins.find(pin_name_hash);
+	//~if (this_pin == m_in_pins.end()) {
+		//~this_pin = m_out_pins.find(pin_name_hash);
+	//~}
+	//~std::cout << this_pin->second.name << std::endl;
 	int terminal_type = m_pin_directions[pin_name_hash];
 	if (terminal_type == 1) {
 		// Device input terminal is being set.
@@ -419,7 +439,6 @@ void Device::Set(std::size_t pin_name_hash, bool state_to_set) {
 				m_magic_engine_pointer->CheckMagicEventTrap(pin_name_hash, state_to_set);
 			}
 			*current_state = state_to_set;
-			//~m_in_pin_states[pin_name_hash] = state_to_set;
 			m_in_pin_state_changed[pin_name_hash] = true;
 			// Add device to the parent Devices propagate_next list, UNLESS this device
 			// is already queued-up to propagate this SubTick.
@@ -440,7 +459,6 @@ void Device::Set(std::size_t pin_name_hash, bool state_to_set) {
 				std::cout << BOLD(FYEL("  ->")) << " Device " << BOLD("" << m_full_name << "") << " output terminal " << BOLD("" << terminal_name << "") << " set from " << BoolToChar(*current_state) << " to " << BoolToChar(state_to_set) << std::endl;
 			}
 			*current_state = state_to_set;
-			//~m_out_pin_states[pin_name_hash] = state_to_set;
 			m_out_pin_state_changed[pin_name_hash] = true;
 			// Add device to the parent Devices propagate_next list, UNLESS this device
 			// is already queued-up to propagate this SubTick.
@@ -471,16 +489,17 @@ int Device::GetNestingLevel() {
 	return m_nesting_level;
 }
 
-void Device::AddToPropagateNextTick(std::size_t propagation_identifier) {
-	m_propagate_next_tick[propagation_identifier] = true;
-}
-
 bool Device::CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier) {
-	if (m_yet_to_propagate_this_tick[propagation_identifier] == true) {
-		return true;
+	std::unordered_map<std::size_t, bool>::iterator this_entry = m_yet_to_propagate_this_tick.find(propagation_identifier);
+	if (this_entry != m_yet_to_propagate_this_tick.end()) {
+		return this_entry->second;
 	} else {
 		return false;
 	}
+}
+
+void Device::AddToPropagateNextTick(std::size_t propagation_identifier) {
+	m_propagate_next_tick.push_back(propagation_identifier);
 }
 
 void Device::MakeProbable() {
