@@ -279,22 +279,13 @@ void Device::SubTick(int index) {
 	if (mg_verbose_output_flag) {
 		std::cout << "Iteration: " << std::to_string(index) << std::endl;
 	}
-	
 	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end());
 	m_propagate_next_tick.erase(std::unique(m_propagate_next_tick.begin(), m_propagate_next_tick.end()), m_propagate_next_tick.end()); 
-	std::vector<std::size_t> propagate_this_tick = m_propagate_next_tick;
-	for (const auto& component_name_hash: m_propagate_next_tick) {
-		m_yet_to_propagate_this_tick[component_name_hash] = true;
-	}
+	m_propagate_this_tick = m_propagate_next_tick;
 	m_propagate_next_tick.clear();
-	for (const auto& component_name_hash: propagate_this_tick) {
-		//~bool* yet_to_propagate = &m_yet_to_propagate_this_tick[component_name_hash];
-		//~if (*yet_to_propagate) {
-			//~*yet_to_propagate = false;
-			//~Component* current_component = m_components[component_name_hash];
-			//~current_component->Propagate();
-		//~}
-		m_yet_to_propagate_this_tick[component_name_hash] = false;
+	m_still_to_propagate = m_propagate_this_tick;
+	for (const auto& component_name_hash: m_propagate_this_tick) {
+		m_still_to_propagate.erase(remove(m_still_to_propagate.begin(), m_still_to_propagate.end(), component_name_hash), m_still_to_propagate.end());
 		Component* current_component = m_components[component_name_hash];
 		current_component->Propagate();
 	}
@@ -490,12 +481,7 @@ int Device::GetNestingLevel() {
 }
 
 bool Device::CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier) {
-	std::unordered_map<std::size_t, bool>::iterator this_entry = m_yet_to_propagate_this_tick.find(propagation_identifier);
-	if (this_entry != m_yet_to_propagate_this_tick.end()) {
-		return this_entry->second;
-	} else {
-		return false;
-	}
+	return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
 }
 
 void Device::AddToPropagateNextTick(std::size_t propagation_identifier) {

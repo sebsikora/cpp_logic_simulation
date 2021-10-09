@@ -200,7 +200,8 @@ class Device : public Component {
 		std::unordered_map<std::size_t, bool> m_out_pin_state_changed;
 		std::unordered_map<std::size_t, Component*> m_components;
 		std::vector<std::size_t> m_propagate_next_tick;
-		std::unordered_map<std::size_t, bool> m_yet_to_propagate_this_tick;
+		std::vector<std::size_t> m_propagate_this_tick;
+		std::vector<std::size_t> m_still_to_propagate;
 		std::unordered_map<std::size_t, std::unordered_map<std::size_t, connection_descriptor>> m_ports;
 		bool m_magic_device_flag;
 		MagicEngine* m_magic_engine_pointer;
