@@ -66,7 +66,7 @@ struct pin {
 // structs to strings as arguments and returns a state struct. This allows us to *dramatically*
 // simplify the code for declaring such function pointers and member functions that take them as
 // arguments and/or return them.
-typedef bool (Gate::*operator_pointer)(std::unordered_map<std::size_t, bool> const&);
+typedef bool (Gate::*operator_pointer)(std::unordered_map<std::size_t, pin> const&);
 
 // Class definitions proper.
 // Base logic component class.
@@ -109,9 +109,6 @@ class Component {
 		std::string m_component_type;
 		Simulation* m_top_level_sim_pointer;
 		Device* m_parent_device_pointer;
-		std::unordered_map<std::size_t, int> m_pin_directions;
-		std::unordered_map<std::size_t, bool> m_in_pin_states;
-		std::unordered_map<std::size_t, bool> m_out_pin_states;
 		std::unordered_map<std::size_t, pin> m_in_pins;
 		std::unordered_map<std::size_t, pin> m_out_pins;
 		std::vector<std::string> m_sorted_in_pin_names;
@@ -138,11 +135,11 @@ class Gate : public Component {
 		void Evaluate(void);
 		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
 		operator_pointer GetOperatorPointer(std::string const& operator_name);
-		bool OperatorAnd(std::unordered_map<std::size_t, bool> const& in_pin_states);
-		bool OperatorNand(std::unordered_map<std::size_t, bool> const& in_pin_states);
-		bool OperatorOr(std::unordered_map<std::size_t, bool> const& in_pin_states);
-		bool OperatorNor(std::unordered_map<std::size_t, bool> const& in_pin_states);
-		bool OperatorNot(std::unordered_map<std::size_t, bool> const& in_pin_states);
+		bool OperatorAnd(std::unordered_map<std::size_t, pin> const& in_pins);
+		bool OperatorNand(std::unordered_map<std::size_t, pin> const& in_pins);
+		bool OperatorOr(std::unordered_map<std::size_t, pin> const& in_pins);
+		bool OperatorNor(std::unordered_map<std::size_t, pin> const& in_pins);
+		bool OperatorNot(std::unordered_map<std::size_t, pin> const& in_pins);
 		
 		// Data.
 		operator_pointer m_operator_function_pointer;
@@ -173,7 +170,6 @@ class Device : public Component {
 		void MakeProbable(void) override;
 		// Device-specific methods.
 		virtual void Build(void);
-		
 		void CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
 		void AddComponent(Component* new_component_pointer);

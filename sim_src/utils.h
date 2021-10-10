@@ -28,6 +28,8 @@
 
 #include "c_core.h"					// Core simulator functionality
 
+
+bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, pin> const& map_to_search);
 bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search);
 bool IsHashInVector(std::size_t hash_to_find, std::vector<std::size_t> const& vector_to_search);
 bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, bool> const& map_to_search);

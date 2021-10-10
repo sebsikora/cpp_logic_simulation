@@ -3,7 +3,7 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
+	bool verbose = true;
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	

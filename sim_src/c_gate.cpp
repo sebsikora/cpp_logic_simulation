@@ -57,15 +57,11 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 		bool temp_bool = rand() > (RAND_MAX / 2);
 		pin new_in_pin = {pin_name, 1, temp_bool, false};
 		m_in_pins[pin_name_hash] = new_in_pin;
-		m_pin_directions[pin_name_hash] = 1;
-		m_in_pin_states[pin_name_hash] = temp_bool;
 	}
 	m_sorted_out_pin_names = {"output"};
 	m_sorted_out_pin_name_hashes = {std::hash<std::string>{}(m_sorted_out_pin_names[0])};
 	pin new_out_pin = {m_sorted_out_pin_names[0], 2, false, false};
 	m_out_pins[m_sorted_out_pin_name_hashes[0]] = new_out_pin;
-	m_out_pin_states[m_sorted_out_pin_name_hashes[0]] = false;
-	m_pin_directions[m_sorted_out_pin_name_hashes[0]] = 2;
 }
 
 void Gate::Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) {
@@ -90,32 +86,31 @@ void Gate::Connect(std::string const& origin_pin_name, std::string const& target
 }
 
 void Gate::Set(std::size_t pin_name_hash, bool state_to_set) {
-	bool* current_state = &m_in_pin_states[pin_name_hash];
-	if (*current_state != state_to_set) {
+	pin* this_pin = &m_in_pins[pin_name_hash];
+	if (this_pin->state != state_to_set) {
 		if (mg_verbose_output_flag) {
-			std::string pin_name = GetInPinName(pin_name_hash);
-			std::cout << BOLD(FBLU("  ->")) << " Gate " << BOLD("" << m_full_name << "") << " terminal " << BOLD("" << pin_name << "") << " set from " << BoolToChar(*current_state) << " to " << BoolToChar(state_to_set);
+			std::cout << BOLD(FBLU("  ->")) << " Gate " << BOLD("" << m_full_name << "") << " terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set);
 		}
-		*current_state = state_to_set;
+		this_pin->state = state_to_set;
 		Evaluate();
 	}
 }
 
 void Gate::Evaluate() {
-	bool* existing_state = &m_out_pin_states[m_sorted_out_pin_name_hashes[0]];
+	pin* this_pin = &m_out_pins[m_sorted_out_pin_name_hashes[0]];
 	// The 'this' below is how we call a method function via it's method function pointer. Assuming the pointer and method
 	// are public, we could call it from outside this object via the syntax:
 	// 		([object variable name].*[object variable name].[member pointer variable name])(arguments);
 	// HOWEVER, from inside the object we use the syntax:
 	//		(this->*[member pointer variable name])(arguments);
-	bool new_state = (this->*m_operator_function_pointer)(m_in_pin_states);
-	if (*existing_state != new_state) {
+	bool new_state = (this->*m_operator_function_pointer)(m_in_pins);
+	if (this_pin->state != new_state) {
 		if (mg_verbose_output_flag) {
 			std::cout << ". Output " << BOLD(FBLU("-> ")) << BoolToChar(new_state) << std::endl;
 		}
 		// If the gate output has changed add it to the parent Devices propagate_next list, UNLESS this gate
 		// is already queued-up to propagate this tick.
-		*existing_state = new_state;
+		this_pin->state = new_state;
 		if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
 			m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 		}
@@ -139,15 +134,16 @@ void Gate::Initialise() {
 	// To ensure that this does not take place, having set the input states of any gate connected to it's inputs, the parent device
 	// calls Initialise() for each remaining child gate to ensure it's output state is sensible with respect to it's initial input 
 	// states and that if it's output state has changed this change will be propagated during the subsequent Solve() call.
-	bool new_state = (this->*m_operator_function_pointer)(m_in_pin_states);
-	m_out_pin_states[m_sorted_out_pin_name_hashes[0]] = new_state;
+	bool new_state = (this->*m_operator_function_pointer)(m_in_pins);
+	m_out_pins[m_sorted_out_pin_name_hashes[0]].state = new_state;
 	if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
 		m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 	}
 }
 
 void Gate::Propagate() {
-	bool state_to_propagate = m_out_pin_states[m_sorted_out_pin_name_hashes[0]];
+	pin* this_pin = &m_out_pins[m_sorted_out_pin_name_hashes[0]];
+	bool state_to_propagate = this_pin->state;
 	if (mg_verbose_output_flag) {
 		std::cout << BOLD(FRED("->")) << "Gate " << BOLD("" << m_full_name << "") << " propagating output = " << BoolToChar(state_to_propagate) << std::endl;
 	}
@@ -171,9 +167,9 @@ Component* Gate::GetSiblingComponentPointer (std::string const& target_sibling_c
 void Gate::PrintPinStates(int max_levels) {
 	std::cout << m_full_name << ": [";
 	for (const auto& in_pin_name: m_sorted_in_pin_name_hashes) {
-		std::cout << " " << BoolToChar(m_in_pin_states[in_pin_name]) << " ";
+		std::cout << " " << BoolToChar(m_in_pins[in_pin_name].state) << " ";
 	}
-	std::cout << "] [ " << BoolToChar(m_out_pin_states[m_sorted_out_pin_name_hashes[0]]) << " ]" << std::endl;
+	std::cout << "] [ " << BoolToChar(m_out_pins[m_sorted_out_pin_name_hashes[0]].state) << " ]" << std::endl;
 }
 
 operator_pointer Gate::GetOperatorPointer(std::string const& operator_name) {
@@ -192,40 +188,40 @@ operator_pointer Gate::GetOperatorPointer(std::string const& operator_name) {
 	return pointer;
 }
 
-bool Gate::OperatorAnd(std::unordered_map<std::size_t, bool> const& in_pin_states) {
+bool Gate::OperatorAnd(std::unordered_map<std::size_t, pin> const& in_pins) {
 	bool output = true;
-	for (const auto& in_state: in_pin_states) {
-		output &= in_state.second;
+	for (const auto& in_pin: in_pins) {
+		output &= in_pin.second.state;
 	}
 	return output;
 }
-bool Gate::OperatorNand(std::unordered_map<std::size_t, bool> const& in_pin_states) {
+bool Gate::OperatorNand(std::unordered_map<std::size_t, pin> const& in_pins) {
 	bool output = true;
-	for (const auto& in_state: in_pin_states) {
-		output &= in_state.second;
+	for (const auto& in_pin: in_pins) {
+		output &= in_pin.second.state;
 	}
 	output = !output;
 	return output;
 }
-bool Gate::OperatorOr(std::unordered_map<std::size_t, bool> const& in_pin_states) {
+bool Gate::OperatorOr(std::unordered_map<std::size_t, pin> const& in_pins) {
 	bool output = false;
-	for (const auto& in_state: in_pin_states) {
-		output |= in_state.second;
+	for (const auto& in_pin: in_pins) {
+		output |= in_pin.second.state;
 	}
 	return output;
 }
-bool Gate::OperatorNor(std::unordered_map<std::size_t, bool> const& in_pin_states) {
+bool Gate::OperatorNor(std::unordered_map<std::size_t, pin> const& in_pins) {
 	bool output = false;
-	for (const auto& in_state: in_pin_states) {
-		output |= in_state.second;
+	for (const auto& in_pin: in_pins) {
+		output |= in_pin.second.state;
 	}
 	output = !output;
 	return output;
 }
-bool Gate::OperatorNot(std::unordered_map<std::size_t, bool> const& in_pin_states) {
+bool Gate::OperatorNot(std::unordered_map<std::size_t, pin> const& in_pins) {
 	bool output = false;
-	for (const auto& in_state: in_pin_states) {
-		output = !in_state.second;
+	for (const auto& in_pin: in_pins) {
+		output = !in_pin.second.state;
 	}
 	return output;
 }
