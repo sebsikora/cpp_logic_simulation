@@ -74,7 +74,7 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		pin new_in_pin = {pin_name, 0, false, false};
+		pin new_in_pin = {pin_name, pin_name_hash, 0, false, false};
 		if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
 			// If this is a user-defined input, handle as normal.
 			new_in_pin.direction = 1;
@@ -121,7 +121,7 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 	// Create new outputs.
 	for (const auto& pin_name: pin_names) {
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		pin new_out_pin = {pin_name, 2, false, false};
+		pin new_out_pin = {pin_name, pin_name_hash, 2, false, false};
 		m_out_pins[pin_name_hash] = new_out_pin;
 	}
 	// Concatenate new and existing output state key lists and sort.
@@ -332,33 +332,31 @@ void Device::Solve() {
 }
 
 void Device::Propagate() {
-	for (const auto& origin_pin_name_hash: m_sorted_in_pin_name_hashes) {
-		pin* this_pin = &m_in_pins[origin_pin_name_hash];
-		if (this_pin->state_changed) {
+	for (auto& this_pin: m_in_pins) {
+		if (this_pin.second.state_changed) {
 			if (mg_verbose_output_flag) {
-				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin->name << " = " << BoolToChar(this_pin->state) << std::endl;
+				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
-			this_pin->state_changed = false;
-			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[origin_pin_name_hash];
+			this_pin.second.state_changed = false;
+			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
 			for (const auto& connection: connections_to_set) {
 				Component* target_component = connection.second.target_component;
 				std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				target_component->Set(target_pin_name_hash, this_pin->state);
+				target_component->Set(target_pin_name_hash, this_pin.second.state);
 			}
 		}
 	}
-	for (const auto& origin_pin_name_hash: m_sorted_out_pin_name_hashes) {
-		pin* this_pin = &m_out_pins[origin_pin_name_hash];
-		if (this_pin->state_changed) {
+	for (auto& this_pin: m_out_pins) {
+		if (this_pin.second.state_changed) {
 			if (mg_verbose_output_flag) {
-				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin->name << " = " << BoolToChar(this_pin->state) << std::endl;
+				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
-			this_pin->state_changed = false;
-			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[origin_pin_name_hash];
+			this_pin.second.state_changed = false;
+			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
 			for (const auto& connection: connections_to_set) {
 				Component* target_component = connection.second.target_component;
 				std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				target_component->Set(target_pin_name_hash, this_pin->state);
+				target_component->Set(target_pin_name_hash, this_pin.second.state);
 			}
 		}
 	}

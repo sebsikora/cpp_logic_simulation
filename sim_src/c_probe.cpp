@@ -44,7 +44,7 @@ Probe::Probe(Simulation* top_level_device_pointer, std::string const& probe_name
 
 void Probe::Sample(int index) {
 	m_timestamps.push_back(index);
-	std::vector<bool> this_sample = {};
+	m_this_sample = {};
 	int pin_index = 0;
 	for (const auto& pin_name_hash: m_target_pins) {
 		bool pin_state = false;
@@ -57,9 +57,9 @@ void Probe::Sample(int index) {
 			// HELP - This terminal name corresponds to neither input or output terminal of target component.
 		}
 		pin_index ++;
-		this_sample.push_back(pin_state);
+		m_this_sample.push_back(pin_state);
 	}
-	m_samples.push_back(this_sample);
+	m_samples.push_back(m_this_sample);
 }
 
 void Probe::Reset() {

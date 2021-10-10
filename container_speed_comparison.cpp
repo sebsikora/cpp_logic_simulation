@@ -14,7 +14,7 @@ int main() {
 	unsigned long master_accumulator = 0;
 	
 	// Test config.
-	std::vector<int> number_of_pins = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+	std::vector<int> number_of_pins = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
 	int number_of_runs = 100;
 	int number_of_random_lookups = 25000;
 	
@@ -40,7 +40,7 @@ int main() {
 			std::string pin_name = pin_names[i];
 			std::size_t pin_name_hash = pin_hashes[i];
 			int random_int = rand() % 10;
-			pin new_pin = {pin_name, random_int, false, false};
+			pin new_pin = {pin_name, pin_name_hash, random_int, false, false};
 			
 			// In-order insertion into pin_hash_table.
 			std::vector<size_t>::iterator this_entry = std::upper_bound(pin_hash_table.begin(), pin_hash_table.end(), pin_name_hash);

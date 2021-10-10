@@ -46,6 +46,7 @@ struct connection_descriptor {
 
 struct pin {
 	std::string name;
+	std::size_t name_hash;
 	int direction;
 	bool state;
 	bool state_changed;
@@ -290,6 +291,7 @@ class Probe {
 		Clock* m_trigger_clock_pointer;
 		std::vector<int> m_timestamps;
 		std::vector<std::vector<bool>> m_samples;
+		std::vector<bool> m_this_sample;
 };
 
 // Comment goes here...

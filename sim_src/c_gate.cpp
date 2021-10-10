@@ -55,12 +55,12 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 		m_sorted_in_pin_name_hashes.push_back(pin_name_hash);
 		// Assign random states to Gate inputs.
 		bool temp_bool = rand() > (RAND_MAX / 2);
-		pin new_in_pin = {pin_name, 1, temp_bool, false};
+		pin new_in_pin = {pin_name, pin_name_hash, 1, temp_bool, false};
 		m_in_pins[pin_name_hash] = new_in_pin;
 	}
 	m_sorted_out_pin_names = {"output"};
 	m_sorted_out_pin_name_hashes = {std::hash<std::string>{}(m_sorted_out_pin_names[0])};
-	pin new_out_pin = {m_sorted_out_pin_names[0], 2, false, false};
+	pin new_out_pin = {m_sorted_out_pin_names[0], m_sorted_out_pin_name_hashes[0], 2, false, false};
 	m_out_pins[m_sorted_out_pin_name_hashes[0]] = new_out_pin;
 }
 
