@@ -154,7 +154,7 @@ void SimpleRom_MagicEngine::InvokeMagic(std::string const& incantation) {
 		int data_pin_index = 0;
 		for (const auto& pin_identifier_hash: m_data_bus_pin_identifier_hashes) {
 			if (m_parent_device_pointer->GetOutPinState(pin_identifier_hash) != data_at_address[data_pin_index]) {
-				m_parent_device_pointer->Set(pin_identifier_hash, data_at_address[data_pin_index]);
+				m_parent_device_pointer->Set(pin_identifier_hash, 2, data_at_address[data_pin_index]);
 			}
 			data_pin_index ++;
 		}

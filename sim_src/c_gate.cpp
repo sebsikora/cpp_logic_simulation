@@ -79,13 +79,14 @@ void Gate::Connect(std::string const& origin_pin_name, std::string const& target
 		conn_descriptor.target_component = target_component;
 		std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
 		conn_descriptor.target_pin_name_hash = target_pin_name_hash;
+		conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
 		m_connections[connection_identifier_hash] = conn_descriptor;
 	} else {
 		std::cout << "Duplicate connection omitted." << std::endl;
 	}
 }
 
-void Gate::Set(std::size_t pin_name_hash, bool state_to_set) {
+void Gate::Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) {
 	pin* this_pin = &m_in_pins[pin_name_hash];
 	if (this_pin->state != state_to_set) {
 		if (mg_verbose_output_flag) {
@@ -111,6 +112,7 @@ void Gate::Evaluate() {
 		// If the gate output has changed add it to the parent Devices propagate_next list, UNLESS this gate
 		// is already queued-up to propagate this tick.
 		this_pin->state = new_state;
+		this_pin->state_changed = true;
 		if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
 			m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 		}
@@ -136,6 +138,7 @@ void Gate::Initialise() {
 	// states and that if it's output state has changed this change will be propagated during the subsequent Solve() call.
 	bool new_state = (this->*m_operator_function_pointer)(m_in_pins);
 	m_out_pins[m_sorted_out_pin_name_hashes[0]].state = new_state;
+	m_out_pins[m_sorted_out_pin_name_hashes[0]].state_changed = true;
 	if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
 		m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 	}
@@ -143,15 +146,18 @@ void Gate::Initialise() {
 
 void Gate::Propagate() {
 	pin* this_pin = &m_out_pins[m_sorted_out_pin_name_hashes[0]];
-	bool state_to_propagate = this_pin->state;
-	if (mg_verbose_output_flag) {
-		std::cout << BOLD(FRED("->")) << "Gate " << BOLD("" << m_full_name << "") << " propagating output = " << BoolToChar(state_to_propagate) << std::endl;
-	}
-	for (const auto& connection: m_connections) {
-		connection_descriptor target_connection_descriptor = connection.second;
-		Component* target_component = target_connection_descriptor.target_component;
-		std::size_t pin_name_hash = target_connection_descriptor.target_pin_name_hash;
-		target_component->Set(pin_name_hash, state_to_propagate);
+	if (this_pin->state_changed) {
+		if (mg_verbose_output_flag) {
+			std::cout << BOLD(FRED("->")) << "Gate " << BOLD("" << m_full_name << "") << " propagating output = " << BoolToChar(this_pin->state) << std::endl;
+		}
+		this_pin->state_changed = false;
+		for (const auto& connection: m_connections) {
+			connection_descriptor target_connection_descriptor = connection.second;
+			Component* target_component = target_connection_descriptor.target_component;
+			std::size_t pin_name_hash = target_connection_descriptor.target_pin_name_hash;
+			int pin_direction = target_connection_descriptor.target_pin_direction;
+			target_component->Set(pin_name_hash, pin_direction, this_pin->state);
+		}
 	}
 }
 

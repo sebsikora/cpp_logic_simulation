@@ -42,6 +42,7 @@ class MagicEngine;
 struct connection_descriptor {
 	Component* target_component;
 	std::size_t target_pin_name_hash;
+	int target_pin_direction;
 };
 
 struct pin {
@@ -90,12 +91,13 @@ class Component {
 		std::string GetInPinName(std::size_t in_pin_name_hash);
 		std::string GetOutPinName(std::size_t out_pin_name_hash);
 		std::vector<int> GetPinDirections(std::vector<std::size_t> const& pin_name_hashes);
+		int GetPinDirection(std::size_t pin_name_hash);
 		void PrintInPinStates(void);
 		void PrintOutPinStates(void);
 		// Virtual methods.
 		virtual void Initialise(void) = 0;
 		virtual void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) = 0;
-		virtual void Set(std::size_t terminal_name_hash, bool state_to_set) = 0;
+		virtual void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) = 0;
 		virtual void Propagate(void) = 0;
 		virtual void PrintPinStates(int max_levels) = 0;
 		virtual void MakeProbable(void) = 0;
@@ -129,7 +131,7 @@ class Gate : public Component {
 		void Initialise(void) override;
 		void PrintPinStates(int max_levels) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
-		void Set(std::size_t pin_name_hash, bool state_to_set) override;
+		void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		// Gate-specific methods.
@@ -166,7 +168,7 @@ class Device : public Component {
 		void Initialise(void) override;
 		void PrintPinStates(int max_levels) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
-		void Set(std::size_t pin_name_hash, bool state_to_set) override;
+		void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		// Device-specific methods.

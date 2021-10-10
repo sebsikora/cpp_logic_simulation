@@ -100,6 +100,7 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 		conn_descriptor.target_component = target_component;
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
 		conn_descriptor.target_pin_name_hash = pin_name_hash;
+		conn_descriptor.target_pin_direction = target_component->GetPinDirection(pin_name_hash);
 		m_connections[connection_identifier_hash] = conn_descriptor;
 	} else {
 		std::cout << "Duplicate connection omitted." << std::endl;
@@ -111,7 +112,7 @@ void Clock::Propagate() {
 		connection_descriptor target_connection_descriptor = entry.second;
 		Component* target_component = target_connection_descriptor.target_component;
 		bool origin_new_state = m_out_pin_states[std::hash<std::string>{}("output")];
-		target_component->Set(target_connection_descriptor.target_pin_name_hash, origin_new_state);
+		target_component->Set(target_connection_descriptor.target_pin_name_hash, target_connection_descriptor.target_pin_direction, origin_new_state);
 	}
 }
 

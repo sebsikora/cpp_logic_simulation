@@ -14,9 +14,9 @@ int main() {
 	unsigned long master_accumulator = 0;
 	
 	// Test config.
-	std::vector<int> number_of_pins = {1, 2, 4, 8, 16, 32, 64, 128, 256, 512};
-	int number_of_runs = 100;
-	int number_of_random_lookups = 25000;
+	std::vector<int> number_of_pins = {1, 2, 4, 8, 16, 32, 64, 128};
+	int number_of_runs = 300;
+	int number_of_random_lookups = 100000;
 	
 	// Create pin names.
 	std::vector<std::string> pin_names;
@@ -84,8 +84,9 @@ int main() {
 			for (int lookup_index = 0; lookup_index < number_of_random_lookups; lookup_index ++) {
 				size_t lookup_pin_name_hash = pin_hashes[lookups[lookup_index]];
 				// Lookup pin in map.
-				pin map_lookup_pin = pin_map[lookup_pin_name_hash];
-				master_accumulator += (unsigned long)map_lookup_pin.direction;
+				pin* map_lookup_pin = &pin_map[lookup_pin_name_hash];
+				master_accumulator += (unsigned long)map_lookup_pin->direction;
+				map_lookup_pin->state = map_lookup_pin->state;
 			}
 			auto t2 = high_resolution_clock::now();						// Stop timer.
 			std::chrono::duration<double, std::milli> ms_int_map = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
@@ -99,8 +100,9 @@ int main() {
 				if (this_entry != pin_hash_table.end()) {
 					// If present...
 					int hash_table_index = std::distance(pin_hash_table.begin(), this_entry);
-					pin hash_table_lookup_pin = pin_table[hash_table_index];
-					master_accumulator += (unsigned long)hash_table_lookup_pin.direction;
+					pin* hash_table_lookup_pin = &pin_table[hash_table_index];
+					master_accumulator += (unsigned long)hash_table_lookup_pin->direction;
+					hash_table_lookup_pin->state = !hash_table_lookup_pin->state;
 				} else {
 					master_accumulator += 0;
 				}
@@ -110,11 +112,12 @@ int main() {
 			this_run_table_time.push_back(ms_int_vec.count());
 		}
 		// Calculate average of times
-		double accumulator;
+		double accumulator = 0.0;
 		for (const auto& value: this_run_map_time) {
 			accumulator += value;
 		}
 		run_map_times.push_back(accumulator/(double)number_of_runs);
+
 		accumulator = 0.0;
 		for (const auto& value: this_run_table_time) {
 			accumulator += value;

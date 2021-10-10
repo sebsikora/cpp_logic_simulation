@@ -116,6 +116,21 @@ std::vector<int> Component::GetPinDirections(std::vector<std::size_t> const& pin
 	return pin_directions;
 }
 
+int Component::GetPinDirection(size_t pin_name_hash) {
+	int pin_direction = 0;
+	for (const auto& in_pin: m_in_pins) {
+		if (in_pin.first == pin_name_hash) {
+			pin_direction = 1;
+		}
+	}
+	for (const auto& out_pin: m_out_pins) {
+		if (out_pin.first == pin_name_hash) {
+			pin_direction = 2;
+		}
+	}
+	return pin_direction;
+}
+
 void Component::PrintInPinStates() {
 	std::cout << m_name << ": [ ";
 	for (const auto& in_pin_name: m_sorted_in_pin_names) {

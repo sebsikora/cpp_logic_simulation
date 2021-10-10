@@ -177,7 +177,7 @@ void SimpleTerminal_MagicEngine::UpdateMagic() {
 	// If we have read in a character and the "data_waiting" pin is de-asserted, assert it.
 	if ((m_data_in_waiting_flag == false) && chars_read_in_flag) {
 		m_data_in_waiting_flag = true;
-		m_parent_device_pointer->Set(std::hash<std::string>{}("data_waiting"), true);
+		m_parent_device_pointer->Set(std::hash<std::string>{}("data_waiting"), 2, true);
 	}
 }
 
@@ -199,22 +199,22 @@ void SimpleTerminal_MagicEngine::InvokeMagic(std::string const& incantation) {
 				std::string pin_identifier = "d_out_" + std::to_string(i);
 				std::size_t pin_identifier_hash = std::hash<std::string>{}(pin_identifier);
 				if ((data & (1 << i)) == (1 << i)) {
-					m_parent_device_pointer->Set(pin_identifier_hash, true);
+					m_parent_device_pointer->Set(pin_identifier_hash, 2, true);
 				} else {
-					m_parent_device_pointer->Set(pin_identifier_hash, false);
+					m_parent_device_pointer->Set(pin_identifier_hash, 2, false);
 				}
 			}
 			// If we have emptied the internal character buffer, de-assert the "data_waiting" output pin.
 			if (m_data_in_char_buffer.size() == 0) {
 				m_data_in_waiting_flag = false;
-				m_parent_device_pointer->Set(std::hash<std::string>{}("data_waiting"), false);
+				m_parent_device_pointer->Set(std::hash<std::string>{}("data_waiting"), 2, false);
 			}
 		} else {
 			// If no data waiting, output zero.
 			for (int i = 0; i < m_data_bus_width; i ++) {
 				std::string pin_identifier = "d_out_" + std::to_string(i);
 				std::size_t pin_identifier_hash = std::hash<std::string>{}(pin_identifier);
-				m_parent_device_pointer->Set(pin_identifier_hash, false);
+				m_parent_device_pointer->Set(pin_identifier_hash, 2, false);
 			}
 		}
 	} else if (incantation == "WRITE") {

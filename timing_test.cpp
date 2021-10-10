@@ -37,7 +37,7 @@ int main () {
 	// Run the simulation for 33 ticks.
 	std::vector<int> run_times = {};
 	using std::chrono::high_resolution_clock;
-	for (int i = 0; i < 50; i ++) {
+	for (int i = 0; i < 5; i ++) {
 		std::cout << " LOOPED RUN # " << std::to_string(i) << std::endl;
 		auto t1 = high_resolution_clock::now();
 		sim.Run(50000, true, verbose, print_probe_samples);
