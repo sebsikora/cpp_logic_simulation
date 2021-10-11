@@ -129,11 +129,11 @@ class Gate : public Component {
 		Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type, std::vector<std::string> in_pin_names, bool monitor_on);
 		// Override methods common to Components.
 		void Initialise(void) override;
-		void PrintPinStates(int max_levels) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
 		void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
+		void PrintPinStates(int max_levels) override;
 		// Gate-specific methods.
 		void Evaluate(void);
 		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
@@ -166,11 +166,11 @@ class Device : public Component {
 		Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> const& out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations = 0);
 		// Override methods common to Components.
 		void Initialise(void) override;
-		void PrintPinStates(int max_levels) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
 		void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
+		void PrintPinStates(int max_levels) override;
 		// Device-specific methods.
 		virtual void Build(void);
 		void CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states);
@@ -185,14 +185,12 @@ class Device : public Component {
 		void ChildPrintOutPinStates(std::string const& target_child_component_name);
 		void ChildMakeProbable(std::string const& target_child_component_name);
 		void Stabilise(void);
-		void SubTick(int index);
 		void Solve(void);
-		int GetNestingLevel(void);
+		void SubTick(int index);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
-		void AddToPropagateNextTick(std::size_t propagation_identifier);
-		//~bool RemoveFromPropagateNextTick(std::size_t propagation_identifier);
+		int GetNestingLevel(void);
 		bool CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier);
-		//~bool RemoveFromPropagateThisTick(std::size_t propagation_identifier);
+		void AddToPropagateNextTick(std::size_t propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		
 		// Data.
@@ -265,8 +263,6 @@ class Clock {
 		std::vector<bool> m_toggle_pattern;
 		bool m_monitor_on;
 		std::unordered_map<std::size_t, connection_descriptor> m_connections;
-		//~std::unordered_map<std::size_t, bool> m_out_pin_states;
-		//~std::size_t m_out_pin_name_hash;
 		bool m_out_pin_state;
 		std::vector<bool> m_state_history;
 		int m_index;

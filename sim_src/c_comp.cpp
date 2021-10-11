@@ -76,25 +76,27 @@ std::vector<std::size_t> Component::GetInPinNameHashes() {
 }
 
 std::string Component::GetInPinName(std::size_t in_pin_name_hash) {
-	std::string in_pin_name = "";
-	for (int i = 0; i < m_sorted_in_pin_name_hashes.size(); i ++) {
-		if (in_pin_name_hash == m_sorted_in_pin_name_hashes[i]) {
-			in_pin_name = m_sorted_in_pin_names[i];
-			break;
-		}
-	}
-	return in_pin_name;
+	//~std::string in_pin_name = "";
+	//~for (int i = 0; i < m_sorted_in_pin_name_hashes.size(); i ++) {
+		//~if (in_pin_name_hash == m_sorted_in_pin_name_hashes[i]) {
+			//~in_pin_name = m_sorted_in_pin_names[i];
+			//~break;
+		//~}
+	//~}
+	//~return in_pin_name;
+	return m_in_pins[in_pin_name_hash].name;
 }
 
 std::string Component::GetOutPinName(std::size_t out_pin_name_hash) {
-	std::string out_pin_name = "";
-	for (int i = 0; i < m_sorted_out_pin_name_hashes.size(); i ++) {
-		if (out_pin_name_hash == m_sorted_out_pin_name_hashes[i]) {
-			out_pin_name = m_sorted_out_pin_names[i];
-			break;
-		}
-	}
-	return out_pin_name;
+	//~std::string out_pin_name = "";
+	//~for (int i = 0; i < m_sorted_out_pin_name_hashes.size(); i ++) {
+		//~if (out_pin_name_hash == m_sorted_out_pin_name_hashes[i]) {
+			//~out_pin_name = m_sorted_out_pin_names[i];
+			//~break;
+		//~}
+	//~}
+	//~return out_pin_name;
+	return m_out_pins[out_pin_name_hash].name;
 }
 
 std::vector<int> Component::GetPinDirections(std::vector<std::size_t> const& pin_name_hashes) {

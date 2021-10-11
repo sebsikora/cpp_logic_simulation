@@ -31,6 +31,10 @@
 #include "strnatcmp.h"
 #include "colors.h"
 
+bool backwards_comp (int i, int j) {
+	return (j < i);
+}
+
 Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> const& out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations) {
 	m_device_flag = true;
 	m_name = device_name;
@@ -223,6 +227,44 @@ void Device::Build() {
 	// Redefined for each specific device subclass...
 }
 
+void Device::Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) {
+	std::size_t origin_pin_name_hash = std::hash<std::string>{}(origin_pin_name);
+	std::size_t target_component_name_hash = std::hash<std::string>{}(target_component_name);
+	std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
+	std::size_t connection_identifier_hash = std::hash<std::string>{}(target_component_name + ":" + target_pin_name);
+	bool connection_exists = IsHashInMapKeys(connection_identifier_hash, m_ports[origin_pin_name_hash]);
+	if (connection_exists == false) {
+		Component* target_component;
+		if (IsHashInMapKeys(origin_pin_name_hash, m_in_pins)) {
+			// If the device state is one of it's inputs, it can only be connected to an input terminal
+			// of an internal child device.
+			target_component = m_components[target_component_name_hash];
+			connection_descriptor conn_descriptor;
+			conn_descriptor.target_component = target_component;
+			conn_descriptor.target_pin_name_hash = target_pin_name_hash;
+			conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
+			m_ports[origin_pin_name_hash][connection_identifier_hash] = conn_descriptor;
+		} else {
+			if (target_component_name == "parent") {
+				// If the target is the parent device, then we are connecting to an output belonging to the
+				// parent device.
+				target_component = m_parent_device_pointer;
+			} else {
+				// If the target is not the parent device then it is another colleague device within the
+				// same parent device.
+				target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+			}
+			connection_descriptor conn_descriptor;
+			conn_descriptor.target_component = target_component;
+			conn_descriptor.target_pin_name_hash = target_pin_name_hash;
+			conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
+			m_ports[origin_pin_name_hash][connection_identifier_hash] = conn_descriptor;
+		}
+	} else {
+		std::cout << "Duplicate connection omitted." << std::endl;
+	}
+}
+
 void Device::Stabilise() {
 	// Ensures that internal device state settles correctly. 
 	if (mg_verbose_output_flag) {
@@ -233,6 +275,9 @@ void Device::Stabilise() {
 	for (const auto& pin_name_hash: m_sorted_in_pin_name_hashes) {
 		pin* this_pin = &m_in_pins[pin_name_hash];
 		for (const auto& connection: m_ports[pin_name_hash]) {
+			// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
+			// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
+			// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
 			connection_descriptor target_connection_descriptor = connection.second;
 			Component* target_component = target_connection_descriptor.target_component;
 			std::size_t target_pin_name_hash = target_connection_descriptor.target_pin_name_hash;
@@ -266,35 +311,6 @@ void Device::Initialise() {
 		m_out_pins[out_pin_name_hash].state_changed = true;
 	}
 	m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
-}
-
-void Device::SubTick(int index) {
-	if (mg_verbose_output_flag) {
-		std::cout << "Iteration: " << std::to_string(index) << std::endl;
-	}
-	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end());
-	m_propagate_next_tick.erase(std::unique(m_propagate_next_tick.begin(), m_propagate_next_tick.end()), m_propagate_next_tick.end()); 
-	m_propagate_this_tick = m_propagate_next_tick;
-	m_propagate_next_tick.clear();
-	m_still_to_propagate = m_propagate_this_tick;
-	//~int progress_index = 0;
-	for (const auto& component_name_hash: m_propagate_this_tick) {
-		//~m_still_to_propagate.erase(remove(m_still_to_propagate.begin(), m_still_to_propagate.end(), component_name_hash), m_still_to_propagate.end());
-		//~std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), component_name_hash);
-		//~if (this_hash != m_still_to_propagate.end()) {
-			//~m_still_to_propagate.erase(this_hash);
-			//~Component* current_component = m_components[component_name_hash];
-			//~current_component->Propagate();
-		//~}
-		//~m_still_to_propagate[progress_index] = 0;
-		m_still_to_propagate.erase(m_still_to_propagate.begin());
-		Component* current_component = m_components[component_name_hash];
-		current_component->Propagate();
-		//~progress_index ++;
-	}
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
 }
 
 void Device::Solve() {
@@ -339,6 +355,33 @@ void Device::Solve() {
 	}
 }
 
+void Device::SubTick(int index) {
+	if (mg_verbose_output_flag) {
+		std::cout << "Iteration: " << std::to_string(index) << std::endl;
+	}
+	// Swap the commented and uncommented std::sort(s) below this, and then swap the commented and uncommented for-loops.
+	// Also swap the commented and uncommented std::binary_search(es) in CheckIfQueuedToPropagateThisTick().
+	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), backwards_comp);
+	//~std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end());
+	m_propagate_next_tick.erase(std::unique(m_propagate_next_tick.begin(), m_propagate_next_tick.end()), m_propagate_next_tick.end()); 
+	m_propagate_this_tick = m_propagate_next_tick;
+	m_propagate_next_tick.clear();
+	m_still_to_propagate = m_propagate_this_tick;
+	//~for (const auto& component_name_hash: m_propagate_this_tick) {
+		//~m_still_to_propagate.erase(m_still_to_propagate.begin());
+		//~Component* current_component = m_components[component_name_hash];
+		//~current_component->Propagate();
+	//~}
+	for (int i = m_propagate_this_tick.size() - 1; i >= 0; i --) {
+		m_still_to_propagate.pop_back();
+		Component* current_component = m_components[m_propagate_this_tick[i]];
+		current_component->Propagate();
+	}	
+	if (mg_verbose_output_flag) {
+		std::cout << std::endl;
+	}
+}
+
 void Device::Propagate() {
 	for (auto& this_pin: m_in_pins) {
 		if (this_pin.second.state_changed) {
@@ -346,12 +389,14 @@ void Device::Propagate() {
 				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
 			this_pin.second.state_changed = false;
-			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
-			for (const auto& connection: connections_to_set) {
-				Component* target_component = connection.second.target_component;
-				std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				int target_pin_direction = connection.second.target_pin_direction;
-				target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
+			//~std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
+			//~for (const auto& connection: connections_to_set) {
+			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
+				//~Component* target_component = connection.second.target_component;
+				//~std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
+				//~int target_pin_direction = connection.second.target_pin_direction;
+				//~target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
+				connection.second.target_component->Set(connection.second.target_pin_name_hash, connection.second.target_pin_direction, this_pin.second.state);
 			}
 		}
 	}
@@ -361,58 +406,21 @@ void Device::Propagate() {
 				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
 			this_pin.second.state_changed = false;
-			std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
-			for (const auto& connection: connections_to_set) {
-				Component* target_component = connection.second.target_component;
-				std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				int target_pin_direction = connection.second.target_pin_direction;
-				target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
+			//~std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
+			//~for (const auto& connection: connections_to_set) {
+			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
+				//~Component* target_component = connection.second.target_component;
+				//~std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
+				//~int target_pin_direction = connection.second.target_pin_direction;
+				//~target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
+				connection.second.target_component->Set(connection.second.target_pin_name_hash, connection.second.target_pin_direction, this_pin.second.state);
 			}
 		}
-	}
-}
-
-void Device::Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) {
-	std::size_t origin_pin_name_hash = std::hash<std::string>{}(origin_pin_name);
-	std::size_t target_component_name_hash = std::hash<std::string>{}(target_component_name);
-	std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
-	std::size_t connection_identifier_hash = std::hash<std::string>{}(target_component_name + ":" + target_pin_name);
-	bool connection_exists = IsHashInMapKeys(connection_identifier_hash, m_ports[origin_pin_name_hash]);
-	if (connection_exists == false) {
-		Component* target_component;
-		if (IsHashInMapKeys(origin_pin_name_hash, m_in_pins)) {
-			// If the device state is one of it's inputs, it can only be connected to an input terminal
-			// of an internal child device.
-			target_component = m_components[target_component_name_hash];
-			connection_descriptor conn_descriptor;
-			conn_descriptor.target_component = target_component;
-			conn_descriptor.target_pin_name_hash = target_pin_name_hash;
-			conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-			m_ports[origin_pin_name_hash][connection_identifier_hash] = conn_descriptor;
-		} else {
-			if (target_component_name == "parent") {
-				// If the target is the parent device, then we are connecting to an output belonging to the
-				// parent device.
-				target_component = m_parent_device_pointer;
-			} else {
-				// If the target is not the parent device then it is another colleague device within the
-				// same parent device.
-				target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
-			}
-			connection_descriptor conn_descriptor;
-			conn_descriptor.target_component = target_component;
-			conn_descriptor.target_pin_name_hash = target_pin_name_hash;
-			conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-			m_ports[origin_pin_name_hash][connection_identifier_hash] = conn_descriptor;
-		}
-	} else {
-		std::cout << "Duplicate connection omitted." << std::endl;
 	}
 }
 
 void Device::Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) {
 	if (pin_direction == 1) {
-		//~std::unordered_map<std::size_t, pin>::iterator this_pin = m_in_pins.find(pin_name_hash);
 		pin* this_pin = &m_in_pins[pin_name_hash];
 		// Device input terminal is being set.
 		// If this would change the input terminal state, check if this triggers a magic event, then propagate this change
@@ -436,7 +444,6 @@ void Device::Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set
 			}
 		}
 	} else if (pin_direction == 2) {
-		//~std::unordered_map<std::size_t, pin>::iterator this_pin = m_out_pins.find(pin_name_hash);
 		pin* this_pin = &m_out_pins[pin_name_hash];
 		// Device output terminal is being set.
 		if (state_to_set != this_pin->state) {
@@ -474,35 +481,13 @@ int Device::GetNestingLevel() {
 }
 
 bool Device::CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier) {
-	return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
+	return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier, backwards_comp);
+	//~return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
 }
-
-//~bool Device::RemoveFromPropagateThisTick(std::size_t propagation_identifier) {
-	//~std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
-	//~if (this_hash != m_still_to_propagate.end()) {
-		//~m_still_to_propagate.erase(this_hash);
-		//~// The given identifier was present in m_still_to_propagate, and it has been erased.
-		//~return true;
-	//~} else {
-		//~// The given identifier was *not* present in m_still_to_propagate.
-		//~return false;
-	//~}
-//~}
 
 void Device::AddToPropagateNextTick(std::size_t propagation_identifier) {
-	//~m_propagate_next_tick.insert(std::upper_bound(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), propagation_identifier), propagation_identifier);
 	m_propagate_next_tick.push_back(propagation_identifier);
 }
-
-//~bool Device::RemoveFromPropagateNextTick(std::size_t propagation_identifier) {
-	//~std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
-	//~if (this_hash != m_still_to_propagate.end()) {
-		//~m_still_to_propagate.erase(this_hash);
-		//~return true;
-	//~} else {
-		//~return false;
-	//~}
-//~}
 
 void Device::MakeProbable() {
 	if (this != m_top_level_sim_pointer) {
@@ -539,3 +524,6 @@ void Device::PrintInternalPinStates(int max_levels) {
 		target_component->PrintPinStates(this_level);
 	}
 }
+
+// In-order insertion into vector of ascending values.
+//~m_propagate_next_tick.insert(std::upper_bound(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), propagation_identifier), propagation_identifier);

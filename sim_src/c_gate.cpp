@@ -86,6 +86,21 @@ void Gate::Connect(std::string const& origin_pin_name, std::string const& target
 	}
 }
 
+void Gate::Initialise() {
+	// If this gate does not have an input connected to a parent device input, it will not have any inputs Set() during the
+	// parent device Stabilise() call, and won't necessarily be evaluated during the subsequent Solve() call. This can result in
+	// the parent device stabilising with an incorrect internal state and output states, given it's input states. 
+	// To ensure that this does not take place, having set the input states of any gate connected to it's inputs, the parent device
+	// calls Initialise() for each remaining child gate to ensure it's output state is sensible with respect to it's initial input 
+	// states and that if it's output state has changed this change will be propagated during the subsequent Solve() call.
+	bool new_state = (this->*m_operator_function_pointer)(m_in_pins);
+	m_out_pins[m_sorted_out_pin_name_hashes[0]].state = new_state;
+	m_out_pins[m_sorted_out_pin_name_hashes[0]].state_changed = true;
+	if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
+		m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
+	}
+}
+
 void Gate::Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) {
 	pin* this_pin = &m_in_pins[pin_name_hash];
 	if (this_pin->state != state_to_set) {
@@ -129,21 +144,6 @@ void Gate::Evaluate() {
 	}
 }
 
-void Gate::Initialise() {
-	// If this gate does not have an input connected to a parent device input, it will not have any inputs Set() during the
-	// parent device Stabilise() call, and won't necessarily be evaluated during the subsequent Solve() call. This can result in
-	// the parent device stabilising with an incorrect internal state and output states, given it's input states. 
-	// To ensure that this does not take place, having set the input states of any gate connected to it's inputs, the parent device
-	// calls Initialise() for each remaining child gate to ensure it's output state is sensible with respect to it's initial input 
-	// states and that if it's output state has changed this change will be propagated during the subsequent Solve() call.
-	bool new_state = (this->*m_operator_function_pointer)(m_in_pins);
-	m_out_pins[m_sorted_out_pin_name_hashes[0]].state = new_state;
-	m_out_pins[m_sorted_out_pin_name_hashes[0]].state_changed = true;
-	if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
-		m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
-	}
-}
-
 void Gate::Propagate() {
 	pin* this_pin = &m_out_pins[m_sorted_out_pin_name_hashes[0]];
 	if (this_pin->state_changed) {
@@ -152,11 +152,11 @@ void Gate::Propagate() {
 		}
 		this_pin->state_changed = false;
 		for (const auto& connection: m_connections) {
-			connection_descriptor target_connection_descriptor = connection.second;
-			Component* target_component = target_connection_descriptor.target_component;
-			std::size_t pin_name_hash = target_connection_descriptor.target_pin_name_hash;
-			int pin_direction = target_connection_descriptor.target_pin_direction;
-			target_component->Set(pin_name_hash, pin_direction, this_pin->state);
+			//~connection_descriptor target_connection_descriptor = connection.second;
+			//~Component* target_component = target_connection_descriptor.target_component;
+			//~std::size_t pin_name_hash = target_connection_descriptor.target_pin_name_hash;
+			//~int pin_direction = target_connection_descriptor.target_pin_direction;
+			connection.second.target_component->Set(connection.second.target_pin_name_hash, connection.second.target_pin_direction, this_pin->state);
 		}
 	}
 }

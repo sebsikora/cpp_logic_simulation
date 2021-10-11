@@ -44,7 +44,7 @@ Probe::Probe(Simulation* top_level_device_pointer, std::string const& probe_name
 
 void Probe::Sample(int index) {
 	m_timestamps.push_back(index);
-	m_this_sample = {};
+	m_this_sample.clear();
 	int pin_index = 0;
 	bool pin_state = false;
 	for (const auto& pin_name_hash: m_target_pins) {
