@@ -190,8 +190,9 @@ class Device : public Component {
 		int GetNestingLevel(void);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		void AddToPropagateNextTick(std::size_t propagation_identifier);
+		//~bool RemoveFromPropagateNextTick(std::size_t propagation_identifier);
 		bool CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier);
-		bool CheckAndCancelPropagateThisTick(std::size_t propagation_identifier);
+		//~bool RemoveFromPropagateThisTick(std::size_t propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		
 		// Data.
@@ -264,7 +265,9 @@ class Clock {
 		std::vector<bool> m_toggle_pattern;
 		bool m_monitor_on;
 		std::unordered_map<std::size_t, connection_descriptor> m_connections;
-		std::unordered_map<std::size_t, bool> m_out_pin_states;
+		//~std::unordered_map<std::size_t, bool> m_out_pin_states;
+		//~std::size_t m_out_pin_name_hash;
+		bool m_out_pin_state;
 		std::vector<bool> m_state_history;
 		int m_index;
 		int m_sub_index;

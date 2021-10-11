@@ -46,15 +46,16 @@ void Probe::Sample(int index) {
 	m_timestamps.push_back(index);
 	m_this_sample = {};
 	int pin_index = 0;
+	bool pin_state = false;
 	for (const auto& pin_name_hash: m_target_pins) {
-		bool pin_state = false;
-		int target_pin_direction = m_target_pin_directions[pin_index];
-		if (target_pin_direction == 1) {
+		int* target_pin_direction = &m_target_pin_directions[pin_index];
+		if (*target_pin_direction == 1) {
 			pin_state = m_target_component_pointer->GetInPinState(pin_name_hash);
-		} else if (target_pin_direction == 2) {
+		} else if (*target_pin_direction == 2) {
 			pin_state = m_target_component_pointer->GetOutPinState(pin_name_hash);
 		} else {
 			// HELP - This terminal name corresponds to neither input or output terminal of target component.
+			pin_state = false;
 		}
 		pin_index ++;
 		m_this_sample.push_back(pin_state);

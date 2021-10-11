@@ -23,7 +23,6 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
@@ -35,9 +34,7 @@ Clock::Clock(Device* parent_device_pointer, std::string const& clock_name, std::
 	m_name_hash = std::hash<std::string>{}(m_name);
 	m_toggle_pattern = toggle_pattern;
 	m_monitor_on = monitor_on;
-	bool output_state;
-	output_state = m_toggle_pattern[0];
-	m_out_pin_states[std::hash<std::string>{}("output")] = output_state;
+	m_out_pin_state = m_toggle_pattern[0];
 	m_index = 0;
 	m_sub_index = 0;
 	m_ticked_flag = false;
@@ -61,7 +58,7 @@ void Clock::Tick(void) {
 		}
 	}
 	// Change output state and propagate.
-	m_out_pin_states[std::hash<std::string>{}("output")] = new_logical_state;
+	m_out_pin_state = new_logical_state;
 	Propagate();
 	if (verbose_output_flag) {
 		std::cout << std::endl;
@@ -79,7 +76,7 @@ void Clock::Reset(void) {
 	m_sub_index = 0;
 	m_ticked_flag = false;
 	m_state_history.clear();
-	m_out_pin_states[std::hash<std::string>{}("output")] = m_toggle_pattern[0];
+	m_out_pin_state = m_toggle_pattern[0];
 	for (const auto& current_probe: m_probes) {
 		current_probe.second->Reset();
 	}
@@ -111,8 +108,7 @@ void Clock::Propagate() {
 	for (const auto& entry: m_connections) {
 		connection_descriptor target_connection_descriptor = entry.second;
 		Component* target_component = target_connection_descriptor.target_component;
-		bool origin_new_state = m_out_pin_states[std::hash<std::string>{}("output")];
-		target_component->Set(target_connection_descriptor.target_pin_name_hash, target_connection_descriptor.target_pin_direction, origin_new_state);
+		target_component->Set(target_connection_descriptor.target_pin_name_hash, target_connection_descriptor.target_pin_direction, m_out_pin_state);
 	}
 }
 
@@ -123,7 +119,7 @@ bool Clock::GetTickedFlag() {
 void Clock::TriggerProbes() {
 	// Add new state to state history and then trigger all associated probes.
 	if (m_probes.size() > 0) {
-		m_state_history.push_back(m_out_pin_states[std::hash<std::string>{}("output")]);
+		m_state_history.push_back(m_out_pin_state);
 		for (const auto& current_probe: m_probes) {
 			current_probe.second->Sample(m_index - 1);
 		}

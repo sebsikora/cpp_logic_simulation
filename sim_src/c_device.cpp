@@ -277,14 +277,20 @@ void Device::SubTick(int index) {
 	m_propagate_this_tick = m_propagate_next_tick;
 	m_propagate_next_tick.clear();
 	m_still_to_propagate = m_propagate_this_tick;
+	//~int progress_index = 0;
 	for (const auto& component_name_hash: m_propagate_this_tick) {
 		//~m_still_to_propagate.erase(remove(m_still_to_propagate.begin(), m_still_to_propagate.end(), component_name_hash), m_still_to_propagate.end());
-		std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), component_name_hash);
-		if (this_hash != m_still_to_propagate.end()) {
-			m_still_to_propagate.erase(this_hash);
-			Component* current_component = m_components[component_name_hash];
-			current_component->Propagate();
-		}
+		//~std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), component_name_hash);
+		//~if (this_hash != m_still_to_propagate.end()) {
+			//~m_still_to_propagate.erase(this_hash);
+			//~Component* current_component = m_components[component_name_hash];
+			//~current_component->Propagate();
+		//~}
+		//~m_still_to_propagate[progress_index] = 0;
+		m_still_to_propagate.erase(m_still_to_propagate.begin());
+		Component* current_component = m_components[component_name_hash];
+		current_component->Propagate();
+		//~progress_index ++;
 	}
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
@@ -471,28 +477,24 @@ bool Device::CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier
 	return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
 }
 
-//~bool Device::CheckIfQueuedToPropagateNextTick(std::size_t propagation_identifier) {
-	//~return std::binary_search(m_propagate_next_tick.begin(), m_still_to_propagate.end(), propagation_identifier);
+//~bool Device::RemoveFromPropagateThisTick(std::size_t propagation_identifier) {
+	//~std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
+	//~if (this_hash != m_still_to_propagate.end()) {
+		//~m_still_to_propagate.erase(this_hash);
+		//~// The given identifier was present in m_still_to_propagate, and it has been erased.
+		//~return true;
+	//~} else {
+		//~// The given identifier was *not* present in m_still_to_propagate.
+		//~return false;
+	//~}
 //~}
-
-bool Device::CheckAndCancelPropagateThisTick(std::size_t propagation_identifier) {
-	std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
-	if (this_hash != m_still_to_propagate.end()) {
-		m_still_to_propagate.erase(this_hash);
-		// The given identifier was present in m_still_to_propagate, and it has been erased.
-		return true;
-	} else {
-		// The given identifier was *not* present in m_still_to_propagate.
-		return false;
-	}
-}
 
 void Device::AddToPropagateNextTick(std::size_t propagation_identifier) {
 	//~m_propagate_next_tick.insert(std::upper_bound(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), propagation_identifier), propagation_identifier);
 	m_propagate_next_tick.push_back(propagation_identifier);
 }
 
-//~bool Device::CheckAndCancelPropagateNextTick(std::size_t propagation_identifier) {
+//~bool Device::RemoveFromPropagateNextTick(std::size_t propagation_identifier) {
 	//~std::vector<size_t>::iterator this_hash = std::find(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
 	//~if (this_hash != m_still_to_propagate.end()) {
 		//~m_still_to_propagate.erase(this_hash);
