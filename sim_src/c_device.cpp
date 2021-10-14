@@ -69,12 +69,6 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 }
 
 void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states) {
-	// Get existing input state keys in case this is being called from within the constructor
-	// for a user-defined Device with fixed inputs already created by the base Device constructor.
-	std::vector<std::string> existing_in_pin_names;
-	for (const auto& existing_pin_name: m_sorted_in_pin_names) {
-		existing_in_pin_names.push_back(existing_pin_name);
-	}
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
@@ -102,43 +96,66 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 		new_in_pin.state_changed = false;
 		m_in_pins[pin_name_hash] = new_in_pin;
 	}
-	// Concatenate new and existing input state key lists and sort.
-	m_sorted_in_pin_names = pin_names;
-	m_sorted_in_pin_names.insert(m_sorted_in_pin_names.end(), existing_in_pin_names.begin(), existing_in_pin_names.end());
-	std::sort(m_sorted_in_pin_names.begin(), m_sorted_in_pin_names.end(), compareNat);
-	// Pre-hash the input state identifiers for later use. This way, we can use the hashed values of the strings
-	// directly as unordered_map keys, which is significantly faster than using the strings as keys whereby they
-	// need to be hashed for every map access.
-	for (const auto& pin_name: m_sorted_in_pin_names) {
-		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		m_sorted_in_pin_name_hashes.push_back(pin_name_hash);
-	}
 }
 
 void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
-	// Get existing output keys in case this is being called from within the constructor
-	// for a user-defined Device with fixed outputs already created by the base Device constructor.
-	std::vector<std::string> existing_out_pin_names;
-	for (const auto& existing_pin_name: m_sorted_out_pin_names) {
-		existing_out_pin_names.push_back(existing_pin_name);
-	}
 	// Create new outputs.
 	for (const auto& pin_name: pin_names) {
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
 		pin new_out_pin = {pin_name, pin_name_hash, 2, false, false};
 		m_out_pins[pin_name_hash] = new_out_pin;
 	}
-	// Concatenate new and existing output state key lists and sort.
-	m_sorted_out_pin_names = pin_names;
-	m_sorted_out_pin_names.insert(m_sorted_out_pin_names.end(), existing_out_pin_names.begin(), existing_out_pin_names.end());
-	std::sort(m_sorted_out_pin_names.begin(), m_sorted_out_pin_names.end(), compareNat);
-	// Pre-hash the output state identifiers for later use. This way, we can use the hashed values of the strings
-	// directly as unordered_map keys, which is significantly faster than using the strings as keys whereby they
-	// need to be hashed for every map access.
-	for (const auto& pin_name: m_sorted_out_pin_names) {
-		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		m_sorted_out_pin_name_hashes.push_back(pin_name_hash);
+}
+
+void Device::Build() {
+	// Redefined for each specific device subclass...
+}
+
+void Device::Stabilise() {
+	// Ensures that internal device state settles correctly. 
+	if (mg_verbose_output_flag) {
+		std::string msg = "Stabilising new level " + std::to_string(m_nesting_level) + " device " + m_full_name;
+		std::cout << GenerateHeader(msg) << std::endl << std::endl;
 	}
+	// First we Set() all child component inputs that are connected to the parent device inputs to deafult states.
+	for (const auto& this_pin : m_in_pins) {
+		for (const auto& connection: m_ports[this_pin.second.name_hash]) {
+			// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
+			// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
+			// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
+			connection_descriptor target_connection_descriptor = connection.second;
+			Component* target_component = target_connection_descriptor.target_component;
+			std::size_t target_pin_name_hash = target_connection_descriptor.target_pin_name_hash;
+			int target_pin_direction = target_connection_descriptor.target_pin_direction;
+			target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
+		}
+	}
+	if (mg_verbose_output_flag) {
+		std::cout << std::endl;
+	}
+	// Next we call Initialise() for all components in this device.
+	for (const auto& component_identifier: m_components) {
+		if (mg_verbose_output_flag) {
+			std::cout << "Initialising " << component_identifier.second->GetFullName() << std::endl;
+		}
+		Component* component_pointer = component_identifier.second;
+		component_pointer->Initialise();
+	}
+	if (mg_verbose_output_flag) {
+		std::cout << std::endl;
+	}
+	// Lastly we Solve() by iterating SubTick() until device state has stabilised.
+	Solve();
+	if (mg_verbose_output_flag) {
+		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
+	}
+}
+
+void Device::Initialise() {
+	for (auto& out_pin: m_out_pins) {
+		out_pin.second.state_changed = true;
+	}
+	m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 }
 
 void Device::AddComponent(Component* new_component_pointer) {
@@ -223,10 +240,6 @@ void Device::ChildMakeProbable(std::string const& target_child_component_name) {
 	target_component->MakeProbable();
 }
 
-void Device::Build() {
-	// Redefined for each specific device subclass...
-}
-
 void Device::Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) {
 	std::size_t origin_pin_name_hash = std::hash<std::string>{}(origin_pin_name);
 	std::size_t target_component_name_hash = std::hash<std::string>{}(target_component_name);
@@ -263,54 +276,6 @@ void Device::Connect(std::string const& origin_pin_name, std::string const& targ
 	} else {
 		std::cout << "Duplicate connection omitted." << std::endl;
 	}
-}
-
-void Device::Stabilise() {
-	// Ensures that internal device state settles correctly. 
-	if (mg_verbose_output_flag) {
-		std::string msg = "Stabilising new level " + std::to_string(m_nesting_level) + " device " + m_full_name;
-		std::cout << GenerateHeader(msg) << std::endl << std::endl;
-	}
-	// First we Set() all child component inputs that are connected to the parent device inputs to deafult states.
-	for (const auto& pin_name_hash: m_sorted_in_pin_name_hashes) {
-		pin* this_pin = &m_in_pins[pin_name_hash];
-		for (const auto& connection: m_ports[pin_name_hash]) {
-			// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
-			// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
-			// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
-			connection_descriptor target_connection_descriptor = connection.second;
-			Component* target_component = target_connection_descriptor.target_component;
-			std::size_t target_pin_name_hash = target_connection_descriptor.target_pin_name_hash;
-			int target_pin_direction = target_connection_descriptor.target_pin_direction;
-			target_component->Set(target_pin_name_hash, target_pin_direction, this_pin->state);
-		}
-	}
-	// Next we call Initialise() for all components.
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
-	for (const auto& component_identifier: m_components) {
-		if (mg_verbose_output_flag) {
-			std::cout << "Initialising " << component_identifier.second->GetFullName() << std::endl;
-		}
-		Component* target_component = component_identifier.second;
-		target_component->Initialise();
-	}
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
-	// Lastly we Solve() by iterating SubTick() until device state has stabilised.
-	Solve();
-	if (mg_verbose_output_flag) {
-		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
-	}
-}
-
-void Device::Initialise() {
-	for (const auto& out_pin_name_hash: m_sorted_out_pin_name_hashes) {
-		m_out_pins[out_pin_name_hash].state_changed = true;
-	}
-	m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
 }
 
 void Device::Solve() {
@@ -359,6 +324,14 @@ void Device::SubTick(int index) {
 	if (mg_verbose_output_flag) {
 		std::cout << "Iteration: " << std::to_string(index) << std::endl;
 	}
+	// Propagation queue for the next subtick can be set up in one of two ways:
+	// If the component hashes are sorted in ascending order, we need to delete the 0th entry each time in the
+	// propagation loop that follows. It's faster to pop_back() the last element instead, but to do that we need
+	// to inverse-sort the component hashes and then work through them from last to first.
+	// This also requires that we modify std::binary_search in CheckIfQueuedToPropagateThisTick() for searching
+	// an inverse-sorted vector. We use the same custom < comparator function (backwards_comp() defined at the top)
+	// to modify the behaviour of both std::sort() and std::binary_search().
+	// To compare:
 	// Swap the commented and uncommented std::sort(s) below this, and then swap the commented and uncommented for-loops.
 	// Also swap the commented and uncommented std::binary_search(es) in CheckIfQueuedToPropagateThisTick().
 	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), backwards_comp);
@@ -389,13 +362,13 @@ void Device::Propagate() {
 				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
 			this_pin.second.state_changed = false;
-			//~std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
-			//~for (const auto& connection: connections_to_set) {
 			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
-				//~Component* target_component = connection.second.target_component;
-				//~std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				//~int target_pin_direction = connection.second.target_pin_direction;
-				//~target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
+				// Faster not to put them on the stack here but shown for clarity.
+				//~connection_descriptor t_connection_descriptor = connection.second;
+				//~Component* target_component = t_connection_descriptor.target_component;
+				//~std::size_t pin_name_hash = t_connection_descriptor.pin_name_hash;
+				//~int pin_direction = t_connection_descriptor.pin_direction;
+				//~target_component->Set(pin_name_hash, pin_direction, this_pin.second.state);
 				connection.second.target_component->Set(connection.second.target_pin_name_hash, connection.second.target_pin_direction, this_pin.second.state);
 			}
 		}
@@ -406,13 +379,7 @@ void Device::Propagate() {
 				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
 			this_pin.second.state_changed = false;
-			//~std::unordered_map<std::size_t, connection_descriptor> connections_to_set = m_ports[this_pin.second.name_hash];
-			//~for (const auto& connection: connections_to_set) {
 			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
-				//~Component* target_component = connection.second.target_component;
-				//~std::size_t target_pin_name_hash = connection.second.target_pin_name_hash;
-				//~int target_pin_direction = connection.second.target_pin_direction;
-				//~target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
 				connection.second.target_component->Set(connection.second.target_pin_name_hash, connection.second.target_pin_direction, this_pin.second.state);
 			}
 		}
@@ -499,14 +466,14 @@ void Device::PrintPinStates(int max_levels) {
 	if (max_levels > 0) {
 		max_levels = max_levels - 1;
 		std::cout << m_full_name << ": [";
-		for (const auto& pin_name: m_sorted_in_pin_names) {
+		for (const auto& pin_name: GetSortedInPinNames()) {
 			if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
 				std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
 				std::cout << " " << BoolToChar(m_in_pins[pin_name_hash].state) << " ";
 			}
 		}
 		std::cout << "] [";
-		for (const auto& pin_name: m_sorted_out_pin_names) {
+		for (const auto& pin_name: GetSortedOutPinNames()) {
 			std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
 			std::cout << " " << BoolToChar(m_out_pins[pin_name_hash].state) << " ";
 		}

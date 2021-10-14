@@ -1,4 +1,4 @@
-// This runs 50K ticks (25K up-counts) on the simple 4 bit counter, 100 times, timing with millisecond precision.s
+// This runs 50K ticks (25K up-counts) on the simple 4 bit counter, number_of_runs times, timing with millisecond precision.
 
 #include <chrono>
 #include <iostream>
@@ -12,6 +12,8 @@ int main () {
 	bool verbose = false;
 	bool monitor_on = false;
 	bool print_probe_samples = false;
+
+	int number_of_runs = 10;
 	
 	// Instantiate the top-level Device (the Simulation).
 	Simulation sim = Simulation("test_sim", 10, verbose);
@@ -37,7 +39,7 @@ int main () {
 	// Run the simulation for 33 ticks.
 	std::vector<int> run_times = {};
 	using std::chrono::high_resolution_clock;
-	for (int i = 0; i < 50; i ++) {
+	for (int i = 0; i < number_of_runs; i ++) {
 		std::cout << " LOOPED RUN # " << std::to_string(i) << std::endl;
 		auto t1 = high_resolution_clock::now();
 		sim.Run(50000, true, verbose, print_probe_samples);

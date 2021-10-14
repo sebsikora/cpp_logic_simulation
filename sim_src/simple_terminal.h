@@ -51,6 +51,7 @@ class SimpleTerminal_MagicEngine : public MagicEngine {
 		void UpdateMagic(void) override;
 		void ShutDownMagic(void) override;
 		// Methods particular to SimpleRom_MagicEngine sub-class.
+		void CreatePinIdentifierHashes(int data_bus_width);
 		pid_t StartClient(const char *fifo_dat_s_m_identifier, const char *fifo_dat_m_s_identifier, const char *fifo_cmd_m_s_identifier);
 		int ConfigureFIFO(const char *fifo_dat_s_m_identifier, const char *fifo_dat_m_s_identifier, const char *fifo_cmd_m_s_identifier,
 							int *fifo_dat_s_to_m, int *fifo_dat_m_to_s, int *fifo_cmd_m_to_s);
@@ -73,6 +74,8 @@ class SimpleTerminal_MagicEngine : public MagicEngine {
 		std::string m_end_code;
 		std::string m_match_buffer;
 		int m_data_bus_width;
+		std::vector<std::size_t> m_data_in_bus_pin_identifier_hashes;
+		std::vector<std::size_t> m_data_out_bus_pin_identifier_hashes;
 		std::deque<char> m_data_in_char_buffer;			// Use a deque<> rather than a vector<> as deque<> has efficient insert at start.
 		bool m_data_in_waiting_flag;
 };

@@ -53,17 +53,6 @@ struct pin {
 	bool state_changed;
 };
 
-//~struct sorted_pin_identifiers {
-	//~struct in {
-		//~std::vector<std::string> names;
-		//~std::vector<std::string> hashes;
-	//~};
-	//~struct out {
-		//~std::vector<std::size_t> names;
-		//~std::vector<std::size_t> hashes;
-	//~};
-//~};
-
 // This typedef defines the type 'pointer to a Gate class member function that takes a unordered_map of state 
 // structs to strings as arguments and returns a state struct. This allows us to *dramatically*
 // simplify the code for declaring such function pointers and member functions that take them as
@@ -85,11 +74,12 @@ class Component {
 		Simulation* GetTopLevelSimPointer(void);
 		bool GetInPinState(std::size_t pin_name_hash);
 		bool GetOutPinState(std::size_t pin_name_hash);
-		std::vector<std::string> GetInPinNames(void);
-		std::vector<std::string> GetOutPinNames(void);
-		std::vector<std::size_t> GetInPinNameHashes(void);
 		std::string GetInPinName(std::size_t in_pin_name_hash);
 		std::string GetOutPinName(std::size_t out_pin_name_hash);
+		std::vector<std::string> GetSortedInPinNames(void);
+		std::vector<std::size_t> GetSortedInPinNameHashes(void);
+		std::vector<std::string> GetSortedOutPinNames(void);
+		std::vector<std::size_t> GetSortedOutPinNameHashes(void);
 		std::vector<int> GetPinDirections(std::vector<std::size_t> const& pin_name_hashes);
 		int GetPinDirection(std::size_t pin_name_hash);
 		void PrintInPinStates(void);
@@ -114,10 +104,6 @@ class Component {
 		Device* m_parent_device_pointer;
 		std::unordered_map<std::size_t, pin> m_in_pins;
 		std::unordered_map<std::size_t, pin> m_out_pins;
-		std::vector<std::string> m_sorted_in_pin_names;
-		std::vector<std::string> m_sorted_out_pin_names;
-		std::vector<std::size_t> m_sorted_in_pin_name_hashes;
-		std::vector<std::size_t> m_sorted_out_pin_name_hashes;
 		bool m_monitor_on;
 		static bool mg_verbose_output_flag;
 };
@@ -145,6 +131,7 @@ class Gate : public Component {
 		bool OperatorNot(std::unordered_map<std::size_t, pin> const& in_pins);
 		
 		// Data.
+		size_t m_out_pin_name_hash;
 		operator_pointer m_operator_function_pointer;
 		std::unordered_map<std::size_t, connection_descriptor> m_connections;
 };
@@ -195,8 +182,6 @@ class Device : public Component {
 		
 		// Data.
 		int m_max_propagations;
-		std::unordered_map<std::size_t, bool> m_in_pin_state_changed;
-		std::unordered_map<std::size_t, bool> m_out_pin_state_changed;
 		std::unordered_map<std::size_t, Component*> m_components;
 		std::vector<std::size_t> m_propagate_next_tick;
 		std::vector<std::size_t> m_propagate_this_tick;
@@ -204,7 +189,7 @@ class Device : public Component {
 		std::unordered_map<std::size_t, std::unordered_map<std::size_t, connection_descriptor>> m_ports;
 		bool m_magic_device_flag;
 		MagicEngine* m_magic_engine_pointer;
-		std::vector<std::string> m_hidden_in_pins = {"true", "false"};
+		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
 };
 
 // Top-level simulation device subclass.
@@ -286,7 +271,7 @@ class Probe {
 		std::string m_name;
 		std::string m_target_component_full_name;
 		Component* m_target_component_pointer;
-		std::vector<std::size_t> m_target_pins;
+		std::vector<std::size_t> m_target_pin_hashes;
 		std::vector<int> m_target_pin_directions;
 		std::string m_trigger_clock_name;
 		Clock* m_trigger_clock_pointer;
@@ -308,7 +293,7 @@ class MagicEngine {
 		// Constructor.
 		MagicEngine(Device* parent_device_pointer);
 		// Methods.
-		void AddMagicEventTrap(std::string identifier, magic_event new_magic_event);
+		void AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event);
 		void CheckMagicEventTrap(std::size_t target_pin_name_hash, bool new_state);
 		// Virtual methods.
 		virtual void InvokeMagic(std::string const& incantation);

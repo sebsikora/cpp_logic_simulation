@@ -35,7 +35,7 @@ MagicEngine::MagicEngine(Device* parent_device_pointer) {
 	m_top_level_sim_pointer->AddToMagicEngines(identifier, this);
 }
 
-void MagicEngine::AddMagicEventTrap(std::string identifier, magic_event new_magic_event) {
+void MagicEngine::AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event) {
 	std::size_t identifier_hash = std::hash<std::string>{}(identifier);
 	if (IsStringInMapKeys(identifier, m_magic_events) == false) {
 		m_magic_events[identifier] = new_magic_event;

@@ -51,7 +51,7 @@ void SimpleTerminal::Build() {
 	// This device does not contain any components!
 	// We still need to call MakeProbable() here during the Build() process if we want to attach logic probes later.
 	MakeProbable();
-	PrintInPinStates();
+	//~PrintInPinStates();
 }
 
 void SimpleTerminal::ConfigureMagic(Device* parent_device_pointer, std::string name) {
@@ -65,6 +65,7 @@ void SimpleTerminal::ConfigureMagic(Device* parent_device_pointer, std::string n
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 SimpleTerminal_MagicEngine::SimpleTerminal_MagicEngine(Device* parent_device_pointer, std::string name) : MagicEngine(parent_device_pointer) {
 	m_data_bus_width = 8;
+	CreatePinIdentifierHashes(m_data_bus_width);
 	m_fifo_dat_s_m_ident_string = "/tmp/fifo_dat_sm_" + name;
 	m_fifo_dat_m_s_ident_string = "/tmp/fifo_dat_ms_" + name;
 	m_fifo_cmd_m_s_ident_string = "/tmp/fifo_cmd_ms_" + name;
@@ -82,6 +83,7 @@ SimpleTerminal_MagicEngine::SimpleTerminal_MagicEngine(Device* parent_device_poi
 	} else {
 		std::cout << "Terminal client started." << std::endl;
 	}
+	
 	ConfigureFIFO(m_fifo_dat_s_m_ident_carray, m_fifo_dat_m_s_ident_carray, m_fifo_cmd_m_s_ident_carray, &m_fifo_dat_slave_to_master,
 					&m_fifo_dat_master_to_slave, &m_fifo_cmd_master_to_slave);
 	
@@ -89,6 +91,20 @@ SimpleTerminal_MagicEngine::SimpleTerminal_MagicEngine(Device* parent_device_poi
 	SendMessage(welcome_message.c_str(), m_fifo_dat_master_to_slave);
 	m_end_code = "end";
 	m_match_buffer = "";
+}
+
+void SimpleTerminal_MagicEngine::CreatePinIdentifierHashes(int data_bus_width) {
+	for (int index = 0; index < data_bus_width; index ++) {
+		std::string input_identifier = "d_in_" + std::to_string(index);
+		std::size_t input_identifier_hash = std::hash<std::string>{}(input_identifier);
+		m_data_in_bus_pin_identifier_hashes.push_back(input_identifier_hash);
+	}
+	std::vector<std::string> outputs_to_create;
+	for (int index = 0; index < data_bus_width; index ++) {
+		std::string output_identifier = "d_out_" + std::to_string(index);
+		std::size_t output_identifier_hash = std::hash<std::string>{}(output_identifier);
+		m_data_out_bus_pin_identifier_hashes.push_back(output_identifier_hash);
+	}
 }
 
 pid_t SimpleTerminal_MagicEngine::StartClient(const char *fifo_dat_s_m_identifier, const char *fifo_dat_m_s_identifier, const char *fifo_cmd_m_s_identifier) {
@@ -195,14 +211,14 @@ void SimpleTerminal_MagicEngine::InvokeMagic(std::string const& incantation) {
 			// Get and then remove least-recently received character.
 			int data = (int)m_data_in_char_buffer.back();
 			m_data_in_char_buffer.pop_back();
-			for (int i = 0; i < m_data_bus_width; i ++) {
-				std::string pin_identifier = "d_out_" + std::to_string(i);
-				std::size_t pin_identifier_hash = std::hash<std::string>{}(pin_identifier);
-				if ((data & (1 << i)) == (1 << i)) {
+			int pin_index = 0;
+			for (const auto& pin_identifier_hash : m_data_out_bus_pin_identifier_hashes) {
+				if ((data & (1 << pin_index)) == (1 << pin_index)) {
 					m_parent_device_pointer->Set(pin_identifier_hash, 2, true);
 				} else {
 					m_parent_device_pointer->Set(pin_identifier_hash, 2, false);
 				}
+				pin_index ++;
 			}
 			// If we have emptied the internal character buffer, de-assert the "data_waiting" output pin.
 			if (m_data_in_char_buffer.size() == 0) {
@@ -211,22 +227,20 @@ void SimpleTerminal_MagicEngine::InvokeMagic(std::string const& incantation) {
 			}
 		} else {
 			// If no data waiting, output zero.
-			for (int i = 0; i < m_data_bus_width; i ++) {
-				std::string pin_identifier = "d_out_" + std::to_string(i);
-				std::size_t pin_identifier_hash = std::hash<std::string>{}(pin_identifier);
+			for (const auto& pin_identifier_hash : m_data_out_bus_pin_identifier_hashes) {
 				m_parent_device_pointer->Set(pin_identifier_hash, 2, false);
 			}
 		}
 	} else if (incantation == "WRITE") {
 		// Generate data byte,
 		int data_byte = 0;
-		for (int i = 0; i < m_data_bus_width; i ++) {
-			std::string pin_identifier = "d_in_" + std::to_string(i);
-			std::size_t pin_identifier_hash = std::hash<std::string>{}(pin_identifier);
+		int pin_index = 0;
+		for (const auto& pin_identifier_hash : m_data_in_bus_pin_identifier_hashes) {
 			bool pin_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
 			if (pin_state) {
-				data_byte |= (1 << i);
+				data_byte |= (1 << pin_index);
 			}
+			pin_index ++;
 		}
 		// Send data byte to client.
 		char character_to_send = (char)data_byte;
@@ -261,3 +275,4 @@ void SimpleTerminal_MagicEngine::Finish(pid_t client_pid, const char *fifo_dat_s
 	unlink(fifo_dat_m_s_identifier);
 	unlink(fifo_cmd_m_s_identifier);
 }
+
