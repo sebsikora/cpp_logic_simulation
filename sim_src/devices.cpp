@@ -85,6 +85,66 @@ void JK_FF::Build() {
 	//PrintInPinStates();
 }
 
+JK_FF_ASPC::JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+ : Device(parent_device_pointer, name, "jk_ff_aspc", {"j", "k", "not_p", "not_c", "clk"}, {"q", "not_q"}, monitor_on, input_default_states) {
+	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
+	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	 Build();
+	 Stabilise();
+ }
+
+void JK_FF_ASPC::Build() {
+	// Instantiate components.
+	// Can do it by directly instantiating the object.
+	AddComponent(new Gate(this, "nand_1", "nand", {"input_0", "input_1", "input_2"}, false));
+	// Or via a custom method.
+	AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"}, false);
+	AddGate("nand_3", "nand", {"input_0", "input_1", "input_2"}, false);
+	AddGate("nand_4", "nand", {"input_0", "input_1", "input_2"}, false);
+	AddGate("nand_5", "nand", {"input_0", "input_1"}, false);
+	AddGate("nand_6", "nand", {"input_0", "input_1"}, false);
+	AddGate("nand_7", "nand", {"input_0", "input_1", "input_2"}, false);
+	AddGate("nand_8", "nand", {"input_0", "input_1", "input_2"}, false);
+	AddGate("not_1", "not", {"input_0"}, false);
+	
+	// Interconnect components.
+	ChildConnect("not_1", {"output", "nand_5", "input_1"});
+	ChildConnect("not_1", {"output", "nand_6", "input_1"});
+	
+	ChildConnect("nand_1", {"output", "nand_3", "input_0"});
+	ChildConnect("nand_2", {"output", "nand_4", "input_0"});
+	ChildConnect("nand_3", {"output", "nand_4", "input_1"});
+	ChildConnect("nand_4", {"output", "nand_3", "input_1"});
+	
+	ChildConnect("nand_3", {"output", "nand_5", "input_0"});
+	ChildConnect("nand_4", {"output", "nand_6", "input_0"});
+	
+	ChildConnect("nand_5", {"output", "nand_7", "input_0"});
+	ChildConnect("nand_6", {"output", "nand_8", "input_0"});
+	ChildConnect("nand_7", {"output", "nand_8", "input_1"});
+	ChildConnect("nand_8", {"output", "nand_7", "input_1"});
+	
+	ChildConnect("nand_7", {"output", "nand_2", "input_1"});
+	ChildConnect("nand_8", {"output", "nand_1", "input_1"});
+	
+	ChildConnect("nand_7", {"output", "parent", "q"});
+	ChildConnect("nand_8", {"output", "parent", "not_q"});
+	
+	// Connect device terminals to components.
+	Connect("j", "nand_1", "input_0");
+	Connect("k", "nand_2", "input_0");
+	Connect("not_p", "nand_3", "input_2");
+	Connect("not_p", "nand_7", "input_2");
+	Connect("not_c", "nand_4", "input_2");
+	Connect("not_c", "nand_8", "input_2");
+	Connect("clk", "nand_1", "input_2");
+	Connect("clk", "nand_2", "input_2");
+	Connect("clk", "not_1", "input_0");
+	
+	// Add device to top-level probable list.
+	MakeProbable();
+}
+
 Four_Bit_Counter::Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
  : Device(parent_device_pointer, name, "4_bit_counter", {"run", "clk"}, {"q_0", "q_1", "q_2", "q_3"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
@@ -136,6 +196,67 @@ void Four_Bit_Counter::Build() {
 	// Add device to top-level probable list.
 	MakeProbable();
 	//PrintInPinStates();
+}
+
+N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+ : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk"}, {}, monitor_on, input_default_states) {
+	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
+	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	if (width < 2) {
+		width = 2;
+	}
+	m_width = width;
+	ConfigureOutputs();
+	Build();
+	Stabilise();
+ }
+
+void N_Bit_Counter::ConfigureOutputs() {
+	std::vector<std::string> outputs_to_create;
+	for (int index = 0; index < m_width; index ++) {
+		std::string output_identifier = "q_" + std::to_string(index);
+		outputs_to_create.push_back(output_identifier);
+	}
+	CreateOutPins(outputs_to_create);
+}
+
+void N_Bit_Counter::Build() {
+	// Instantiate components.
+	AddComponent(new JK_FF(this, "jk_ff_0", false));
+	AddComponent(new JK_FF(this, "jk_ff_1", false));
+	Connect("run", "jk_ff_0", "j");
+	Connect("run", "jk_ff_0", "k");
+	ChildConnect("jk_ff_0", {"q", "parent", "q_0"});
+	ChildConnect("jk_ff_1", {"q", "parent", "q_1"});
+	ChildConnect("jk_ff_0", {"q", "jk_ff_1", "j"});
+	ChildConnect("jk_ff_0", {"q", "jk_ff_1", "k"});
+	Connect("clk", "jk_ff_0", "clk");
+	Connect("clk", "jk_ff_1", "clk");
+	
+	for (int slice_index = 2; slice_index < m_width; slice_index ++) {
+		std::string new_and_identifier = "and_" + std::to_string(slice_index);
+		AddGate(new_and_identifier, "and", {"input_0", "input_1"}, false);
+		
+		std::string new_ff_identifier = "jk_ff_" + std::to_string(slice_index);
+		AddComponent(new JK_FF(this, new_ff_identifier, false));
+		Connect("clk", new_ff_identifier, "clk");
+
+		if (slice_index == 2) {
+			ChildConnect("jk_ff_0", {"q", new_and_identifier, "input_0"});
+			ChildConnect("jk_ff_1", {"q", new_and_identifier, "input_1"});
+		} else {
+			std::string last_and_identifier = "and_" + std::to_string(slice_index - 1);
+			std::string last_ff_identifier = "jk_ff_" + std::to_string(slice_index - 1);
+			ChildConnect(last_and_identifier, {"output", new_and_identifier, "input_0"});
+			ChildConnect(last_ff_identifier, {"q", new_and_identifier, "input_1"});
+		}
+		
+		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "j"});
+		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "k"});
+		std::string new_output_identifier = "q_" + std::to_string(slice_index);
+		ChildConnect(new_ff_identifier, {"q", "parent", new_output_identifier});
+	}
+	MakeProbable();
 }
 
 One_Bit_Register::One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 

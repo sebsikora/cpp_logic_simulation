@@ -34,10 +34,24 @@ class JK_FF : public Device {
 		void Build(void);
 };
 
+class JK_FF_ASPC : public Device {
+	public:
+		JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		void Build(void);
+};
+
 class Four_Bit_Counter : public Device {
 	public:
 		Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
 		void Build(void);
+};
+
+class N_Bit_Counter : public Device {
+	public:
+		N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		void ConfigureOutputs(void);
+		void Build(void);
+		int m_width;
 };
 
 class One_Bit_Register : public Device {
