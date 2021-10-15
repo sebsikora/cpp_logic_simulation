@@ -123,7 +123,7 @@ void Device::Stabilise() {
 			// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
 			// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
 			// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
-			connection_descriptor target_connection_descriptor = connection.second;
+			connection_descriptor target_connection_descriptor = connection;
 			Component* target_component = target_connection_descriptor.target_component;
 			std::size_t target_pin_name_hash = target_connection_descriptor.target_pin_name_hash;
 			int target_pin_direction = target_connection_descriptor.target_pin_direction;
@@ -244,37 +244,31 @@ void Device::Connect(std::string const& origin_pin_name, std::string const& targ
 	std::size_t origin_pin_name_hash = std::hash<std::string>{}(origin_pin_name);
 	std::size_t target_component_name_hash = std::hash<std::string>{}(target_component_name);
 	std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
-	std::size_t connection_identifier_hash = std::hash<std::string>{}(target_component_name + ":" + target_pin_name);
-	bool connection_exists = IsHashInMapKeys(connection_identifier_hash, m_ports[origin_pin_name_hash]);
-	if (connection_exists == false) {
-		Component* target_component;
-		if (IsHashInMapKeys(origin_pin_name_hash, m_in_pins)) {
-			// If the device state is one of it's inputs, it can only be connected to an input terminal
-			// of an internal child device.
-			target_component = m_components[target_component_name_hash];
-			connection_descriptor conn_descriptor;
-			conn_descriptor.target_component = target_component;
-			conn_descriptor.target_pin_name_hash = target_pin_name_hash;
-			conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-			m_ports[origin_pin_name_hash][connection_identifier_hash] = conn_descriptor;
-		} else {
-			if (target_component_name == "parent") {
-				// If the target is the parent device, then we are connecting to an output belonging to the
-				// parent device.
-				target_component = m_parent_device_pointer;
-			} else {
-				// If the target is not the parent device then it is another colleague device within the
-				// same parent device.
-				target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
-			}
-			connection_descriptor conn_descriptor;
-			conn_descriptor.target_component = target_component;
-			conn_descriptor.target_pin_name_hash = target_pin_name_hash;
-			conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-			m_ports[origin_pin_name_hash][connection_identifier_hash] = conn_descriptor;
-		}
+	Component* target_component;
+	if (IsHashInMapKeys(origin_pin_name_hash, m_in_pins)) {
+		// If the device state is one of it's inputs, it can only be connected to an input terminal
+		// of an internal child device.
+		target_component = m_components[target_component_name_hash];
+		connection_descriptor conn_descriptor;
+		conn_descriptor.target_component = target_component;
+		conn_descriptor.target_pin_name_hash = target_pin_name_hash;
+		conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
+		m_ports[origin_pin_name_hash].push_back(conn_descriptor);
 	} else {
-		std::cout << "Duplicate connection omitted." << std::endl;
+		if (target_component_name == "parent") {
+			// If the target is the parent device, then we are connecting to an output belonging to the
+			// parent device.
+			target_component = m_parent_device_pointer;
+		} else {
+			// If the target is not the parent device then it is another colleague device within the
+			// same parent device.
+			target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+		}
+		connection_descriptor conn_descriptor;
+		conn_descriptor.target_component = target_component;
+		conn_descriptor.target_pin_name_hash = target_pin_name_hash;
+		conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
+		m_ports[origin_pin_name_hash].push_back(conn_descriptor);
 	}
 }
 
@@ -364,12 +358,12 @@ void Device::Propagate() {
 			this_pin.second.state_changed = false;
 			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
 				// Faster not to put them on the stack here but shown for clarity.
-				//~connection_descriptor t_connection_descriptor = connection.second;
+				//~connection_descriptor t_connection_descriptor = connection;
 				//~Component* target_component = t_connection_descriptor.target_component;
 				//~std::size_t pin_name_hash = t_connection_descriptor.pin_name_hash;
 				//~int pin_direction = t_connection_descriptor.pin_direction;
 				//~target_component->Set(pin_name_hash, pin_direction, this_pin.second.state);
-				connection.second.target_component->Set(connection.second.target_pin_name_hash, connection.second.target_pin_direction, this_pin.second.state);
+				connection.target_component->Set(connection.target_pin_name_hash, connection.target_pin_direction, this_pin.second.state);
 			}
 		}
 	}
@@ -380,7 +374,7 @@ void Device::Propagate() {
 			}
 			this_pin.second.state_changed = false;
 			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
-				connection.second.target_component->Set(connection.second.target_pin_name_hash, connection.second.target_pin_direction, this_pin.second.state);
+				connection.target_component->Set(connection.target_pin_name_hash, connection.target_pin_direction, this_pin.second.state);
 			}
 		}
 	}

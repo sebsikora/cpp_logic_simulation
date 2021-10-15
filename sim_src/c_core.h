@@ -133,7 +133,7 @@ class Gate : public Component {
 		// Data.
 		size_t m_out_pin_name_hash;
 		operator_pointer m_operator_function_pointer;
-		std::unordered_map<std::size_t, connection_descriptor> m_connections;
+		std::vector<connection_descriptor> m_connections;
 };
 
 // Complex composite device component subclass.
@@ -186,7 +186,7 @@ class Device : public Component {
 		std::vector<std::size_t> m_propagate_next_tick;
 		std::vector<std::size_t> m_propagate_this_tick;
 		std::vector<std::size_t> m_still_to_propagate;
-		std::unordered_map<std::size_t, std::unordered_map<std::size_t, connection_descriptor>> m_ports;
+		std::unordered_map<std::size_t, std::vector<connection_descriptor>> m_ports;
 		bool m_magic_device_flag;
 		MagicEngine* m_magic_engine_pointer;
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
@@ -247,7 +247,7 @@ class Clock {
 		std::size_t m_name_hash;
 		std::vector<bool> m_toggle_pattern;
 		bool m_monitor_on;
-		std::unordered_map<std::size_t, connection_descriptor> m_connections;
+		std::vector<connection_descriptor> m_connections;
 		bool m_out_pin_state;
 		std::vector<bool> m_state_history;
 		int m_index;

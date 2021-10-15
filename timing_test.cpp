@@ -13,7 +13,7 @@ int main () {
 	bool monitor_on = false;
 	bool print_probe_samples = false;
 
-	int number_of_runs = 10;
+	int number_of_runs = 50;
 	
 	// Instantiate the top-level Device (the Simulation).
 	Simulation sim = Simulation("test_sim", 10, verbose);

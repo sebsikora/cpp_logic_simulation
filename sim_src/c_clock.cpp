@@ -83,30 +83,23 @@ void Clock::Reset(void) {
 }
 
 void Clock::Connect(std::string const& target_component_name, std::string const& pin_name) {
-	std::string connection_identifier = target_component_name + ":" + pin_name;
-	std::size_t connection_identifier_hash = std::hash<std::string>{}(connection_identifier);
-	bool connection_exists = IsHashInMapKeys(connection_identifier_hash, m_connections);
-	if (connection_exists == false) {
-		Component* target_component;
-		if (target_component_name == "parent") {
-			target_component = m_parent_device_pointer;
-		} else {
-			target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
-		}
-		connection_descriptor conn_descriptor;
-		conn_descriptor.target_component = target_component;
-		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		conn_descriptor.target_pin_name_hash = pin_name_hash;
-		conn_descriptor.target_pin_direction = target_component->GetPinDirection(pin_name_hash);
-		m_connections[connection_identifier_hash] = conn_descriptor;
+	Component* target_component;
+	if (target_component_name == "parent") {
+		target_component = m_parent_device_pointer;
 	} else {
-		std::cout << "Duplicate connection omitted." << std::endl;
+		target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
 	}
+	connection_descriptor conn_descriptor;
+	conn_descriptor.target_component = target_component;
+	std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
+	conn_descriptor.target_pin_name_hash = pin_name_hash;
+	conn_descriptor.target_pin_direction = target_component->GetPinDirection(pin_name_hash);
+	m_connections.push_back(conn_descriptor);
 }
 
 void Clock::Propagate() {
-	for (const auto& entry: m_connections) {
-		connection_descriptor target_connection_descriptor = entry.second;
+	for (const auto& connection: m_connections) {
+		connection_descriptor target_connection_descriptor = connection;
 		Component* target_component = target_connection_descriptor.target_component;
 		target_component->Set(target_connection_descriptor.target_pin_name_hash, target_connection_descriptor.target_pin_direction, m_out_pin_state);
 	}

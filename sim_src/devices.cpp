@@ -221,7 +221,7 @@ void N_Bit_Counter::ConfigureOutputs() {
 }
 
 void N_Bit_Counter::Build() {
-	// Instantiate components.
+	// Instantiate and connect components for bits 0 & 1.
 	AddComponent(new JK_FF(this, "jk_ff_0", false));
 	AddComponent(new JK_FF(this, "jk_ff_1", false));
 	Connect("run", "jk_ff_0", "j");
@@ -232,8 +232,10 @@ void N_Bit_Counter::Build() {
 	ChildConnect("jk_ff_0", {"q", "jk_ff_1", "k"});
 	Connect("clk", "jk_ff_0", "clk");
 	Connect("clk", "jk_ff_1", "clk");
-	
+
+	// Instantiate and connect components for bits > 1.
 	for (int slice_index = 2; slice_index < m_width; slice_index ++) {
+		// Each additional bit uses one jk flip-flip and one 2-input and Gate.
 		std::string new_and_identifier = "and_" + std::to_string(slice_index);
 		AddGate(new_and_identifier, "and", {"input_0", "input_1"}, false);
 		
@@ -242,15 +244,17 @@ void N_Bit_Counter::Build() {
 		Connect("clk", new_ff_identifier, "clk");
 
 		if (slice_index == 2) {
+			// If this is bit 2 (the first additional bit), outputs from flip-flop 0 & 1 drive the and Gate.
 			ChildConnect("jk_ff_0", {"q", new_and_identifier, "input_0"});
 			ChildConnect("jk_ff_1", {"q", new_and_identifier, "input_1"});
 		} else {
+			// For all further bits, the and Gate is driven by both the previous and Gate and previous flip-flop.
 			std::string last_and_identifier = "and_" + std::to_string(slice_index - 1);
 			std::string last_ff_identifier = "jk_ff_" + std::to_string(slice_index - 1);
 			ChildConnect(last_and_identifier, {"output", new_and_identifier, "input_0"});
 			ChildConnect(last_ff_identifier, {"q", new_and_identifier, "input_1"});
 		}
-		
+		// Other connections for this additional bit do not vary.
 		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "j"});
 		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "k"});
 		std::string new_output_identifier = "q_" + std::to_string(slice_index);
