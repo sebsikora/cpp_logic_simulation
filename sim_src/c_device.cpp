@@ -486,5 +486,60 @@ void Device::PrintInternalPinStates(int max_levels) {
 	}
 }
 
+std::string Device::GetOutPinName(std::size_t out_pin_name_hash) {
+	return m_out_pins[out_pin_name_hash].name;
+}
+
+std::vector<std::string> Device::GetSortedOutPinNames() {
+	std::vector<std::string> sorted_pin_names = {};
+	for (const auto& out_pin : m_out_pins) {
+		sorted_pin_names.push_back(out_pin.second.name);
+	}
+	std::sort(sorted_pin_names.begin(), sorted_pin_names.end(), compareNat);
+	return sorted_pin_names;
+}
+
+std::vector<std::size_t> Device::GetSortedOutPinNameHashes() {
+	std::vector<std::string> sorted_out_pin_names = GetSortedOutPinNames();
+	std::vector<size_t> sorted_out_pin_name_hashes = {};
+	for (const auto& out_pin_name : sorted_out_pin_names) {
+		sorted_out_pin_name_hashes.push_back(std::hash<std::string>{}(out_pin_name));
+	}
+	return sorted_out_pin_name_hashes;	
+}
+
+int Device::GetPinDirection(size_t pin_name_hash) {
+	int pin_direction = 0;
+	for (const auto& in_pin: m_in_pins) {
+		if (in_pin.first == pin_name_hash) {
+			pin_direction = 1;
+		}
+	}
+	for (const auto& out_pin: m_out_pins) {
+		if (out_pin.first == pin_name_hash) {
+			pin_direction = 2;
+		}
+	}
+	return pin_direction;
+}
+
+bool Device::GetOutPinState(std::size_t pin_name_hash) {
+	return m_out_pins[pin_name_hash].state;
+}
+
+void Device::PrintOutPinStates() {
+	std::cout << m_name << ": [ ";
+	for (const auto& out_pin_name: GetSortedOutPinNames()) {
+		std::cout << out_pin_name;
+		std::size_t out_pin_name_hash = std::hash<std::string>{}(out_pin_name);
+		if (m_out_pins[out_pin_name_hash].state) {
+			std::cout << ": T ";
+		} else {
+			std::cout << ": F ";
+		}
+	}
+	std::cout << "]" << std::endl << std::endl;
+}
+
 // In-order insertion into vector of ascending values.
 //~m_propagate_next_tick.insert(std::upper_bound(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), propagation_identifier), propagation_identifier);

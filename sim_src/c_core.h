@@ -73,17 +73,12 @@ class Component {
 		std::string GetComponentType(void);
 		Simulation* GetTopLevelSimPointer(void);
 		bool GetInPinState(std::size_t pin_name_hash);
-		bool GetOutPinState(std::size_t pin_name_hash);
 		std::string GetInPinName(std::size_t in_pin_name_hash);
-		std::string GetOutPinName(std::size_t out_pin_name_hash);
 		std::vector<std::string> GetSortedInPinNames(void);
 		std::vector<std::size_t> GetSortedInPinNameHashes(void);
-		std::vector<std::string> GetSortedOutPinNames(void);
-		std::vector<std::size_t> GetSortedOutPinNameHashes(void);
 		std::vector<int> GetPinDirections(std::vector<std::size_t> const& pin_name_hashes);
-		int GetPinDirection(std::size_t pin_name_hash);
 		void PrintInPinStates(void);
-		void PrintOutPinStates(void);
+		
 		// Virtual methods.
 		virtual void Initialise(void) = 0;
 		virtual void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) = 0;
@@ -91,6 +86,12 @@ class Component {
 		virtual void Propagate(void) = 0;
 		virtual void PrintPinStates(int max_levels) = 0;
 		virtual void MakeProbable(void) = 0;
+		virtual std::string GetOutPinName(std::size_t out_pin_name_hash) = 0;
+		virtual std::vector<std::string> GetSortedOutPinNames(void) = 0;
+		virtual std::vector<std::size_t> GetSortedOutPinNameHashes(void) = 0;
+		virtual int GetPinDirection(std::size_t pin_name_hash) = 0;
+		virtual bool GetOutPinState(std::size_t pin_name_hash) = 0;
+		virtual void PrintOutPinStates(void) = 0;
 		
 		// Data.
 		int m_nesting_level;
@@ -103,7 +104,6 @@ class Component {
 		Simulation* m_top_level_sim_pointer;
 		Device* m_parent_device_pointer;
 		std::unordered_map<std::size_t, pin> m_in_pins;
-		std::unordered_map<std::size_t, pin> m_out_pins;
 		bool m_monitor_on;
 		static bool mg_verbose_output_flag;
 };
@@ -120,6 +120,13 @@ class Gate : public Component {
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
+		std::string GetOutPinName(std::size_t out_pin_name_hash) override;
+		std::vector<std::string> GetSortedOutPinNames(void) override;
+		std::vector<std::size_t> GetSortedOutPinNameHashes(void) override;
+		int GetPinDirection(std::size_t pin_name_hash) override;
+		bool GetOutPinState(std::size_t pin_name_hash) override;
+		void PrintOutPinStates(void) override;
+		
 		// Gate-specific methods.
 		void Evaluate(void);
 		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
@@ -132,6 +139,7 @@ class Gate : public Component {
 		
 		// Data.
 		size_t m_out_pin_name_hash;
+		pin m_out_pin;
 		operator_pointer m_operator_function_pointer;
 		std::vector<connection_descriptor> m_connections;
 };
@@ -158,6 +166,13 @@ class Device : public Component {
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
+		std::string GetOutPinName(std::size_t out_pin_name_hash) override;
+		std::vector<std::string> GetSortedOutPinNames(void) override;
+		std::vector<std::size_t> GetSortedOutPinNameHashes(void) override;
+		int GetPinDirection(std::size_t pin_name_hash) override;
+		bool GetOutPinState(std::size_t pin_name_hash) override;
+		void PrintOutPinStates(void) override;
+		
 		// Device-specific methods.
 		virtual void Build(void);
 		void CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states);
@@ -182,6 +197,7 @@ class Device : public Component {
 		
 		// Data.
 		int m_max_propagations;
+		std::unordered_map<std::size_t, pin> m_out_pins;
 		std::unordered_map<std::size_t, Component*> m_components;
 		std::vector<std::size_t> m_propagate_next_tick;
 		std::vector<std::size_t> m_propagate_this_tick;
