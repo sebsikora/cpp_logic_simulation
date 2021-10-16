@@ -53,12 +53,12 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
 		// Assign random states to Gate inputs.
 		bool temp_bool = rand() > (RAND_MAX / 2);
-		pin new_in_pin = {pin_name, pin_name_hash, 1, temp_bool, false};
+		pin new_in_pin = {pin_name, pin_name_hash, 1, temp_bool, false, 0};
 		m_in_pins[pin_name_hash] = new_in_pin;
 	}
 	std::string out_pin_name = "output";
 	m_out_pin_name_hash = std::hash<std::string>{}(out_pin_name);
-	pin new_out_pin = {out_pin_name, m_out_pin_name_hash, 2, false, false};
+	pin new_out_pin = {out_pin_name, m_out_pin_name_hash, 2, false, false, 0};
 	m_out_pin = new_out_pin;
 }
 

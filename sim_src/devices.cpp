@@ -263,6 +263,79 @@ void N_Bit_Counter::Build() {
 	MakeProbable();
 }
 
+N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+ : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk", "not_clear"}, {}, monitor_on, input_default_states) {
+	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
+	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	if (width < 2) {
+		width = 2;
+	}
+	m_width = width;
+	ConfigureOutputs();
+	Build();
+	Stabilise();
+ }
+
+void N_Bit_Counter_ASC::ConfigureOutputs() {
+	std::vector<std::string> outputs_to_create;
+	for (int index = 0; index < m_width; index ++) {
+		std::string output_identifier = "q_" + std::to_string(index);
+		outputs_to_create.push_back(output_identifier);
+	}
+	CreateOutPins(outputs_to_create);
+}
+
+void N_Bit_Counter_ASC::Build() {
+	// Instantiate and connect components for bits 0 & 1.
+	// NOTE - If we don't instantiate the flip-flops with the right states on the asynchronous preset and clear
+	// pins, they won't settle appropriately.
+	AddComponent(new JK_FF_ASPC(this, "jk_ff_0", false, {{"not_p", true}, {"not_c", true}}));
+	AddComponent(new JK_FF_ASPC(this, "jk_ff_1", false, {{"not_p", true}, {"not_c", true}}));
+	Connect("clk", "jk_ff_0", "clk");
+	Connect("clk", "jk_ff_1", "clk");
+	Connect("true", "jk_ff_0", "not_p");
+	Connect("true", "jk_ff_1", "not_p");
+	Connect("not_clear", "jk_ff_0", "not_c");
+	Connect("not_clear", "jk_ff_1", "not_c");
+	Connect("run", "jk_ff_0", "j");
+	Connect("run", "jk_ff_0", "k");
+	ChildConnect("jk_ff_0", {"q", "parent", "q_0"});
+	ChildConnect("jk_ff_1", {"q", "parent", "q_1"});
+	ChildConnect("jk_ff_0", {"q", "jk_ff_1", "j"});
+	ChildConnect("jk_ff_0", {"q", "jk_ff_1", "k"});
+
+	// Instantiate and connect components for bits > 1.
+	for (int slice_index = 2; slice_index < m_width; slice_index ++) {
+		// Each additional bit uses one jk flip-flip and one 2-input and Gate.
+		std::string new_and_identifier = "and_" + std::to_string(slice_index);
+		AddGate(new_and_identifier, "and", {"input_0", "input_1"}, false);
+		
+		std::string new_ff_identifier = "jk_ff_" + std::to_string(slice_index);
+		AddComponent(new JK_FF_ASPC(this, new_ff_identifier, false, {{"not_p", true}, {"not_c", true}}));
+		Connect("clk", new_ff_identifier, "clk");
+		Connect("true", new_ff_identifier, "not_p");
+		Connect("not_clear", new_ff_identifier, "not_c");
+		
+		if (slice_index == 2) {
+			// If this is bit 2 (the first additional bit), outputs from flip-flop 0 & 1 drive the and Gate.
+			ChildConnect("jk_ff_0", {"q", new_and_identifier, "input_0"});
+			ChildConnect("jk_ff_1", {"q", new_and_identifier, "input_1"});
+		} else {
+			// For all further bits, the and Gate is driven by both the previous and Gate and previous flip-flop.
+			std::string last_and_identifier = "and_" + std::to_string(slice_index - 1);
+			std::string last_ff_identifier = "jk_ff_" + std::to_string(slice_index - 1);
+			ChildConnect(last_and_identifier, {"output", new_and_identifier, "input_0"});
+			ChildConnect(last_ff_identifier, {"q", new_and_identifier, "input_1"});
+		}
+		// Other connections for this additional bit do not vary.
+		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "j"});
+		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "k"});
+		std::string new_output_identifier = "q_" + std::to_string(slice_index);
+		ChildConnect(new_ff_identifier, {"q", "parent", new_output_identifier});
+	}
+	MakeProbable();
+}
+
 One_Bit_Register::One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
  : Device(parent_device_pointer, name, "1_bit_register", {"d_in", "load", "clr", "clk"}, {"d_out"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the

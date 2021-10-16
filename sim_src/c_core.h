@@ -51,6 +51,7 @@ struct pin {
 	int direction;
 	bool state;
 	bool state_changed;
+	int port_index;
 };
 
 // This typedef defines the type 'pointer to a Gate class member function that takes a unordered_map of state 
@@ -202,7 +203,7 @@ class Device : public Component {
 		std::vector<std::size_t> m_propagate_next_tick;
 		std::vector<std::size_t> m_propagate_this_tick;
 		std::vector<std::size_t> m_still_to_propagate;
-		std::unordered_map<std::size_t, std::vector<connection_descriptor>> m_ports;
+		std::vector<std::vector<connection_descriptor>> m_ports;
 		bool m_magic_device_flag;
 		MagicEngine* m_magic_engine_pointer;
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};

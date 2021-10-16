@@ -69,10 +69,12 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 }
 
 void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states) {
+	// Determine number of existing in and out pins.
+	int new_pin_port_index = m_in_pins.size() + m_out_pins.size();
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		pin new_in_pin = {pin_name, pin_name_hash, 0, false, false};
+		pin new_in_pin = {pin_name, pin_name_hash, 0, false, false, new_pin_port_index};
 		if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
 			// If this is a user-defined input, handle as normal.
 			new_in_pin.direction = 1;
@@ -95,15 +97,21 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 		}
 		new_in_pin.state_changed = false;
 		m_in_pins[pin_name_hash] = new_in_pin;
+		m_ports.push_back({});
+		new_pin_port_index ++;
 	}
 }
 
 void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
+	// Determine number of existing in and out pins.
+	int new_pin_port_index = m_in_pins.size() + m_out_pins.size();
 	// Create new outputs.
 	for (const auto& pin_name: pin_names) {
 		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		pin new_out_pin = {pin_name, pin_name_hash, 2, false, false};
+		pin new_out_pin = {pin_name, pin_name_hash, 2, false, false, new_pin_port_index};
 		m_out_pins[pin_name_hash] = new_out_pin;
+		m_ports.push_back({});
+		new_pin_port_index ++;
 	}
 }
 
@@ -119,7 +127,7 @@ void Device::Stabilise() {
 	}
 	// First we Set() all child component inputs that are connected to the parent device inputs to deafult states.
 	for (const auto& this_pin : m_in_pins) {
-		for (const auto& connection: m_ports[this_pin.second.name_hash]) {
+		for (const auto& connection: m_ports[this_pin.second.port_index]) {
 			// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
 			// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
 			// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
@@ -246,6 +254,7 @@ void Device::Connect(std::string const& origin_pin_name, std::string const& targ
 	std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
 	Component* target_component;
 	if (IsHashInMapKeys(origin_pin_name_hash, m_in_pins)) {
+		int pin_port_index = m_in_pins[origin_pin_name_hash].port_index;
 		// If the device state is one of it's inputs, it can only be connected to an input terminal
 		// of an internal child device.
 		target_component = m_components[target_component_name_hash];
@@ -253,8 +262,9 @@ void Device::Connect(std::string const& origin_pin_name, std::string const& targ
 		conn_descriptor.target_component = target_component;
 		conn_descriptor.target_pin_name_hash = target_pin_name_hash;
 		conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-		m_ports[origin_pin_name_hash].push_back(conn_descriptor);
+		m_ports[pin_port_index].push_back(conn_descriptor);
 	} else {
+		int pin_port_index = m_out_pins[origin_pin_name_hash].port_index;
 		if (target_component_name == "parent") {
 			// If the target is the parent device, then we are connecting to an output belonging to the
 			// parent device.
@@ -268,7 +278,7 @@ void Device::Connect(std::string const& origin_pin_name, std::string const& targ
 		conn_descriptor.target_component = target_component;
 		conn_descriptor.target_pin_name_hash = target_pin_name_hash;
 		conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-		m_ports[origin_pin_name_hash].push_back(conn_descriptor);
+		m_ports[pin_port_index].push_back(conn_descriptor);
 	}
 }
 
@@ -356,7 +366,7 @@ void Device::Propagate() {
 				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
 			this_pin.second.state_changed = false;
-			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
+			for (const auto& connection: m_ports[this_pin.second.port_index]) {
 				// Faster not to put them on the stack here but shown for clarity.
 				//~connection_descriptor t_connection_descriptor = connection;
 				//~Component* target_component = t_connection_descriptor.target_component;
@@ -373,7 +383,7 @@ void Device::Propagate() {
 				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
 			}
 			this_pin.second.state_changed = false;
-			for (const auto& connection: m_ports[this_pin.second.name_hash]) {
+			for (const auto& connection: m_ports[this_pin.second.port_index]) {
 				connection.target_component->Set(connection.target_pin_name_hash, connection.target_pin_direction, this_pin.second.state);
 			}
 		}
