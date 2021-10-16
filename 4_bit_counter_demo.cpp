@@ -22,8 +22,8 @@ int main () {
 	sim.ClockConnect("clock_0", "test_counter", "clk");
 	
 	// Add two Probes and connect them to the counter's outputs and clk input.
-	sim.AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
 	sim.AddProbe("clk_input", "test_sim:test_counter", {"clk"}, "clock_0");
+	sim.AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
 	
 	// Set the counter's run input to high (true).
 	//sim.ChildSet("test_counter", "run", true);

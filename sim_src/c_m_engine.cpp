@@ -54,17 +54,17 @@ void MagicEngine::ShutDownMagic() {
 	// Redefined for each specific device subclass...
 }
 
-void MagicEngine::CheckMagicEventTrap(std::size_t target_pin_name_hash, bool new_state) {
+void MagicEngine::CheckMagicEventTrap(int target_pin_port_index, bool new_state) {
 	for (const auto& current_event_trap: m_magic_events) {
 		magic_event current_magic_event = current_event_trap.second;
-		if (target_pin_name_hash == current_magic_event.target_pin_name_hash) {
-			bool target_pin_existing_state = m_parent_device_pointer->GetInPinState(target_pin_name_hash);
+		if (target_pin_port_index == current_magic_event.target_pin_port_index) {
+			bool target_pin_existing_state = m_parent_device_pointer->GetPinState(target_pin_port_index);
 			std::vector<bool> current_state_change = {target_pin_existing_state, new_state};
 			if (current_magic_event.state_change == current_state_change) {
 				bool co_conditions_met_flag = true;
 				for (const auto& current_co_condition: current_magic_event.co_conditions) {
 					bool co_condition_pin_required_state = current_co_condition.pin_state;
-					bool co_condition_pin_existing_state = (m_parent_device_pointer->GetInPinState(current_co_condition.pin_name_hash));
+					bool co_condition_pin_existing_state = (m_parent_device_pointer->GetPinState(current_co_condition.pin_port_index));
 					co_conditions_met_flag &= (co_condition_pin_required_state == co_condition_pin_existing_state);
 				}
 				if (co_conditions_met_flag == true) {

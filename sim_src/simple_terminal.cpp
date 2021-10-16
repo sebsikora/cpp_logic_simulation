@@ -65,7 +65,7 @@ void SimpleTerminal::ConfigureMagic(Device* parent_device_pointer, std::string n
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 SimpleTerminal_MagicEngine::SimpleTerminal_MagicEngine(Device* parent_device_pointer, std::string name) : MagicEngine(parent_device_pointer) {
 	m_data_bus_width = 8;
-	CreatePinIdentifierHashes(m_data_bus_width);
+	GetPinPortIndices(m_data_bus_width);
 	m_fifo_dat_s_m_ident_string = "/tmp/fifo_dat_sm_" + name;
 	m_fifo_dat_m_s_ident_string = "/tmp/fifo_dat_ms_" + name;
 	m_fifo_cmd_m_s_ident_string = "/tmp/fifo_cmd_ms_" + name;
@@ -93,18 +93,16 @@ SimpleTerminal_MagicEngine::SimpleTerminal_MagicEngine(Device* parent_device_poi
 	m_match_buffer = "";
 }
 
-void SimpleTerminal_MagicEngine::CreatePinIdentifierHashes(int data_bus_width) {
+void SimpleTerminal_MagicEngine::GetPinPortIndices(int data_bus_width) {
 	for (int index = 0; index < data_bus_width; index ++) {
 		std::string input_identifier = "d_in_" + std::to_string(index);
-		std::size_t input_identifier_hash = std::hash<std::string>{}(input_identifier);
-		m_data_in_bus_pin_identifier_hashes.push_back(input_identifier_hash);
+		m_data_in_bus_pin_port_indices.push_back(m_parent_device_pointer->GetPinPortIndex(input_identifier));
 	}
-	std::vector<std::string> outputs_to_create;
 	for (int index = 0; index < data_bus_width; index ++) {
 		std::string output_identifier = "d_out_" + std::to_string(index);
-		std::size_t output_identifier_hash = std::hash<std::string>{}(output_identifier);
-		m_data_out_bus_pin_identifier_hashes.push_back(output_identifier_hash);
+		m_data_out_bus_pin_port_indices.push_back(m_parent_device_pointer->GetPinPortIndex(output_identifier));
 	}
+	m_data_waiting_pin_port_index = m_parent_device_pointer->GetPinPortIndex("data_waiting");
 }
 
 pid_t SimpleTerminal_MagicEngine::StartClient(const char *fifo_dat_s_m_identifier, const char *fifo_dat_m_s_identifier, const char *fifo_cmd_m_s_identifier) {
@@ -193,7 +191,7 @@ void SimpleTerminal_MagicEngine::UpdateMagic() {
 	// If we have read in a character and the "data_waiting" pin is de-asserted, assert it.
 	if ((m_data_in_waiting_flag == false) && chars_read_in_flag) {
 		m_data_in_waiting_flag = true;
-		m_parent_device_pointer->Set(std::hash<std::string>{}("data_waiting"), 2, true);
+		m_parent_device_pointer->Set(m_data_waiting_pin_port_index, true);
 	}
 }
 
@@ -212,31 +210,31 @@ void SimpleTerminal_MagicEngine::InvokeMagic(std::string const& incantation) {
 			int data = (int)m_data_in_char_buffer.back();
 			m_data_in_char_buffer.pop_back();
 			int pin_index = 0;
-			for (const auto& pin_identifier_hash : m_data_out_bus_pin_identifier_hashes) {
+			for (const auto& pin_port_index : m_data_out_bus_pin_port_indices) {
 				if ((data & (1 << pin_index)) == (1 << pin_index)) {
-					m_parent_device_pointer->Set(pin_identifier_hash, 2, true);
+					m_parent_device_pointer->Set(pin_port_index, true);
 				} else {
-					m_parent_device_pointer->Set(pin_identifier_hash, 2, false);
+					m_parent_device_pointer->Set(pin_port_index, false);
 				}
 				pin_index ++;
 			}
 			// If we have emptied the internal character buffer, de-assert the "data_waiting" output pin.
 			if (m_data_in_char_buffer.size() == 0) {
 				m_data_in_waiting_flag = false;
-				m_parent_device_pointer->Set(std::hash<std::string>{}("data_waiting"), 2, false);
+				m_parent_device_pointer->Set(m_data_waiting_pin_port_index, false);
 			}
 		} else {
 			// If no data waiting, output zero.
-			for (const auto& pin_identifier_hash : m_data_out_bus_pin_identifier_hashes) {
-				m_parent_device_pointer->Set(pin_identifier_hash, 2, false);
+			for (const auto& pin_port_index : m_data_out_bus_pin_port_indices) {
+				m_parent_device_pointer->Set(pin_port_index, false);
 			}
 		}
 	} else if (incantation == "WRITE") {
 		// Generate data byte,
 		int data_byte = 0;
 		int pin_index = 0;
-		for (const auto& pin_identifier_hash : m_data_in_bus_pin_identifier_hashes) {
-			bool pin_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+		for (const auto& pin_port_index : m_data_in_bus_pin_port_indices) {
+			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			if (pin_state) {
 				data_byte |= (1 << pin_index);
 			}

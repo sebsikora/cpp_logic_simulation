@@ -33,10 +33,10 @@
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 SimpleRam::SimpleRam(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states) 
  : Device(parent_device_pointer, device_name, "ram", {"read", "write", "clk"}, {}, monitor_on, in_pin_default_states, 0) {
+	// Create all the address and data bus inputs and outputs and set their default states.
+	ConfigureBusses(address_bus_width, data_bus_width, in_pin_default_states);
 	// We call ConfigureMagic() to create the MagicEngine.
 	ConfigureMagic(this, address_bus_width, data_bus_width);
-	// Then we create all the address and data bus inputs and outputs and set their default states.
-	ConfigureBusses(address_bus_width, data_bus_width, in_pin_default_states);
 	Build();
 	Stabilise();
 }
@@ -80,7 +80,7 @@ SimpleRam_MagicEngine::SimpleRam_MagicEngine(Device* parent_device_pointer, int 
 	m_address_bus_width = address_bus_width;
 	m_data_bus_width = data_bus_width;
 	ZeroMemory(address_bus_width, data_bus_width);
-	CreatePinIdentifierHashes(address_bus_width, data_bus_width);
+	GetPinPortIndices(address_bus_width, data_bus_width);
 }
 
 void SimpleRam_MagicEngine::UpdateMagic() {
@@ -101,22 +101,18 @@ void SimpleRam_MagicEngine::ZeroMemory(int address_bus_width, int data_bus_width
 	}
 }
 
-void SimpleRam_MagicEngine::CreatePinIdentifierHashes(int address_bus_width, int data_bus_width) {
+void SimpleRam_MagicEngine::GetPinPortIndices(int address_bus_width, int data_bus_width) {
 	for (int index = 0; index < address_bus_width; index ++) {
 		std::string input_identifier = "a_" + std::to_string(index);
-		std::size_t input_identifier_hash = std::hash<std::string>{}(input_identifier);
-		m_address_bus_pin_identifier_hashes.push_back(input_identifier_hash);
+		m_address_bus_pin_port_indices.push_back(m_parent_device_pointer->GetPinPortIndex(input_identifier));
 	}
 	for (int index = 0; index < data_bus_width; index ++) {
 		std::string input_identifier = "d_in_" + std::to_string(index);
-		std::size_t input_identifier_hash = std::hash<std::string>{}(input_identifier);
-		m_data_in_bus_pin_identifier_hashes.push_back(input_identifier_hash);
+		m_data_in_bus_pin_port_indices.push_back(m_parent_device_pointer->GetPinPortIndex(input_identifier));
 	}
-	std::vector<std::string> outputs_to_create;
 	for (int index = 0; index < data_bus_width; index ++) {
 		std::string output_identifier = "d_out_" + std::to_string(index);
-		std::size_t output_identifier_hash = std::hash<std::string>{}(output_identifier);
-		m_data_out_bus_pin_identifier_hashes.push_back(output_identifier_hash);
+		m_data_out_bus_pin_port_indices.push_back(m_parent_device_pointer->GetPinPortIndex(output_identifier));
 	}
 }
 
@@ -125,8 +121,8 @@ void SimpleRam_MagicEngine::InvokeMagic(std::string const& incantation) {
 		// Generate address,
 		int address = 0;
 		int address_pin_index = 0;
-		for (const auto& pin_identifier_hash: m_address_bus_pin_identifier_hashes) {
-			bool pin_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
+			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			if (pin_state) {
 				address += pow(2, address_pin_index);
 			}
@@ -136,9 +132,9 @@ void SimpleRam_MagicEngine::InvokeMagic(std::string const& incantation) {
 		std::vector<bool> data_at_address = m_data[address];
 		// Convert std::vector<bool> into states and set parent device outputs accordingly.
 		int data_out_pin_index = 0;
-		for (const auto& pin_identifier_hash: m_data_out_bus_pin_identifier_hashes) {
-			if (m_parent_device_pointer->GetOutPinState(pin_identifier_hash) != data_at_address[data_out_pin_index]) {
-				m_parent_device_pointer->Set(pin_identifier_hash, 2, data_at_address[data_out_pin_index]);
+		for (const auto& pin_port_index: m_data_out_bus_pin_port_indices) {
+			if (m_parent_device_pointer->GetPinState(pin_port_index) != data_at_address[data_out_pin_index]) {
+				m_parent_device_pointer->Set(pin_port_index, data_at_address[data_out_pin_index]);
 			}
 			data_out_pin_index ++;
 		}
@@ -146,16 +142,16 @@ void SimpleRam_MagicEngine::InvokeMagic(std::string const& incantation) {
 		// Generate address,
 		int address = 0;
 		int address_pin_index = 0;
-		for (const auto& pin_identifier_hash: m_address_bus_pin_identifier_hashes) {
-			bool pin_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
+			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			if (pin_state) {
 				address += pow(2, address_pin_index);
 			}
 		}
 		// Get parent device data input pin states and set bits at address correspondingly.
 		int data_in_pin_index = 0;
-		for (const auto& pin_identifier_hash: m_data_in_bus_pin_identifier_hashes) {
-			bool in_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+		for (const auto& pin_port_index: m_data_in_bus_pin_port_indices) {
+			bool in_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			m_data[address][data_in_pin_index] = in_state;
 			data_in_pin_index ++;
 		}

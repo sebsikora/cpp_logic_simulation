@@ -31,7 +31,6 @@
 Clock::Clock(Device* parent_device_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on) {
 	m_parent_device_pointer = parent_device_pointer;
 	m_name = clock_name;
-	m_name_hash = std::hash<std::string>{}(m_name);
 	m_toggle_pattern = toggle_pattern;
 	m_monitor_on = monitor_on;
 	m_out_pin_state = m_toggle_pattern[0];
@@ -41,10 +40,10 @@ Clock::Clock(Device* parent_device_pointer, std::string const& clock_name, std::
 }
 
 void Clock::AddToProbeList(std::string const& probe_identifier, Probe* probe_pointer) {
-	bool probe_exists = IsStringInMapKeys(probe_identifier, m_probes);
-	if (probe_exists == false) {
-		m_probes[probe_identifier] = probe_pointer;
-	}
+	probe_descriptor this_probe;
+	this_probe.probe_name = probe_identifier;
+	this_probe.probe_pointer = probe_pointer;
+	m_probes.push_back(this_probe);
 }
 
 void Clock::Tick(void) {
@@ -77,31 +76,28 @@ void Clock::Reset(void) {
 	m_ticked_flag = false;
 	m_state_history.clear();
 	m_out_pin_state = m_toggle_pattern[0];
-	for (const auto& current_probe: m_probes) {
-		current_probe.second->Reset();
+	for (const auto& this_probe_descriptor : m_probes) {
+		this_probe_descriptor.probe_pointer->Reset();
 	}
 }
 
-void Clock::Connect(std::string const& target_component_name, std::string const& pin_name) {
-	Component* target_component;
+void Clock::Connect(std::string const& target_component_name, std::string const& target_pin_name) {
+	Component* target_component_pointer;
 	if (target_component_name == "parent") {
-		target_component = m_parent_device_pointer;
+		target_component_pointer = m_parent_device_pointer;
 	} else {
-		target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+		target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
 	}
-	connection_descriptor conn_descriptor;
-	conn_descriptor.target_component = target_component;
-	std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-	conn_descriptor.target_pin_name_hash = pin_name_hash;
-	conn_descriptor.target_pin_direction = target_component->GetPinDirection(pin_name_hash);
-	m_connections.push_back(conn_descriptor);
+	connection_descriptor new_connection_descriptor;
+	new_connection_descriptor.target_component_pointer = target_component_pointer;
+	new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+	m_connections.push_back(new_connection_descriptor);
 }
 
 void Clock::Propagate() {
-	for (const auto& connection: m_connections) {
-		connection_descriptor target_connection_descriptor = connection;
-		Component* target_component = target_connection_descriptor.target_component;
-		target_component->Set(target_connection_descriptor.target_pin_name_hash, target_connection_descriptor.target_pin_direction, m_out_pin_state);
+	for (const auto& this_connection_descriptor : m_connections) {
+		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
+		target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, m_out_pin_state);
 	}
 }
 
@@ -113,8 +109,8 @@ void Clock::TriggerProbes() {
 	// Add new state to state history and then trigger all associated probes.
 	if (m_probes.size() > 0) {
 		m_state_history.push_back(m_out_pin_state);
-		for (const auto& current_probe: m_probes) {
-			current_probe.second->Sample(m_index - 1);
+		for (const auto& this_probe_descriptor : m_probes) {
+			this_probe_descriptor.probe_pointer->Sample(m_index - 1);
 		}
 	}
 	m_ticked_flag = false;

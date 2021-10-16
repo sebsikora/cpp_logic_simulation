@@ -36,15 +36,11 @@ std::string Component::GetName() {
 	return m_name;
 }
 
-std::size_t Component::GetNameHash() {
-	return m_name_hash;
-}
-
 std::string Component::GetFullName() {
 	return m_full_name;
 }
 
-bool Component::GetDeviceFlag(void) {
+bool Component::GetDeviceFlag() {
 	return m_device_flag;
 }
 
@@ -56,38 +52,60 @@ Simulation* Component::GetTopLevelSimPointer() {
 	return m_top_level_sim_pointer;
 }
 
-bool Component::GetInPinState(std::size_t pin_name_hash) {
-	return m_in_pins[pin_name_hash].state;
+bool Component::GetPinState(int pin_port_index) {
+	return m_pins[pin_port_index].state;
 }
 
-std::string Component::GetInPinName(std::size_t in_pin_name_hash) {
-	return m_in_pins[in_pin_name_hash].name;
+std::string Component::GetPinName(int pin_port_index) {
+	return m_pins[pin_port_index].name;
 }
 
 std::vector<std::string> Component::GetSortedInPinNames() {
-	std::vector<std::string> sorted_pin_names = {};
-	for (const auto& in_pin : m_in_pins) {
-		sorted_pin_names.push_back(in_pin.second.name);
+	std::vector<std::string> sorted_in_pin_names = {};
+	for (const auto& this_pin : m_pins) {
+		if (this_pin.direction == 1) {
+			sorted_in_pin_names.push_back(this_pin.name);
+		}
 	}
-	std::sort(sorted_pin_names.begin(), sorted_pin_names.end(), compareNat);
-	return sorted_pin_names;
+	std::sort(sorted_in_pin_names.begin(), sorted_in_pin_names.end(), compareNat);
+	return sorted_in_pin_names;
 }
 
-std::vector<std::size_t> Component::GetSortedInPinNameHashes() {
-	std::vector<std::string> sorted_in_pin_names = GetSortedInPinNames();
-	std::vector<size_t> sorted_in_pin_name_hashes = {};
-	for (const auto& in_pin_name : sorted_in_pin_names) {
-		sorted_in_pin_name_hashes.push_back(std::hash<std::string>{}(in_pin_name));
+std::vector<std::string> Component::GetSortedOutPinNames() {
+	std::vector<std::string> sorted_out_pin_names = {};
+	for (const auto& this_pin : m_pins) {
+		if (this_pin.direction == 2) {
+			sorted_out_pin_names.push_back(this_pin.name);
+		}
 	}
-	return sorted_in_pin_name_hashes;
+	std::sort(sorted_out_pin_names.begin(), sorted_out_pin_names.end(), compareNat);
+	return sorted_out_pin_names;
 }
 
-std::vector<int> Component::GetPinDirections(std::vector<std::size_t> const& pin_name_hashes) {
-	std::vector<int> pin_directions = {};
-	for (const auto& name_hash: pin_name_hashes) {
-		pin_directions.push_back(GetPinDirection(name_hash));
+int Component::GetPinDirection(int pin_port_index) {
+	return m_pins[pin_port_index].direction;
+}
+
+int Component::GetPinDirection(std::string const& pin_name) {
+	int pin_direction = 0;
+	for (const auto& this_pin: m_pins) {
+		if (this_pin.name == pin_name) {
+			pin_direction = this_pin.direction;
+			break;
+		}
 	}
-	return pin_directions;
+	return pin_direction;
+}
+
+int Component::GetPinPortIndex(std::string const& pin_name) {
+	int pin_port_index = 0;
+	for (const auto& this_pin : m_pins) {
+		if (this_pin.name == pin_name) {
+			pin_port_index = this_pin.port_index;
+			break;
+		}
+	}
+	return pin_port_index;
 }
 
 void Component::PrintInPinStates() {
@@ -108,12 +126,28 @@ void Component::PrintInPinStates() {
 		}
 		if (print_this_input) {
 			std::cout << in_pin_name;
-			std::size_t in_pin_name_hash = std::hash<std::string>{}(in_pin_name);
-			if (m_in_pins[in_pin_name_hash].state) {
+			//~std::size_t in_pin_name_hash = std::hash<std::string>{}(in_pin_name);
+			int in_pin_port_index = GetPinPortIndex(in_pin_name);
+			if (m_pins[in_pin_port_index].state) {
 				std::cout << ": T ";
 			} else {
 				std::cout << ": F ";
 			}
+		}
+	}
+	std::cout << "]" << std::endl << std::endl;
+}
+
+void Component::PrintOutPinStates() {
+	std::cout << m_name << ": [ ";
+	for (const auto& out_pin_name: GetSortedOutPinNames()) {
+		std::cout << out_pin_name;
+		//~std::size_t out_pin_name_hash = std::hash<std::string>{}(out_pin_name);
+		int out_pin_port_index = GetPinPortIndex(out_pin_name);
+		if (m_pins[out_pin_port_index].state) {
+			std::cout << ": T ";
+		} else {
+			std::cout << ": F ";
 		}
 	}
 	std::cout << "]" << std::endl << std::endl;

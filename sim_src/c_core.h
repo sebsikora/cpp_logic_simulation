@@ -40,14 +40,12 @@ class Probe;
 class MagicEngine;
 
 struct connection_descriptor {
-	Component* target_component;
-	std::size_t target_pin_name_hash;
-	int target_pin_direction;
+	Component* target_component_pointer;
+	int target_pin_port_index;
 };
 
 struct pin {
 	std::string name;
-	std::size_t name_hash;
 	int direction;
 	bool state;
 	bool state_changed;
@@ -58,7 +56,7 @@ struct pin {
 // structs to strings as arguments and returns a state struct. This allows us to *dramatically*
 // simplify the code for declaring such function pointers and member functions that take them as
 // arguments and/or return them.
-typedef bool (Gate::*operator_pointer)(std::unordered_map<std::size_t, pin> const&);
+typedef bool (Gate::*operator_pointer)(std::vector<pin> const&);
 
 // Class definitions proper.
 // Base logic component class.
@@ -68,43 +66,39 @@ class Component {
 		Component() {}
 		// Methods.
 		std::string GetName(void);
-		std::size_t GetNameHash(void);
 		bool GetDeviceFlag(void);
 		std::string GetFullName(void);
 		std::string GetComponentType(void);
 		Simulation* GetTopLevelSimPointer(void);
-		bool GetInPinState(std::size_t pin_name_hash);
-		std::string GetInPinName(std::size_t in_pin_name_hash);
+		bool GetPinState(int pin_port_index);
+		std::string GetPinName(int pin_port_index);
 		std::vector<std::string> GetSortedInPinNames(void);
-		std::vector<std::size_t> GetSortedInPinNameHashes(void);
-		std::vector<int> GetPinDirections(std::vector<std::size_t> const& pin_name_hashes);
+		std::vector<std::string> GetSortedOutPinNames(void);
+		int GetPinDirection(int pin_port_index);
+		int GetPinDirection(std::string const& pin_name);
+		int GetPinPortIndex(std::string const& pin_name);
 		void PrintInPinStates(void);
+		void PrintOutPinStates(void);
 		
 		// Virtual methods.
 		virtual void Initialise(void) = 0;
 		virtual void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) = 0;
-		virtual void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) = 0;
+		virtual void Set(int pin_port_index, bool state_to_set) = 0;
 		virtual void Propagate(void) = 0;
-		virtual void PrintPinStates(int max_levels) = 0;
 		virtual void MakeProbable(void) = 0;
-		virtual std::string GetOutPinName(std::size_t out_pin_name_hash) = 0;
-		virtual std::vector<std::string> GetSortedOutPinNames(void) = 0;
-		virtual std::vector<std::size_t> GetSortedOutPinNameHashes(void) = 0;
-		virtual int GetPinDirection(std::size_t pin_name_hash) = 0;
-		virtual bool GetOutPinState(std::size_t pin_name_hash) = 0;
-		virtual void PrintOutPinStates(void) = 0;
+		virtual void PrintPinStates(int max_levels) = 0;
 		
 		// Data.
 		int m_nesting_level;
 		bool m_device_flag;
 		std::string m_name;
-		std::size_t m_name_hash;
 		std::string m_full_name;
 		int m_CUID;
+		int m_local_component_index = 0;
 		std::string m_component_type;
 		Simulation* m_top_level_sim_pointer;
 		Device* m_parent_device_pointer;
-		std::unordered_map<std::size_t, pin> m_in_pins;
+		std::vector<pin> m_pins;
 		bool m_monitor_on;
 		static bool mg_verbose_output_flag;
 };
@@ -117,43 +111,42 @@ class Gate : public Component {
 		// Override methods common to Components.
 		void Initialise(void) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
-		void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) override;
+		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
-		std::string GetOutPinName(std::size_t out_pin_name_hash) override;
-		std::vector<std::string> GetSortedOutPinNames(void) override;
-		std::vector<std::size_t> GetSortedOutPinNameHashes(void) override;
-		int GetPinDirection(std::size_t pin_name_hash) override;
-		bool GetOutPinState(std::size_t pin_name_hash) override;
-		void PrintOutPinStates(void) override;
 		
 		// Gate-specific methods.
 		void Evaluate(void);
 		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
 		operator_pointer GetOperatorPointer(std::string const& operator_name);
-		bool OperatorAnd(std::unordered_map<std::size_t, pin> const& in_pins);
-		bool OperatorNand(std::unordered_map<std::size_t, pin> const& in_pins);
-		bool OperatorOr(std::unordered_map<std::size_t, pin> const& in_pins);
-		bool OperatorNor(std::unordered_map<std::size_t, pin> const& in_pins);
-		bool OperatorNot(std::unordered_map<std::size_t, pin> const& in_pins);
+		bool OperatorAnd(std::vector<pin> const& pins);
+		bool OperatorNand(std::vector<pin> const& pins);
+		bool OperatorOr(std::vector<pin> const& pins);
+		bool OperatorNor(std::vector<pin> const& pins);
+		bool OperatorNot(std::vector<pin> const& pins);
 		
 		// Data.
-		size_t m_out_pin_name_hash;
-		pin m_out_pin;
+		int m_out_pin_port_index;
 		operator_pointer m_operator_function_pointer;
 		std::vector<connection_descriptor> m_connections;
 };
 
 // Complex composite device component subclass.
 struct magic_event_co_condition {
-	std::size_t pin_name_hash; 
+	int pin_port_index; 
 	bool pin_state;
 };
 
 struct human_writable_magic_event_co_condition {
 	std::string pin_name;
 	bool pin_state;
+};
+
+struct component_descriptor {
+	std::string component_name;
+	std::string component_full_name;
+	Component* component_pointer;
 };
 
 class Device : public Component {
@@ -163,16 +156,10 @@ class Device : public Component {
 		// Override methods common to Components.
 		void Initialise(void) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
-		void Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) override;
+		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
-		std::string GetOutPinName(std::size_t out_pin_name_hash) override;
-		std::vector<std::string> GetSortedOutPinNames(void) override;
-		std::vector<std::size_t> GetSortedOutPinNameHashes(void) override;
-		int GetPinDirection(std::size_t pin_name_hash) override;
-		bool GetOutPinState(std::size_t pin_name_hash) override;
-		void PrintOutPinStates(void) override;
 		
 		// Device-specific methods.
 		virtual void Build(void);
@@ -181,7 +168,7 @@ class Device : public Component {
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on);
 		void AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, std::string const& incantation);
-		void ChildConnect(std::string const& target_child_component, std::vector<std::string> const& connection_parameters);
+		void ChildConnect(std::string const& target_child_component_name, std::vector<std::string> const& connection_parameters);
 		void ChildSet(std::string const& target_child_component_name, std::string const& target_pin_name, bool logical_state);
 		void ChildPrintPinStates(std::string const& target_child_component_name, int max_levels);
 		void ChildPrintInPinStates(std::string const& target_child_component_name);
@@ -192,21 +179,36 @@ class Device : public Component {
 		void SubTick(int index);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		int GetNestingLevel(void);
-		bool CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier);
-		void AddToPropagateNextTick(std::size_t propagation_identifier);
+		int GetNewLocalComponentIndex(void);
+		bool CheckIfQueuedToPropagateThisTick(int propagation_identifier);
+		void AddToPropagateNextTick(int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		
 		// Data.
 		int m_max_propagations;
-		std::unordered_map<std::size_t, pin> m_out_pins;
-		std::unordered_map<std::size_t, Component*> m_components;
-		std::vector<std::size_t> m_propagate_next_tick;
-		std::vector<std::size_t> m_propagate_this_tick;
-		std::vector<std::size_t> m_still_to_propagate;
+		std::vector<component_descriptor> m_components;
+		std::vector<int> m_propagate_next_tick;
+		std::vector<int> m_propagate_this_tick;
+		std::vector<int> m_still_to_propagate;
 		std::vector<std::vector<connection_descriptor>> m_ports;
 		bool m_magic_device_flag;
 		MagicEngine* m_magic_engine_pointer;
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
+};
+
+struct probe_descriptor {
+	std::string probe_name;
+	Probe* probe_pointer;
+};
+
+struct magic_engine_descriptor {
+	std::string magic_engine_identifier;
+	MagicEngine* magic_engine_pointer;
+};
+
+struct clock_descriptor {
+	std::string clock_name;
+	Clock* clock_pointer;
 };
 
 // Top-level simulation device subclass.
@@ -217,13 +219,13 @@ class Simulation : public Device {
 		// Methods.
 		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false);
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
-		void ClockConnect(std::string const& target_clock, std::string const& target_component_name, std::string const& target_terminal_name);
+		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name);
 		void AddToProbableDevices(std::string const& target_component_full_name, Component* target_component_pointer);
-		void AddToMagicEngines(std::string const& target_magic_engine_identifier, MagicEngine* target_magic_engine_pointer);
+		void AddToMagicEngines(std::string const& magic_engine_identifier, MagicEngine* magic_engine_pointer);
 		int GetTopLevelMaxPropagations(void);
 		int GetNewCUID(void);
-		Clock* GetClockPointer(std::string const& clock_name);
+		Clock* GetClockPointer(std::string const& target_clock_name);
 		Component* GetProbableComponentPointer(std::string const& target_component_full_name);
 		int GetTopLevelComponentCount(void);
 		void EnableTerminalRawIO(bool raw_flag);
@@ -235,9 +237,9 @@ class Simulation : public Device {
 		
 		// Data.
 		std::unordered_map<std::string, Component*> m_probable_components;
-		std::unordered_map<std::string, Probe*> m_probes;
-		std::unordered_map<std::size_t, Clock*> m_clocks;
-		std::unordered_map<std::string, MagicEngine*> m_magic_engines;
+		std::vector<probe_descriptor> m_probes;
+		std::vector<clock_descriptor> m_clocks;
+		std::vector<magic_engine_descriptor> m_magic_engines;
 		termios m_old_term_io_settings;
 		bool m_simulation_running;
 		int m_global_tick_index;
@@ -250,7 +252,7 @@ class Clock {
 		// Constructor.
 		Clock(Device* parent_device_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on);
 		// Methods.
-		void Connect(std::string const& target_component_name, std::string const& pin_name);
+		void Connect(std::string const& target_component_name, std::string const& target_pin_name);
 		void Propagate(void);
 		void Tick(void);
 		void Reset(void);
@@ -261,7 +263,6 @@ class Clock {
 		// Data.
 		Device* m_parent_device_pointer;
 		std::string m_name;
-		std::size_t m_name_hash;
 		std::vector<bool> m_toggle_pattern;
 		bool m_monitor_on;
 		std::vector<connection_descriptor> m_connections;
@@ -269,7 +270,7 @@ class Clock {
 		std::vector<bool> m_state_history;
 		int m_index;
 		int m_sub_index;
-		std::unordered_map<std::string, Probe*> m_probes;
+		std::vector<probe_descriptor> m_probes;
 		bool m_ticked_flag;
 };
 
@@ -277,7 +278,7 @@ class Clock {
 class Probe {
 	public:
 		// Constructor.
-		Probe(Simulation* top_level_device_pointer, std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pins, std::string const& trigger_clock_name);
+		Probe(Simulation* top_level_device_pointer, std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name);
 		// Methods.
 		void Sample(int index);
 		void Reset(void);
@@ -288,8 +289,7 @@ class Probe {
 		std::string m_name;
 		std::string m_target_component_full_name;
 		Component* m_target_component_pointer;
-		std::vector<std::size_t> m_target_pin_hashes;
-		std::vector<int> m_target_pin_directions;
+		std::vector<int> m_target_pin_indices;
 		std::string m_trigger_clock_name;
 		Clock* m_trigger_clock_pointer;
 		std::vector<int> m_timestamps;
@@ -299,7 +299,7 @@ class Probe {
 
 // Comment goes here...
 struct magic_event {
-	std::size_t target_pin_name_hash;
+	int target_pin_port_index;
 	std::vector<bool> state_change;
 	std::vector<magic_event_co_condition> co_conditions;
 	std::string incantation;
@@ -311,7 +311,7 @@ class MagicEngine {
 		MagicEngine(Device* parent_device_pointer);
 		// Methods.
 		void AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event);
-		void CheckMagicEventTrap(std::size_t target_pin_name_hash, bool new_state);
+		void CheckMagicEventTrap(int target_pin_port_index, bool new_state);
 		// Virtual methods.
 		virtual void InvokeMagic(std::string const& incantation);
 		virtual void UpdateMagic(void);

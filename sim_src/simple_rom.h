@@ -51,13 +51,14 @@ class SimpleRom_MagicEngine : public MagicEngine {
 		std::vector<std::vector<bool>> Configure(std::string file_path);
 		std::vector<std::string> GenerateInputs(void);
 		std::vector<std::string> GenerateOutputs(void);
+		void GetPinPortIndices();
 		// Data particular to this sub-class.
 		std::string m_data_filepath;
 		int m_address_bus_width;
 		int m_data_bus_width;
 		std::vector<std::vector<bool>> m_data;
-		std::vector<std::size_t> m_address_bus_pin_identifier_hashes;
-		std::vector<std::size_t> m_data_bus_pin_identifier_hashes;
+		std::vector<int> m_address_bus_pin_port_indices;
+		std::vector<int> m_data_bus_pin_port_indices;
 };
 
 #endif

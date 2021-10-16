@@ -38,17 +38,17 @@ bool backwards_comp (int i, int j) {
 Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> const& out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations) {
 	m_device_flag = true;
 	m_name = device_name;
-	m_name_hash = std::hash<std::string>{}(m_name);	
 	m_parent_device_pointer = parent_device_pointer;
 	if (m_parent_device_pointer == this) {
 		// The instantiating component is only the same as it's parent component when it is the top-level Simulation.
 		m_top_level_sim_pointer = static_cast<Simulation*>(m_parent_device_pointer);
-		m_CUID = 0;				// Top-level simulation always CUID 0.
+		m_CUID = 0;						// Top-level simulation always CUID 0.
 		m_nesting_level = 0;
 		m_full_name = m_name;
 	} else {
 		m_top_level_sim_pointer = m_parent_device_pointer->GetTopLevelSimPointer();
 		m_CUID = m_top_level_sim_pointer->GetNewCUID();
+		m_local_component_index = m_parent_device_pointer->GetNewLocalComponentIndex();
 		m_nesting_level = m_parent_device_pointer->GetNestingLevel() + 1;
 		m_full_name = m_parent_device_pointer->GetFullName() + ":" + m_name;
 	}
@@ -70,14 +70,12 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 
 void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states) {
 	// Determine number of existing in and out pins.
-	int new_pin_port_index = m_in_pins.size() + m_out_pins.size();
+	int new_pin_port_index = m_pins.size();
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
-		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		pin new_in_pin = {pin_name, pin_name_hash, 0, false, false, new_pin_port_index};
+		pin new_in_pin = {pin_name, 1, false, false, new_pin_port_index};
 		if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
 			// If this is a user-defined input, handle as normal.
-			new_in_pin.direction = 1;
 			if (IsStringInMapKeys(pin_name, pin_default_states)) {
 				// If this input is in the defaults list set accordingly...
 				new_in_pin.state = pin_default_states[pin_name];
@@ -88,7 +86,6 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 		} else {
 			// If this is a default 'hidden' input, don't include it in the 'available input' keymap.
 			// This means the input cannot be Set().
-			new_in_pin.direction = 0;
 			if (pin_name == "true") {
 				new_in_pin.state = true;
 			} else if (pin_name == "false") {
@@ -96,7 +93,7 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 			}
 		}
 		new_in_pin.state_changed = false;
-		m_in_pins[pin_name_hash] = new_in_pin;
+		m_pins.push_back(new_in_pin);
 		m_ports.push_back({});
 		new_pin_port_index ++;
 	}
@@ -104,12 +101,11 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 
 void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 	// Determine number of existing in and out pins.
-	int new_pin_port_index = m_in_pins.size() + m_out_pins.size();
+	int new_pin_port_index = m_pins.size();
 	// Create new outputs.
-	for (const auto& pin_name: pin_names) {
-		std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-		pin new_out_pin = {pin_name, pin_name_hash, 2, false, false, new_pin_port_index};
-		m_out_pins[pin_name_hash] = new_out_pin;
+	for (const auto& pin_name : pin_names) {
+		pin new_out_pin = {pin_name, 2, false, false, new_pin_port_index};
+		m_pins.push_back(new_out_pin);
 		m_ports.push_back({});
 		new_pin_port_index ++;
 	}
@@ -126,27 +122,27 @@ void Device::Stabilise() {
 		std::cout << GenerateHeader(msg) << std::endl << std::endl;
 	}
 	// First we Set() all child component inputs that are connected to the parent device inputs to deafult states.
-	for (const auto& this_pin : m_in_pins) {
-		for (const auto& connection: m_ports[this_pin.second.port_index]) {
-			// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
-			// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
-			// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
-			connection_descriptor target_connection_descriptor = connection;
-			Component* target_component = target_connection_descriptor.target_component;
-			std::size_t target_pin_name_hash = target_connection_descriptor.target_pin_name_hash;
-			int target_pin_direction = target_connection_descriptor.target_pin_direction;
-			target_component->Set(target_pin_name_hash, target_pin_direction, this_pin.second.state);
+	for (const auto& this_pin : m_pins) {
+		if (this_pin.direction == 1) {
+			for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
+				// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
+				// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
+				// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
+				Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
+				int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
+				target_component_pointer->Set(target_pin_port_index, this_pin.state);
+			}
 		}
 	}
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
 	// Next we call Initialise() for all components in this device.
-	for (const auto& component_identifier: m_components) {
+	for (const auto& this_component_descriptor : m_components) {
 		if (mg_verbose_output_flag) {
-			std::cout << "Initialising " << component_identifier.second->GetFullName() << std::endl;
+			std::cout << "Initialising " << this_component_descriptor.component_full_name << std::endl;
 		}
-		Component* component_pointer = component_identifier.second;
+		Component* component_pointer = this_component_descriptor.component_pointer;
 		component_pointer->Initialise();
 	}
 	if (mg_verbose_output_flag) {
@@ -160,15 +156,22 @@ void Device::Stabilise() {
 }
 
 void Device::Initialise() {
-	for (auto& out_pin: m_out_pins) {
-		out_pin.second.state_changed = true;
+	for (auto& this_pin : m_pins) {
+		if (this_pin.direction == 2) {
+			this_pin.state_changed = true;
+		}
 	}
-	m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
+	m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
 }
 
 void Device::AddComponent(Component* new_component_pointer) {
-	std::size_t new_component_name_hash = new_component_pointer->GetNameHash();
-	m_components[new_component_name_hash] = new_component_pointer;
+	std::string new_component_name = new_component_pointer->GetName();
+	std::string new_component_full_name = new_component_pointer->GetFullName();
+	component_descriptor new_component_descriptor;
+	new_component_descriptor.component_name = new_component_name;
+	new_component_descriptor.component_full_name = new_component_full_name;
+	new_component_descriptor.component_pointer = new_component_pointer;
+	m_components.push_back(new_component_descriptor);
 }
 
 void Device::AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on) {
@@ -181,13 +184,12 @@ void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<b
 		std::vector<magic_event_co_condition> co_conditions = {};
 		for (int i = 0; i  < hw_co_conditions.size(); i ++) {
 			magic_event_co_condition this_co_condition;
-			this_co_condition.pin_name_hash = std::hash<std::string>{}(hw_co_conditions[i].pin_name);
+			this_co_condition.pin_port_index = GetPinPortIndex(hw_co_conditions[i].pin_name);
 			this_co_condition.pin_state = hw_co_conditions[i].pin_state;
 			co_conditions.push_back(this_co_condition);
 		}
 		magic_event new_magic_event;
-		std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
-		new_magic_event.target_pin_name_hash = target_pin_name_hash;
+		new_magic_event.target_pin_port_index = GetPinPortIndex(target_pin_name);
 		new_magic_event.state_change = state_change;
 		new_magic_event.co_conditions = co_conditions;
 		new_magic_event.incantation = incantation;
@@ -198,21 +200,18 @@ void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<b
 	}
 }
 
-void Device::ChildConnect(std::string const& target_child_component, std::vector<std::string> const& connection_parameters) {
-	std::size_t target_child_name_hash = std::hash<std::string>{}(target_child_component);
-	Component* target_component = m_components[target_child_name_hash];
+void Device::ChildConnect(std::string const& target_child_component_name, std::vector<std::string> const& connection_parameters) {
+	Component* target_component = GetChildComponentPointer(target_child_component_name);
 	target_component->Connect(connection_parameters[0], connection_parameters[1], connection_parameters[2]);
 }
 
 void Device::ChildSet(std::string const& target_child_component_name, std::string const& target_pin_name, bool logical_state) {
-	std::size_t target_child_name_hash = std::hash<std::string>{}(target_child_component_name);
-	std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
-	Component* target_component = m_components[target_child_name_hash];
-	int target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
+	Component* target_component = GetChildComponentPointer(target_child_component_name);
+	int target_pin_port_index = target_component->GetPinPortIndex(target_pin_name);
 	if (mg_verbose_output_flag || target_component->m_monitor_on) {
 		std::cout << BOLD(FYEL("CHILDSET: ")) << "Component " << BOLD("" << target_component->GetFullName() << ":" << target_component->GetComponentType() << "") << " terminal " << BOLD("" << target_pin_name << "") << " set to " << BoolToChar(logical_state) << std::endl;
 	}
-	target_component->Set(target_pin_name_hash, target_pin_direction, logical_state);
+	target_component->Set(target_pin_port_index, logical_state);
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
@@ -225,60 +224,51 @@ void Device::ChildSet(std::string const& target_child_component_name, std::strin
 }
 
 void Device::ChildPrintPinStates(std::string const& target_child_component_name, int max_levels) {
-	std::size_t target_child_component_name_hash = std::hash<std::string>{}(target_child_component_name);
-	Component* target_component = m_components[target_child_component_name_hash];
+	Component* target_component = GetChildComponentPointer(target_child_component_name);
 	target_component->PrintPinStates(max_levels);
 }
 
 void Device::ChildPrintInPinStates(std::string const& target_child_component_name) {
-	std::size_t target_child_component_name_hash = std::hash<std::string>{}(target_child_component_name);
-	Component* target_component = m_components[target_child_component_name_hash];
+	Component* target_component = GetChildComponentPointer(target_child_component_name);
 	target_component->PrintInPinStates();
 }
 
 void Device::ChildPrintOutPinStates(std::string const& target_child_component_name) {
-	std::size_t target_child_component_name_hash = std::hash<std::string>{}(target_child_component_name);
-	Component* target_component = m_components[target_child_component_name_hash];
+	Component* target_component = GetChildComponentPointer(target_child_component_name);
 	target_component->PrintOutPinStates();
 }
 
 void Device::ChildMakeProbable(std::string const& target_child_component_name) {
-	std::size_t target_child_component_name_hash = std::hash<std::string>{}(target_child_component_name);
-	Component* target_component = m_components[target_child_component_name_hash];
+	Component* target_component = GetChildComponentPointer(target_child_component_name);
 	target_component->MakeProbable();
 }
 
 void Device::Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) {
-	std::size_t origin_pin_name_hash = std::hash<std::string>{}(origin_pin_name);
-	std::size_t target_component_name_hash = std::hash<std::string>{}(target_component_name);
-	std::size_t target_pin_name_hash = std::hash<std::string>{}(target_pin_name);
-	Component* target_component;
-	if (IsHashInMapKeys(origin_pin_name_hash, m_in_pins)) {
-		int pin_port_index = m_in_pins[origin_pin_name_hash].port_index;
+	Component* target_component_pointer;
+	int origin_pin_direction = GetPinDirection(origin_pin_name);
+	int origin_pin_port_index = GetPinPortIndex(origin_pin_name);
+	if (origin_pin_direction == 1) {
 		// If the device state is one of it's inputs, it can only be connected to an input terminal
 		// of an internal child device.
-		target_component = m_components[target_component_name_hash];
-		connection_descriptor conn_descriptor;
-		conn_descriptor.target_component = target_component;
-		conn_descriptor.target_pin_name_hash = target_pin_name_hash;
-		conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-		m_ports[pin_port_index].push_back(conn_descriptor);
+		target_component_pointer = GetChildComponentPointer(target_component_name);
+		connection_descriptor new_connection_descriptor;
+		new_connection_descriptor.target_component_pointer = target_component_pointer;
+		new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+		m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
 	} else {
-		int pin_port_index = m_out_pins[origin_pin_name_hash].port_index;
 		if (target_component_name == "parent") {
 			// If the target is the parent device, then we are connecting to an output belonging to the
 			// parent device.
-			target_component = m_parent_device_pointer;
+			target_component_pointer = m_parent_device_pointer;
 		} else {
 			// If the target is not the parent device then it is another colleague device within the
 			// same parent device.
-			target_component = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+			target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
 		}
-		connection_descriptor conn_descriptor;
-		conn_descriptor.target_component = target_component;
-		conn_descriptor.target_pin_name_hash = target_pin_name_hash;
-		conn_descriptor.target_pin_direction = target_component->GetPinDirection(target_pin_name_hash);
-		m_ports[pin_port_index].push_back(conn_descriptor);
+		connection_descriptor new_connection_descriptor;
+		new_connection_descriptor.target_component_pointer = target_component_pointer;
+		new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+		m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
 	}
 }
 
@@ -305,14 +295,14 @@ void Device::Solve() {
 				std::cout << "...Solve()d." << std::endl << std::endl;
 			}
 		}
-		for (const auto& component_identifier: m_components) {
-			if (component_identifier.second->GetDeviceFlag()) {
-				if ((component_identifier.second->m_monitor_on) && !(mg_verbose_output_flag)) {
+		for (const auto& this_component_descriptor : m_components) {
+			if (this_component_descriptor.component_pointer->GetDeviceFlag()) {
+				if ((this_component_descriptor.component_pointer->m_monitor_on) && !(mg_verbose_output_flag)) {
 					std::cout << std::endl;
 				}
 				// If this child Component is a child Device, recast the Component pointer to a Device pointer
 				// and call the child Devices' Solve() method.
-				Device* device_pointer = static_cast<Device*>(component_identifier.second);
+				Device* device_pointer = static_cast<Device*>(this_component_descriptor.component_pointer);
 				device_pointer->Solve();
 			}
 		}
@@ -344,15 +334,15 @@ void Device::SubTick(int index) {
 	m_propagate_this_tick = m_propagate_next_tick;
 	m_propagate_next_tick.clear();
 	m_still_to_propagate = m_propagate_this_tick;
-	//~for (const auto& component_name_hash: m_propagate_this_tick) {
+	//~for (const auto& this_component_local_index : m_propagate_this_tick) {
 		//~m_still_to_propagate.erase(m_still_to_propagate.begin());
-		//~Component* current_component = m_components[component_name_hash];
-		//~current_component->Propagate();
+		//~Component* component_pointer = m_components[this_component_local_index].component_pointer;
+		//~component_pointer->Propagate();
 	//~}
 	for (int i = m_propagate_this_tick.size() - 1; i >= 0; i --) {
 		m_still_to_propagate.pop_back();
-		Component* current_component = m_components[m_propagate_this_tick[i]];
-		current_component->Propagate();
+		Component* component_pointer = m_components[m_propagate_this_tick[i]].component_pointer;
+		component_pointer->Propagate();
 	}	
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
@@ -360,103 +350,87 @@ void Device::SubTick(int index) {
 }
 
 void Device::Propagate() {
-	for (auto& this_pin: m_in_pins) {
-		if (this_pin.second.state_changed) {
+	for (auto& this_pin : m_pins) {
+		if (this_pin.state_changed) {
 			if (mg_verbose_output_flag) {
-				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
+				std::string direction_string = "";
+				if (this_pin.direction == 1) {
+					direction_string = "input ";
+				} else {
+					direction_string = "output ";
+				}
+				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating " << direction_string << this_pin.name << " = " << BoolToChar(this_pin.state) << std::endl;
 			}
-			this_pin.second.state_changed = false;
-			for (const auto& connection: m_ports[this_pin.second.port_index]) {
-				// Faster not to put them on the stack here but shown for clarity.
-				//~connection_descriptor t_connection_descriptor = connection;
-				//~Component* target_component = t_connection_descriptor.target_component;
-				//~std::size_t pin_name_hash = t_connection_descriptor.pin_name_hash;
-				//~int pin_direction = t_connection_descriptor.pin_direction;
-				//~target_component->Set(pin_name_hash, pin_direction, this_pin.second.state);
-				connection.target_component->Set(connection.target_pin_name_hash, connection.target_pin_direction, this_pin.second.state);
-			}
-		}
-	}
-	for (auto& this_pin: m_out_pins) {
-		if (this_pin.second.state_changed) {
-			if (mg_verbose_output_flag) {
-				std::cout << BOLD(FRED("->")) << "Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin.second.name << " = " << BoolToChar(this_pin.second.state) << std::endl;
-			}
-			this_pin.second.state_changed = false;
-			for (const auto& connection: m_ports[this_pin.second.port_index]) {
-				connection.target_component->Set(connection.target_pin_name_hash, connection.target_pin_direction, this_pin.second.state);
+			this_pin.state_changed = false;
+			for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
+				this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
 			}
 		}
 	}
 }
 
-void Device::Set(std::size_t pin_name_hash, int pin_direction, bool state_to_set) {
-	if (pin_direction == 1) {
-		pin* this_pin = &m_in_pins[pin_name_hash];
-		// Device input terminal is being set.
-		// If this would change the input terminal state, check if this triggers a magic event, then propagate this change
-		// to all connected child component inputs.
-		if (state_to_set != this_pin->state) {
+void Device::Set(int pin_port_index, bool state_to_set) {
+	pin* this_pin = &m_pins[pin_port_index];
+	if (state_to_set != this_pin->state) {
+		if ((m_monitor_on) || (mg_verbose_output_flag)) {								// Print input pin changes.
+			std::string direction_string = "";
+			if (this_pin->direction == 1) {
+				direction_string = "input ";
+			} else {
+				direction_string = "output ";
+			}
 			if (mg_verbose_output_flag) {
-				std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << " input terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
+				std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
 			}
-			if (m_magic_device_flag == true) {
-				m_magic_engine_pointer->CheckMagicEventTrap(pin_name_hash, state_to_set);
-			}
-			this_pin->state = state_to_set;
-			this_pin->state_changed = true;
-			// Add device to the parent Devices propagate_next list, UNLESS this device
-			// is already queued-up to propagate this SubTick.
-			if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
-				m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
-			}
-			if ((m_monitor_on) || (mg_verbose_output_flag)) {								// Print input pin changes.
-				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << "") " input terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
-			}
+			std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
 		}
-	} else if (pin_direction == 2) {
-		pin* this_pin = &m_out_pins[pin_name_hash];
-		// Device output terminal is being set.
-		if (state_to_set != this_pin->state) {
-			if (mg_verbose_output_flag) {
-				std::cout << BOLD(FYEL("  ->")) << " Device " << BOLD("" << m_full_name << "") << " output terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
-			}
-			this_pin->state = state_to_set;
-			this_pin->state_changed = true;
-			// Add device to the parent Devices propagate_next list, UNLESS this device
-			// is already queued-up to propagate this SubTick.
-			if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_name_hash) == false) {
-				m_parent_device_pointer->AddToPropagateNextTick(m_name_hash);
-			}
-			if ((m_monitor_on) || (mg_verbose_output_flag)) {								// Print output pin changes.
-				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << "") " output terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
-			}
+		if ((m_magic_device_flag == true) && (this_pin->direction == 1)) {
+			m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
 		}
-	} else {
-		if ((pin_name_hash == std::hash<std::string>{}("__ALL_STOP__")) && (m_top_level_sim_pointer->IsSimulationRunning())) {
-			if (state_to_set) {
-				std::cout << BOLD(" ---!--- Device " << m_full_name << " ALL_STOP was asserted ---!---") << std::endl;
-				m_top_level_sim_pointer->StopSimulation();
-			}
+		this_pin->state = state_to_set;
+		this_pin->state_changed = true;
+		// Add device to the parent Devices propagate_next list, UNLESS this device
+		// is already queued-up to propagate this SubTick.
+		if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
+			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
 		}
 	}
+	//~else {
+		//~if ((pin_name_hash == std::hash<std::string>{}("__ALL_STOP__")) && (m_top_level_sim_pointer->IsSimulationRunning())) {
+			//~if (state_to_set) {
+				//~std::cout << BOLD(" ---!--- Device " << m_full_name << " ALL_STOP was asserted ---!---") << std::endl;
+				//~m_top_level_sim_pointer->StopSimulation();
+			//~}
+		//~}
+	//~}
 }
 
 Component* Device::GetChildComponentPointer(std::string const& target_child_component_name) {
-	std::size_t target_child_component_name_hash = std::hash<std::string>{}(target_child_component_name);
-	return m_components[target_child_component_name_hash];
+	Component* child_component_pointer;
+	for (const auto& this_component_descriptor : m_components) {
+		if (this_component_descriptor.component_name == target_child_component_name) {
+			child_component_pointer = this_component_descriptor.component_pointer;
+			break;
+		}
+	}
+	return child_component_pointer;
 }
 
 int Device::GetNestingLevel() {
 	return m_nesting_level;
 }
 
-bool Device::CheckIfQueuedToPropagateThisTick(std::size_t propagation_identifier) {
+int Device::GetNewLocalComponentIndex() {
+	int current_component_count = m_components.size();
+	return current_component_count;
+}
+
+bool Device::CheckIfQueuedToPropagateThisTick(int propagation_identifier) {
 	return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier, backwards_comp);
 	//~return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
 }
 
-void Device::AddToPropagateNextTick(std::size_t propagation_identifier) {
+void Device::AddToPropagateNextTick(int propagation_identifier) {
 	m_propagate_next_tick.push_back(propagation_identifier);
 }
 
@@ -470,16 +444,16 @@ void Device::PrintPinStates(int max_levels) {
 	if (max_levels > 0) {
 		max_levels = max_levels - 1;
 		std::cout << m_full_name << ": [";
-		for (const auto& pin_name: GetSortedInPinNames()) {
+		for (const auto& pin_name : GetSortedInPinNames()) {
 			if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
-				std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-				std::cout << " " << BoolToChar(m_in_pins[pin_name_hash].state) << " ";
+				int pin_port_index = GetPinPortIndex(pin_name);
+				std::cout << " " << BoolToChar(m_pins[pin_port_index].state) << " ";
 			}
 		}
 		std::cout << "] [";
-		for (const auto& pin_name: GetSortedOutPinNames()) {
-			std::size_t pin_name_hash = std::hash<std::string>{}(pin_name);
-			std::cout << " " << BoolToChar(m_out_pins[pin_name_hash].state) << " ";
+		for (const auto& pin_name : GetSortedOutPinNames()) {
+			int pin_port_index = GetPinPortIndex(pin_name);
+				std::cout << " " << BoolToChar(m_pins[pin_port_index].state) << " ";
 		}
 		std::cout << "]" << std::endl;
 		if (max_levels > 0) {
@@ -489,67 +463,9 @@ void Device::PrintPinStates(int max_levels) {
 }
 
 void Device::PrintInternalPinStates(int max_levels) {
-	for (const auto& component: m_components) {
+	for (const auto& this_component_descriptor : m_components) {
 		int this_level = max_levels;
-		Component* target_component = component.second;
-		target_component->PrintPinStates(this_level);
+		Component* component_pointer = this_component_descriptor.component_pointer;
+		component_pointer->PrintPinStates(this_level);
 	}
 }
-
-std::string Device::GetOutPinName(std::size_t out_pin_name_hash) {
-	return m_out_pins[out_pin_name_hash].name;
-}
-
-std::vector<std::string> Device::GetSortedOutPinNames() {
-	std::vector<std::string> sorted_pin_names = {};
-	for (const auto& out_pin : m_out_pins) {
-		sorted_pin_names.push_back(out_pin.second.name);
-	}
-	std::sort(sorted_pin_names.begin(), sorted_pin_names.end(), compareNat);
-	return sorted_pin_names;
-}
-
-std::vector<std::size_t> Device::GetSortedOutPinNameHashes() {
-	std::vector<std::string> sorted_out_pin_names = GetSortedOutPinNames();
-	std::vector<size_t> sorted_out_pin_name_hashes = {};
-	for (const auto& out_pin_name : sorted_out_pin_names) {
-		sorted_out_pin_name_hashes.push_back(std::hash<std::string>{}(out_pin_name));
-	}
-	return sorted_out_pin_name_hashes;	
-}
-
-int Device::GetPinDirection(size_t pin_name_hash) {
-	int pin_direction = 0;
-	for (const auto& in_pin: m_in_pins) {
-		if (in_pin.first == pin_name_hash) {
-			pin_direction = 1;
-		}
-	}
-	for (const auto& out_pin: m_out_pins) {
-		if (out_pin.first == pin_name_hash) {
-			pin_direction = 2;
-		}
-	}
-	return pin_direction;
-}
-
-bool Device::GetOutPinState(std::size_t pin_name_hash) {
-	return m_out_pins[pin_name_hash].state;
-}
-
-void Device::PrintOutPinStates() {
-	std::cout << m_name << ": [ ";
-	for (const auto& out_pin_name: GetSortedOutPinNames()) {
-		std::cout << out_pin_name;
-		std::size_t out_pin_name_hash = std::hash<std::string>{}(out_pin_name);
-		if (m_out_pins[out_pin_name_hash].state) {
-			std::cout << ": T ";
-		} else {
-			std::cout << ": F ";
-		}
-	}
-	std::cout << "]" << std::endl << std::endl;
-}
-
-// In-order insertion into vector of ascending values.
-//~m_propagate_next_tick.insert(std::upper_bound(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), propagation_identifier), propagation_identifier);

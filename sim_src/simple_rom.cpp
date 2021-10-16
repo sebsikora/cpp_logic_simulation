@@ -61,12 +61,13 @@ void SimpleRom::ConfigureBusses(std::unordered_map<std::string, bool> in_pin_def
 	std::vector<std::string> outputs = static_cast<SimpleRom_MagicEngine*>(m_magic_engine_pointer)->GenerateOutputs();
 	CreateInPins(inputs, in_pin_default_states);
 	CreateOutPins(outputs);
+	static_cast<SimpleRom_MagicEngine*>(m_magic_engine_pointer)->GetPinPortIndices();
 }
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 SimpleRom_MagicEngine::SimpleRom_MagicEngine(Device* parent_device_pointer, std::string data_filepath) : MagicEngine(parent_device_pointer) {
 	m_data_filepath = data_filepath;
-	m_data = Configure(data_filepath);
+	m_data = Configure(data_filepath);		// Sets member variables m_address_bus_width and m_data_bus_width.
 }
 
 std::vector<std::string> SimpleRom_MagicEngine::GenerateOutputs(void) {
@@ -74,8 +75,6 @@ std::vector<std::string> SimpleRom_MagicEngine::GenerateOutputs(void) {
 	for (int index = 0; index < m_data_bus_width; index ++) {
 		std::string output_identifier = "d_" + std::to_string(index);
 		outputs_to_create.push_back(output_identifier);
-		std::size_t output_identifier_hash = std::hash<std::string>{}(output_identifier);
-		m_data_bus_pin_identifier_hashes.push_back(output_identifier_hash);
 	}
 	return outputs_to_create;
 }
@@ -85,10 +84,19 @@ std::vector<std::string> SimpleRom_MagicEngine::GenerateInputs(void) {
 	for (int index = 0; index < m_address_bus_width; index ++) {
 		std::string input_identifier = "a_" + std::to_string(index);
 		inputs_to_create.push_back(input_identifier);
-		std::size_t input_identifier_hash = std::hash<std::string>{}(input_identifier);
-		m_address_bus_pin_identifier_hashes.push_back(input_identifier_hash);
 	}
 	return inputs_to_create;
+}
+
+void SimpleRom_MagicEngine::GetPinPortIndices() {
+	for (int index = 0; index < m_address_bus_width; index ++) {
+		std::string input_identifier = "a_" + std::to_string(index);
+		m_address_bus_pin_port_indices.push_back(m_parent_device_pointer->GetPinPortIndex(input_identifier));
+	}
+	for (int index = 0; index < m_data_bus_width; index ++) {
+		std::string output_identifier = "d_" + std::to_string(index);
+		m_data_bus_pin_port_indices.push_back(m_parent_device_pointer->GetPinPortIndex(output_identifier));
+	}
 }
 
 std::vector<std::vector<bool>> SimpleRom_MagicEngine::Configure(std::string file_path) {
@@ -141,8 +149,8 @@ void SimpleRom_MagicEngine::InvokeMagic(std::string const& incantation) {
 		// Generate address,
 		int address = 0;
 		int address_pin_index = 0;
-		for (const auto& pin_identifier_hash: m_address_bus_pin_identifier_hashes) {
-			bool pin_state = m_parent_device_pointer->GetInPinState(pin_identifier_hash);
+		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
+			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			if (pin_state) {
 				address += pow(2, address_pin_index);
 			}
@@ -152,9 +160,9 @@ void SimpleRom_MagicEngine::InvokeMagic(std::string const& incantation) {
 		std::vector<bool> data_at_address = m_data[address];
 		// Convert std::vector<bool> into states and set parent device outputs accordingly.
 		int data_pin_index = 0;
-		for (const auto& pin_identifier_hash: m_data_bus_pin_identifier_hashes) {
-			if (m_parent_device_pointer->GetOutPinState(pin_identifier_hash) != data_at_address[data_pin_index]) {
-				m_parent_device_pointer->Set(pin_identifier_hash, 2, data_at_address[data_pin_index]);
+		for (const auto& pin_port_index: m_data_bus_pin_port_indices) {
+			if (m_parent_device_pointer->GetPinState(pin_port_index) != data_at_address[data_pin_index]) {
+				m_parent_device_pointer->Set(pin_port_index, data_at_address[data_pin_index]);
 			}
 			data_pin_index ++;
 		}
@@ -162,3 +170,4 @@ void SimpleRom_MagicEngine::InvokeMagic(std::string const& incantation) {
 		std::cout << "The incantation appears to do nothing...." << std::endl;
 	}
 }
+

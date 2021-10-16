@@ -52,14 +52,14 @@ class SimpleRam_MagicEngine : public MagicEngine {
 		void ShutDownMagic(void) override;
 		// Methods particular to SimpleRom_MagicEngine sub-class.
 		void ZeroMemory(int address_bus_width, int data_bus_width);
-		void CreatePinIdentifierHashes(int address_bus_width, int data_bus_width);
+		void GetPinPortIndices(int address_bus_width, int data_bus_width);
 		// Data particular to this sub-class.
 		std::vector<std::vector<bool>> m_data;
 		int m_address_bus_width;
 		int m_data_bus_width;
-		std::vector<std::size_t> m_address_bus_pin_identifier_hashes;
-		std::vector<std::size_t> m_data_in_bus_pin_identifier_hashes;
-		std::vector<std::size_t> m_data_out_bus_pin_identifier_hashes;
+		std::vector<int> m_address_bus_pin_port_indices;
+		std::vector<int> m_data_in_bus_pin_port_indices;
+		std::vector<int> m_data_out_bus_pin_port_indices;
 };
 
 #endif

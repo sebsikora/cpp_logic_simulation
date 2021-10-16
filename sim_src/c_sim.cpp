@@ -91,8 +91,8 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 	if (restart_flag) {
 		std::cout << GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
 		m_global_tick_index = 0;
-		for (const auto& clock_identifier: m_clocks) {
-			clock_identifier.second->Reset();
+		for (const auto& this_clock_descriptor : m_clocks) {
+			this_clock_descriptor.clock_pointer->Reset();
 		}
 	} else {
 		std::cout << GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
@@ -108,16 +108,16 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 	int input_check_count = 0, input_check_count_limit = 1000;
 	while (true) {
 		// Update all magic device engines.
-		for (const auto& magic_engine_identifier: m_magic_engines) {
-			magic_engine_identifier.second->UpdateMagic();
+		for (const auto& this_magic_engine_descriptor : m_magic_engines) {
+			this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
 		}
 		if (mg_verbose_output_flag) {
 			std::string msg = std::string("Start of global tick ") + std::to_string(m_global_tick_index);
 			std::cout << GenerateHeader(msg) << std::endl << std::endl;
 		}
 		// Advance all clocks.
-		for (const auto& clock_identifier: m_clocks) {
-			clock_identifier.second->Tick();
+		for (const auto& this_clock_descriptor : m_clocks) {
+			this_clock_descriptor.clock_pointer->Tick();
 		}
 		// Solve top-level simulation state.
 		Solve();
@@ -155,8 +155,8 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 	// Print probe samples.
 	if (print_probes_flag) {
 		std::cout << GenerateHeader("Probed values.") << std::endl << std::endl;
-		for (const auto& probe_identifier: m_probes) {
-			probe_identifier.second->PrintSamples();
+		for (const auto& this_probe_descriptor : m_probes) {
+			this_probe_descriptor.probe_pointer->PrintSamples();
 			std::cout << std::endl;
 		}
 		std::cout << GenerateHeader("Done.") << std::endl << std::endl;
@@ -165,23 +165,21 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 }
 
 void Simulation::AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on) {
-	std::size_t clock_name_hash = std::hash<std::string>{}(clock_name);
-	bool hash_in_map = IsHashInMapKeys(clock_name_hash, m_clocks);
-	if (hash_in_map == false) {
-		m_clocks[clock_name_hash] = new Clock(this, clock_name, toggle_pattern, monitor_on);
-	}
+	clock_descriptor new_clock_descriptor;
+	new_clock_descriptor.clock_name = clock_name;
+	new_clock_descriptor.clock_pointer = new Clock(this, clock_name, toggle_pattern, monitor_on);
+	m_clocks.push_back(new_clock_descriptor);
 }
 
-void Simulation::ClockConnect(std::string const& target_clock, std::string const& target_component_name, std::string const& target_terminal_name) {
-	std::size_t target_clock_hash = std::hash<std::string>{}(target_clock);
-	m_clocks[target_clock_hash]->Connect(target_component_name, target_terminal_name);
+void Simulation::ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name) {
+	GetClockPointer(target_clock_name)->Connect(target_component_name, target_terminal_name);
 }
 
 void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name) {
-	bool identifier_in_map = IsStringInMapKeys(target_component_full_name, m_probes);
-	if (identifier_in_map == false) {
-		m_probes[probe_name] = new Probe(m_top_level_sim_pointer, probe_name, target_component_full_name, target_pin_names, trigger_clock_name);
-	}
+	probe_descriptor new_probe;
+	new_probe.probe_name = probe_name;
+	new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_full_name, target_pin_names, trigger_clock_name);
+	m_probes.push_back(new_probe);
 }
 
 void Simulation::AddToProbableDevices(std::string const& target_component_full_name, Component* target_component_pointer) {
@@ -191,20 +189,26 @@ void Simulation::AddToProbableDevices(std::string const& target_component_full_n
 	}
 }
 
-void Simulation::AddToMagicEngines(std::string const& target_magic_engine_identifier, MagicEngine* target_magic_engine_pointer) {
-	bool identifier_in_map = IsStringInMapKeys(target_magic_engine_identifier, m_magic_engines);
-	if (identifier_in_map == false) {
-		m_magic_engines[target_magic_engine_identifier] = target_magic_engine_pointer;
-	}
+void Simulation::AddToMagicEngines(std::string const& magic_engine_identifier, MagicEngine* magic_engine_pointer) {
+	magic_engine_descriptor new_magic_engine_descriptor;
+	new_magic_engine_descriptor.magic_engine_identifier = magic_engine_identifier;
+	new_magic_engine_descriptor.magic_engine_pointer = magic_engine_pointer;
+	m_magic_engines.push_back(new_magic_engine_descriptor);
 }
 
 int Simulation::GetTopLevelMaxPropagations() {
 	return m_max_propagations;
 }
 
-Clock* Simulation::GetClockPointer(std::string const& clock_name) {
-	std::size_t clock_name_hash = std::hash<std::string>{}(clock_name);
-	return m_clocks[clock_name_hash];
+Clock* Simulation::GetClockPointer(std::string const& target_clock_name) {
+	Clock* clock_pointer;
+	for (const auto& this_clock_descriptor : m_clocks) {
+		if (this_clock_descriptor.clock_name == target_clock_name) {
+			clock_pointer = this_clock_descriptor.clock_pointer;
+			break;
+		}
+	}
+	return clock_pointer;
 }
 
 Component* Simulation::GetProbableComponentPointer(std::string const& target_component_full_name) {
@@ -224,17 +228,15 @@ void Simulation::StopSimulation() {
 }
 
 void Simulation::ShutDown() {
-	for (const auto& magic_engine_identifier: m_magic_engines) {
-		magic_engine_identifier.second->ShutDownMagic();
+	for (const auto& this_magic_engine_descriptor : m_magic_engines) {
+		this_magic_engine_descriptor.magic_engine_pointer->ShutDownMagic();
 	}
 }
 
 void Simulation::CheckProbeTriggers() {
-	for (const auto& clock_identifier: m_clocks) {
-		if (clock_identifier.second->GetTickedFlag()) {
-			clock_identifier.second->TriggerProbes();
+	for (const auto& this_clock_descriptor : m_clocks) {
+		if (this_clock_descriptor.clock_pointer->GetTickedFlag()) {
+			this_clock_descriptor.clock_pointer->TriggerProbes();
 		}
 	}
 }
-
-
