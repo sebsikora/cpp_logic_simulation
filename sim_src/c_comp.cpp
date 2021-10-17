@@ -23,14 +23,13 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 #include <algorithm>				// std::sort
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
 #include "strnatcmp.h"
 
-bool Component::mg_verbose_output_flag;
+bool Component::mg_verbose_output_flag;			// Global Component verbose_output_flag.
 
 std::string Component::GetName() {
 	return m_name;
@@ -126,7 +125,6 @@ void Component::PrintInPinStates() {
 		}
 		if (print_this_input) {
 			std::cout << in_pin_name;
-			//~std::size_t in_pin_name_hash = std::hash<std::string>{}(in_pin_name);
 			int in_pin_port_index = GetPinPortIndex(in_pin_name);
 			if (m_pins[in_pin_port_index].state) {
 				std::cout << ": T ";
@@ -141,13 +139,27 @@ void Component::PrintInPinStates() {
 void Component::PrintOutPinStates() {
 	std::cout << m_name << ": [ ";
 	for (const auto& out_pin_name: GetSortedOutPinNames()) {
-		std::cout << out_pin_name;
-		//~std::size_t out_pin_name_hash = std::hash<std::string>{}(out_pin_name);
-		int out_pin_port_index = GetPinPortIndex(out_pin_name);
-		if (m_pins[out_pin_port_index].state) {
-			std::cout << ": T ";
+		bool print_this_output = false;
+		if (!m_device_flag) {
+			// If we are in a Gate, there are no hidden in states.
+			print_this_output = true;
 		} else {
-			std::cout << ": F ";
+			// Otherwise, we are in a device, recast 'this' to Device and check key against hidden in states list.
+			Device* device_pointer = static_cast<Device*>(this);
+			if (!IsStringInVector(out_pin_name, device_pointer->m_hidden_out_pins)) {
+				print_this_output = true;
+			} else {
+				print_this_output = false;
+			}
+		}
+		if (print_this_output) {
+			std::cout << out_pin_name;
+			int out_pin_port_index = GetPinPortIndex(out_pin_name);
+			if (m_pins[out_pin_port_index].state) {
+				std::cout << ": T ";
+			} else {
+				std::cout << ": F ";
+			}
 		}
 	}
 	std::cout << "]" << std::endl << std::endl;

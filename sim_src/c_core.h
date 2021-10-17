@@ -19,16 +19,15 @@
 
 */
 
+// Include guard for this header.
 #ifndef LSIM_CORE_H
 #define LSIM_CORE_H
 
-#include <functional>				// std::hash
+// Includes for this header.
 #include <string>					// std::string.
-#include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-
-#include <termios.h>
+#include <termios.h>				// terminal settings data structure
 
 // Forward declarations for struct and class definitions below.
 class Component;
@@ -39,11 +38,7 @@ class Clock;
 class Probe;
 class MagicEngine;
 
-struct connection_descriptor {
-	Component* target_component_pointer;
-	int target_pin_port_index;
-};
-
+// Define data structures.
 struct pin {
 	std::string name;
 	int direction;
@@ -52,19 +47,63 @@ struct pin {
 	int port_index;
 };
 
-// This typedef defines the type 'pointer to a Gate class member function that takes a unordered_map of state 
-// structs to strings as arguments and returns a state struct. This allows us to *dramatically*
-// simplify the code for declaring such function pointers and member functions that take them as
-// arguments and/or return them.
+struct component_descriptor {
+	std::string component_name;
+	std::string component_full_name;
+	Component* component_pointer;
+};
+
+struct connection_descriptor {
+	Component* target_component_pointer;
+	int target_pin_port_index;
+};
+
+struct clock_descriptor {
+	std::string clock_name;
+	Clock* clock_pointer;
+};
+
+struct probe_descriptor {
+	std::string probe_name;
+	Probe* probe_pointer;
+};
+
+struct magic_engine_descriptor {
+	std::string magic_engine_identifier;
+	MagicEngine* magic_engine_pointer;
+};
+
+struct magic_event_co_condition {
+	int pin_port_index; 
+	bool pin_state;
+};
+
+struct human_writable_magic_event_co_condition {
+	std::string pin_name;
+	bool pin_state;
+};
+
+// This typedef defines the type 'pointer to a Gate class member function that takes a vector of pin
+// structs as arguments and returns an output bool. This allows us to *dramatically* simplify the code
+// for declaring such function pointers and member functions that take them as arguments and/or return them.
 typedef bool (Gate::*operator_pointer)(std::vector<pin> const&);
 
-// Class definitions proper.
-// Base logic component class.
+// Class prototypes.
+// Base Component class.
 class Component {
 	public:
-		// Constructor.
+		// Component class constructor.
 		Component() {}
-		// Methods.
+
+		// Component class virtual methods.
+		virtual void Initialise(void) = 0;
+		virtual void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) = 0;
+		virtual void Set(int pin_port_index, bool state_to_set) = 0;
+		virtual void Propagate(void) = 0;
+		virtual void MakeProbable(void) = 0;
+		virtual void PrintPinStates(int max_levels) = 0;
+
+		// Component class methods.
 		std::string GetName(void);
 		bool GetDeviceFlag(void);
 		std::string GetFullName(void);
@@ -80,15 +119,7 @@ class Component {
 		void PrintInPinStates(void);
 		void PrintOutPinStates(void);
 		
-		// Virtual methods.
-		virtual void Initialise(void) = 0;
-		virtual void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) = 0;
-		virtual void Set(int pin_port_index, bool state_to_set) = 0;
-		virtual void Propagate(void) = 0;
-		virtual void MakeProbable(void) = 0;
-		virtual void PrintPinStates(int max_levels) = 0;
-		
-		// Data.
+		// Component class data.
 		int m_nesting_level;
 		bool m_device_flag;
 		std::string m_name;
@@ -103,12 +134,13 @@ class Component {
 		static bool mg_verbose_output_flag;
 };
 
-// Basic logic-gate component subclass.
+// Logic Gate Component sub-class.
 class Gate : public Component {
 	public:
-		// Constructor.
+		// Gate class constructor.
 		Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type, std::vector<std::string> in_pin_names, bool monitor_on);
-		// Override methods common to Components.
+		
+		// Override Component virtual methods.
 		void Initialise(void) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
 		void Set(int pin_port_index, bool state_to_set) override;
@@ -116,7 +148,7 @@ class Gate : public Component {
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
 		
-		// Gate-specific methods.
+		// Gate class methods.
 		void Evaluate(void);
 		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
 		operator_pointer GetOperatorPointer(std::string const& operator_name);
@@ -126,34 +158,19 @@ class Gate : public Component {
 		bool OperatorNor(std::vector<pin> const& pins);
 		bool OperatorNot(std::vector<pin> const& pins);
 		
-		// Data.
+		// Gate class data.
 		int m_out_pin_port_index;
 		operator_pointer m_operator_function_pointer;
 		std::vector<connection_descriptor> m_connections;
 };
 
-// Complex composite device component subclass.
-struct magic_event_co_condition {
-	int pin_port_index; 
-	bool pin_state;
-};
-
-struct human_writable_magic_event_co_condition {
-	std::string pin_name;
-	bool pin_state;
-};
-
-struct component_descriptor {
-	std::string component_name;
-	std::string component_full_name;
-	Component* component_pointer;
-};
-
+// Compound-logic Device Component sub-class. 
 class Device : public Component {
 	public:
-		// Constructor.
-		Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> const& out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations = 0);
-		// Override methods common to Components.
+		// Device class constructor.
+		Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations = 0);
+		
+		// Override Component virtual methods.
 		void Initialise(void) override;
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
 		void Set(int pin_port_index, bool state_to_set) override;
@@ -161,7 +178,7 @@ class Device : public Component {
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
 		
-		// Device-specific methods.
+		// Device class methods.
 		virtual void Build(void);
 		void CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
@@ -184,39 +201,26 @@ class Device : public Component {
 		void AddToPropagateNextTick(int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		
-		// Data.
+		// Device class data.
 		int m_max_propagations;
 		std::vector<component_descriptor> m_components;
 		std::vector<int> m_propagate_next_tick;
 		std::vector<int> m_propagate_this_tick;
 		std::vector<int> m_still_to_propagate;
-		std::vector<std::vector<connection_descriptor>> m_ports;
-		bool m_magic_device_flag;
+		std::vector<std::vector<connection_descriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.
+		bool m_magic_device_flag = false;
 		MagicEngine* m_magic_engine_pointer;
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
+		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 };
 
-struct probe_descriptor {
-	std::string probe_name;
-	Probe* probe_pointer;
-};
-
-struct magic_engine_descriptor {
-	std::string magic_engine_identifier;
-	MagicEngine* magic_engine_pointer;
-};
-
-struct clock_descriptor {
-	std::string clock_name;
-	Clock* clock_pointer;
-};
-
-// Top-level simulation device subclass.
+// Top-level Simulation Device sub-class.
 class Simulation : public Device {
 	public:
-		// Constructor.
+		// Simulation class constructor.
 		Simulation(std::string const& simulation_name, int max_propagations, bool verbose_output_flag);
-		// Methods.
+		
+		// Simulation class methods.
 		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false);
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
 		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
@@ -235,7 +239,7 @@ class Simulation : public Device {
 		void ShutDown(void);
 		void CheckProbeTriggers(void);
 		
-		// Data.
+		// Simulation class data.
 		std::unordered_map<std::string, Component*> m_probable_components;
 		std::vector<probe_descriptor> m_probes;
 		std::vector<clock_descriptor> m_clocks;
@@ -246,12 +250,13 @@ class Simulation : public Device {
 		int m_next_new_CUID;
 };
 
-// Clock generator utility class.
+// Clock utility class.
 class Clock {
 	public:
-		// Constructor.
+		// Clock class constructor.
 		Clock(Device* parent_device_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on);
-		// Methods.
+		
+		// Clock class methods.
 		void Connect(std::string const& target_component_name, std::string const& target_pin_name);
 		void Propagate(void);
 		void Tick(void);
@@ -260,7 +265,7 @@ class Clock {
 		void TriggerProbes(void);
 		bool GetTickedFlag(void);
 		
-		// Data.
+		// Clock class data.
 		Device* m_parent_device_pointer;
 		std::string m_name;
 		std::vector<bool> m_toggle_pattern;
@@ -274,17 +279,18 @@ class Clock {
 		bool m_ticked_flag;
 };
 
-// Clock-triggered logic probe utility class.
+// Probe utility class.
 class Probe {
 	public:
-		// Constructor.
+		// Probe class constructor.
 		Probe(Simulation* top_level_device_pointer, std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name);
-		// Methods.
+		
+		// Probe class methods.
 		void Sample(int index);
 		void Reset(void);
 		void PrintSamples(void);
 		
-		// Data.
+		// Probe class data.
 		Simulation* m_top_level_sim_pointer;
 		std::string m_name;
 		std::string m_target_component_full_name;
@@ -297,7 +303,6 @@ class Probe {
 		std::vector<bool> m_this_sample;
 };
 
-// Comment goes here...
 struct magic_event {
 	int target_pin_port_index;
 	std::vector<bool> state_change;

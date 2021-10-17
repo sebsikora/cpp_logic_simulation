@@ -23,7 +23,6 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 #include <algorithm>				// std::sort
 
 #include "c_core.h"					// Core simulator functionality
@@ -35,7 +34,7 @@ bool backwards_comp (int i, int j) {
 	return (j < i);
 }
 
-Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> const& out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations) {
+Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations) {
 	m_device_flag = true;
 	m_name = device_name;
 	m_parent_device_pointer = parent_device_pointer;
@@ -60,12 +59,13 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 	} else {
 		m_max_propagations = max_propagations;
 	}
+	std::sort(in_pin_names.begin(), in_pin_names.end(), compareNat);
+	// Utility 'hidden' in and out pins have to be created by the base Device constructor.
+	// Further calls by Devices inheriting the base class won't include these.
 	in_pin_names.insert(in_pin_names.end(), m_hidden_in_pins.begin(), m_hidden_in_pins.end());
 	CreateInPins(in_pin_names, in_pin_default_states);
-	if (out_pin_names.size() > 0) {
-		CreateOutPins(out_pin_names);
-	}
-	m_magic_device_flag = false;
+	out_pin_names.insert(out_pin_names.end(), m_hidden_out_pins.begin(), m_hidden_out_pins.end());
+	CreateOutPins(out_pin_names);
 }
 
 void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states) {
@@ -84,8 +84,7 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 				new_in_pin.state = false;
 			}
 		} else {
-			// If this is a default 'hidden' input, don't include it in the 'available input' keymap.
-			// This means the input cannot be Set().
+			// Set hidden in pin default states.
 			if (pin_name == "true") {
 				new_in_pin.state = true;
 			} else if (pin_name == "false") {
@@ -105,6 +104,9 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 	// Create new outputs.
 	for (const auto& pin_name : pin_names) {
 		pin new_out_pin = {pin_name, 2, false, false, new_pin_port_index};
+		if (IsStringInVector(pin_name, m_hidden_out_pins)) {
+			new_out_pin.direction = 3;
+		}
 		m_pins.push_back(new_out_pin);
 		m_ports.push_back({});
 		new_pin_port_index ++;
@@ -180,7 +182,7 @@ void Device::AddGate(std::string const& component_name, std::string const& compo
 
 void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, std::string const& incantation) {
 	if (m_magic_device_flag == true) {
-		// Convert the human-writable  kind of magic event co-condition (strings for terminal identifiers) to the kind with pre-hashed identifiers.
+		// Convert the human-writable  kind of magic event co-condition (strings for terminal identifiers) to the kind pin-indexed kind.
 		std::vector<magic_event_co_condition> co_conditions = {};
 		for (int i = 0; i  < hw_co_conditions.size(); i ++) {
 			magic_event_co_condition this_co_condition;
@@ -319,9 +321,9 @@ void Device::SubTick(int index) {
 		std::cout << "Iteration: " << std::to_string(index) << std::endl;
 	}
 	// Propagation queue for the next subtick can be set up in one of two ways:
-	// If the component hashes are sorted in ascending order, we need to delete the 0th entry each time in the
+	// If the component local IDs are sorted in ascending order, we need to delete the 0th entry each time in the
 	// propagation loop that follows. It's faster to pop_back() the last element instead, but to do that we need
-	// to inverse-sort the component hashes and then work through them from last to first.
+	// to inverse-sort the component local IDs and then work through them from last to first.
 	// This also requires that we modify std::binary_search in CheckIfQueuedToPropagateThisTick() for searching
 	// an inverse-sorted vector. We use the same custom < comparator function (backwards_comp() defined at the top)
 	// to modify the behaviour of both std::sort() and std::binary_search().
@@ -371,38 +373,39 @@ void Device::Propagate() {
 
 void Device::Set(int pin_port_index, bool state_to_set) {
 	pin* this_pin = &m_pins[pin_port_index];
-	if (state_to_set != this_pin->state) {
-		if ((m_monitor_on) || (mg_verbose_output_flag)) {								// Print input pin changes.
-			std::string direction_string = "";
-			if (this_pin->direction == 1) {
-				direction_string = "input ";
-			} else {
-				direction_string = "output ";
+	if (this_pin->direction != 3) {
+		if (state_to_set != this_pin->state) {
+			if ((m_monitor_on) || (mg_verbose_output_flag)) {
+				std::string direction_string = "";
+				if (this_pin->direction == 1) {
+					direction_string = "input ";
+				} else {
+					direction_string = "output ";
+				}
+				if (mg_verbose_output_flag) {
+					std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
+				}
+				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
 			}
-			if (mg_verbose_output_flag) {
-				std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
+			if ((m_magic_device_flag == true) && (this_pin->direction == 1)) {
+				m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
 			}
-			std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
+			this_pin->state = state_to_set;
+			this_pin->state_changed = true;
+			// Add device to the parent Devices propagate_next list, UNLESS this device
+			// is already queued-up to propagate this SubTick.
+			if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
+				m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
+			}
 		}
-		if ((m_magic_device_flag == true) && (this_pin->direction == 1)) {
-			m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
-		}
-		this_pin->state = state_to_set;
-		this_pin->state_changed = true;
-		// Add device to the parent Devices propagate_next list, UNLESS this device
-		// is already queued-up to propagate this SubTick.
-		if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
-			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
+	} else {
+		if ((this_pin->name == "all_stop") && (m_top_level_sim_pointer->IsSimulationRunning())) {
+			if (state_to_set) {
+				std::cout << BOLD(" ---!--- Device " << m_full_name << " ALL_STOP was asserted ---!---") << std::endl;
+				m_top_level_sim_pointer->StopSimulation();
+			}
 		}
 	}
-	//~else {
-		//~if ((pin_name_hash == std::hash<std::string>{}("__ALL_STOP__")) && (m_top_level_sim_pointer->IsSimulationRunning())) {
-			//~if (state_to_set) {
-				//~std::cout << BOLD(" ---!--- Device " << m_full_name << " ALL_STOP was asserted ---!---") << std::endl;
-				//~m_top_level_sim_pointer->StopSimulation();
-			//~}
-		//~}
-	//~}
 }
 
 Component* Device::GetChildComponentPointer(std::string const& target_child_component_name) {
@@ -452,8 +455,10 @@ void Device::PrintPinStates(int max_levels) {
 		}
 		std::cout << "] [";
 		for (const auto& pin_name : GetSortedOutPinNames()) {
-			int pin_port_index = GetPinPortIndex(pin_name);
+			if (!IsStringInVector(pin_name, m_hidden_out_pins)) {
+				int pin_port_index = GetPinPortIndex(pin_name);
 				std::cout << " " << BoolToChar(m_pins[pin_port_index].state) << " ";
+			}
 		}
 		std::cout << "]" << std::endl;
 		if (max_levels > 0) {

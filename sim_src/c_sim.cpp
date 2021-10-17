@@ -23,11 +23,10 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 #include <ctime>					// time()
 #include <cstdlib>					// srand()
 
-#include <termios.h>				// Terminal settings
+#include <termios.h>				// terminal settings
 #include <unistd.h>					// POSIX bits.
 #include <sys/ioctl.h>				// ioctl()
 
@@ -101,11 +100,11 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
 	}
 	// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
-	// (We need to manually set it back when we are done!).
+	// ~~~ We need to manually set it back when we are done! ~~~
 	EnableTerminalRawIO(true);
-	// Spin main simulation loop.
 	int tick_count = 0;
 	int input_check_count = 0, input_check_count_limit = 1000;
+	// And we're live - Spin main simulation loop.
 	while (true) {
 		// Update all magic device engines.
 		for (const auto& this_magic_engine_descriptor : m_magic_engines) {
@@ -130,7 +129,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		if (input_check_count >= input_check_count_limit) {
 			char key_pressed = CheckForCharacter();
 			if (key_pressed == 'q') {
-				// Really we need to choose a more involved key-combination here for the stop key.
+				// Really we need to choose a more involved key-combination than 'q' here for the stop key...
 				std::cout << std::endl << GenerateHeader("STOP KEY PRESSED") << std::endl << std::endl;
 				m_simulation_running = false;
 				break;

@@ -23,7 +23,6 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"

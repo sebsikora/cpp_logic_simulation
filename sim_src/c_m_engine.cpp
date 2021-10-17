@@ -23,7 +23,6 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
@@ -36,7 +35,6 @@ MagicEngine::MagicEngine(Device* parent_device_pointer) {
 }
 
 void MagicEngine::AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event) {
-	std::size_t identifier_hash = std::hash<std::string>{}(identifier);
 	if (IsStringInMapKeys(identifier, m_magic_events) == false) {
 		m_magic_events[identifier] = new_magic_event;
 	}

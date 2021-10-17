@@ -195,7 +195,8 @@ void Four_Bit_Counter::Build() {
 	
 	// Add device to top-level probable list.
 	MakeProbable();
-	//PrintInPinStates();
+	PrintInPinStates();
+	PrintOutPinStates();
 }
 
 N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
