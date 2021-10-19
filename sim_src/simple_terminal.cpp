@@ -50,7 +50,9 @@ void SimpleTerminal::Build() {
 	// This device does not contain any components!
 	// We still need to call MakeProbable() here during the Build() process if we want to attach logic probes later.
 	MakeProbable();
-	//~PrintInPinStates();
+	// As there are no conventional Components inside the MagicDevice, if we don't mark all of the 'inner terminals' (pin.drive[1] for in pins
+	// and pin.drive[0] for out pins) as 'connected', the end-of-build connections check will get upset.
+	MarkInnerTerminalsDisconnected();
 }
 
 void SimpleTerminal::ConfigureMagic(Device* parent_device_pointer, std::string name) {

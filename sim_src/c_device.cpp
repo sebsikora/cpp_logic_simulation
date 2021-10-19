@@ -34,7 +34,9 @@ bool backwards_comp (int i, int j) {
 	return (j < i);
 }
 
-Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names, std::vector<std::string> out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations) {
+Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names,
+	std::vector<std::string> out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations
+	) {
 	m_device_flag = true;
 	m_name = device_name;
 	m_parent_device_pointer = parent_device_pointer;
@@ -183,6 +185,14 @@ void Device::AddGate(std::string const& component_name, std::string const& compo
 	AddComponent(new Gate(this, component_name, component_type, in_pin_names, monitor_on));
 }
 
+void Device::AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on) {
+	AddComponent(new Gate(this, component_name, component_type, {}, monitor_on));
+}
+
+void Device::AddGate(std::string const& component_name, std::string const& component_type) {
+	AddComponent(new Gate(this, component_name, component_type, {}, false));
+}
+
 void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, std::string const& incantation) {
 	if (m_magic_device_flag == true) {
 		// Convert the human-writable  kind of magic event co-condition (strings for terminal identifiers) to the kind pin-indexed kind.
@@ -313,142 +323,153 @@ void Device::Connect(std::string const& origin_pin_name, std::string const& targ
 	Connect(connection_parameters);
 }
 
-void Device::Connect(std::vector<std::string> const& connection_parameters) {
+void Device::Connect(std::vector<std::string> connection_parameters) {
 	// The below seems to work fine, but it is very untidy and hard to follow and *needs refactoring*.
-	std::string origin_pin_name = connection_parameters[0];
-	bool origin_pin_exists = CheckIfPinExists(origin_pin_name);
-	if (origin_pin_exists) {
-		bool target_component_exists = true;
-		std::string target_component_nature_string = "";
-		bool target_pin_exists = true;
-		int target_pin_direction = 0;
-		bool target_pin_direction_compatible = false;
-		bool no_existing_connection = true;
-		std::vector<bool> target_pin_already_driven;
-		
-		std::string target_component_name = connection_parameters[1];
-		std::string target_pin_name = connection_parameters[2];
-		int origin_pin_direction = GetPinDirection(origin_pin_name);
-		
-		std::string origin_direction = "";
-		if (origin_pin_direction == 1) {
-			origin_direction = "input";
-		} else if (origin_pin_direction == 2) {
-			origin_direction = "output";
-		} else if (origin_pin_direction == 3) {
-			origin_direction = "hidden input";
-		} else if (origin_pin_direction == 4) {
-			origin_direction = "hidden output";
-		}
-		
-		int origin_pin_port_index = GetPinPortIndex(origin_pin_name);
-		std::vector<int> required_target_directions;
-		Component* target_component_pointer;
-		if ((origin_pin_direction == 1) || (origin_pin_direction == 3)) {
-			// If the device state is one of it's inputs, it can only be connected to an input terminal
-			// of an internal child device.
-			required_target_directions = {1};
-			target_component_nature_string = "child";
-			target_component_pointer = GetChildComponentPointer(target_component_name);
-			if (target_component_pointer == 0) {
-				target_component_exists = false;
-			}
-		} else if (origin_pin_direction == 2) {
-			if (target_component_name == "parent") {
-				// If the target is the parent device, then we are connecting to an output belonging to the
-				// parent device.
-				required_target_directions = {2, 4};
-				target_component_nature_string = "parent";
-				target_component_pointer = m_parent_device_pointer;
+	if ((connection_parameters.size() == 2) || (connection_parameters.size() == 3)) {
+		std::string origin_pin_name = connection_parameters[0];
+		bool origin_pin_exists = CheckIfPinExists(origin_pin_name);
+		if (origin_pin_exists) {
+			bool target_component_exists = true;
+			std::string target_component_nature_string = "";
+			bool target_pin_exists = true;
+			int target_pin_direction = 0;
+			bool target_pin_direction_compatible = false;
+			bool no_existing_connection = true;
+			std::vector<bool> target_pin_already_driven;
+			
+			std::string target_component_name = connection_parameters[1];
+			std::string target_pin_name;
+			if (connection_parameters.size() == 2) {
+				target_pin_name = "input";
 			} else {
-				// If the target is not the parent device then it is another colleague device within the
-				// same parent device.
+				target_pin_name = connection_parameters[2];
+			}
+			
+			int origin_pin_direction = GetPinDirection(origin_pin_name);
+			std::string origin_direction = "";
+			if (origin_pin_direction == 1) {
+				origin_direction = "input";
+			} else if (origin_pin_direction == 2) {
+				origin_direction = "output";
+			} else if (origin_pin_direction == 3) {
+				origin_direction = "hidden input";
+			} else if (origin_pin_direction == 4) {
+				origin_direction = "hidden output";
+			}
+			
+			int origin_pin_port_index = GetPinPortIndex(origin_pin_name);
+			std::vector<int> required_target_directions;
+			Component* target_component_pointer;
+			if ((origin_pin_direction == 1) || (origin_pin_direction == 3)) {
+				// If the device state is one of it's inputs, it can only be connected to an input terminal
+				// of an internal child device.
 				required_target_directions = {1};
-				target_component_nature_string = "sibling";
-				target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+				target_component_nature_string = "child";
+				target_component_pointer = GetChildComponentPointer(target_component_name);
 				if (target_component_pointer == 0) {
 					target_component_exists = false;
 				}
-			}
-		} else {
-			// Pin is a hidden output and cannot be connected onwards...
-		}
-		
-		if (target_component_exists) {
-			target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
-			if (target_pin_exists) {
-				connection_descriptor new_connection_descriptor;
-				new_connection_descriptor.target_component_pointer = target_component_pointer;
-				new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-				target_pin_direction = target_component_pointer->GetPinDirection(new_connection_descriptor.target_pin_port_index);
-				for (const auto& this_required_direction : required_target_directions) {
-					if (this_required_direction == target_pin_direction) {
-						target_pin_direction_compatible = true;
-						break;
+			} else if (origin_pin_direction == 2) {
+				if (target_component_name == "parent") {
+					// If the target is the parent device, then we are connecting to an output belonging to the
+					// parent device.
+					required_target_directions = {2, 4};
+					target_component_nature_string = "parent";
+					target_component_pointer = m_parent_device_pointer;
+				} else {
+					// If the target is not the parent device then it is another colleague device within the
+					// same parent device.
+					required_target_directions = {1};
+					target_component_nature_string = "sibling";
+					target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+					if (target_component_pointer == 0) {
+						target_component_exists = false;
 					}
 				}
-				if (target_pin_direction_compatible) {
-					for (const auto& this_connection_descriptor : m_ports[origin_pin_port_index]) {
-						if ((this_connection_descriptor.target_pin_port_index == new_connection_descriptor.target_pin_port_index) && (this_connection_descriptor.target_component_pointer == new_connection_descriptor.target_component_pointer)) {
-							no_existing_connection = false;
+			} else {
+				// Pin is a hidden output and cannot be connected onwards...
+			}
+			
+			if (target_component_exists) {
+				target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
+				if (target_pin_exists) {
+					connection_descriptor new_connection_descriptor;
+					new_connection_descriptor.target_component_pointer = target_component_pointer;
+					new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+					target_pin_direction = target_component_pointer->GetPinDirection(new_connection_descriptor.target_pin_port_index);
+					for (const auto& this_required_direction : required_target_directions) {
+						if (this_required_direction == target_pin_direction) {
+							target_pin_direction_compatible = true;
 							break;
 						}
 					}
-					if (no_existing_connection) {
-						target_pin_already_driven = target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index);
-						if (!target_pin_already_driven[0]) {
-							m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
-							target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, false, true);
-							m_pins[origin_pin_port_index].drive[1] = true;
+					if (target_pin_direction_compatible) {
+						for (const auto& this_connection_descriptor : m_ports[origin_pin_port_index]) {
+							if ((this_connection_descriptor.target_pin_port_index == new_connection_descriptor.target_pin_port_index) && (this_connection_descriptor.target_component_pointer == new_connection_descriptor.target_component_pointer)) {
+								no_existing_connection = false;
+								break;
+							}
+						}
+						if (no_existing_connection) {
+							target_pin_already_driven = target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index);
+							if (!target_pin_already_driven[0]) {
+								m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
+								target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, false, true);
+								m_pins[origin_pin_port_index].drive[1] = true;
+							}
 						}
 					}
 				}
 			}
-		}
-		
-		std::string target_direction = "";
-		if (target_pin_direction == 1) {
-			target_direction = "input";
-		} else if (target_pin_direction == 2) {
-			target_direction = "output";
-		} else if (target_pin_direction == 3) {
-			target_direction = "hidden input";
-		} else if (target_pin_direction == 4) {
-			target_direction = "hidden output";
-		}
-		
-		if (!target_component_exists) {
-			// Log build error here.		-- Component does not exist.
-			std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " but it does not exist.";
-			m_top_level_sim_pointer->LogBuildError(build_error);
-		} else {
-			if (!target_pin_exists) {
-				// Log build error here.		-- Target pin does not exist.
-				std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it does not exist.";
+			
+			std::string target_direction = "";
+			if (target_pin_direction == 1) {
+				target_direction = "input";
+			} else if (target_pin_direction == 2) {
+				target_direction = "output";
+			} else if (target_pin_direction == 3) {
+				target_direction = "hidden input";
+			} else if (target_pin_direction == 4) {
+				target_direction = "hidden output";
+			}
+			
+			if (!target_component_exists) {
+				// Log build error here.		-- Component does not exist.
+				std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " but it does not exist.";
 				m_top_level_sim_pointer->LogBuildError(build_error);
 			} else {
-				if (!target_pin_direction_compatible) {
-					// Log build error here.		-- Origin and target pin directions are not compatible.
-					std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " " + target_direction + " pin " + target_pin_name + " but they are not compatible";
+				if (!target_pin_exists) {
+					// Log build error here.		-- Target pin does not exist.
+					std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it does not exist.";
 					m_top_level_sim_pointer->LogBuildError(build_error);
 				} else {
-					if (!no_existing_connection) {
-						// Log build error here.		-- This connection already exists.
-						std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but is already connected to it.";
+					if (!target_pin_direction_compatible) {
+						// Log build error here.		-- Origin and target pin directions are not compatible.
+						std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " " + target_direction + " pin " + target_pin_name + " but they are not compatible";
 						m_top_level_sim_pointer->LogBuildError(build_error);
 					} else {
-						if (target_pin_already_driven[0]) {
-							// Log build error here.		-- This target pin is already driven by another pin.
-							std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
+						if (!no_existing_connection) {
+							// Log build error here.		-- This connection already exists.
+							std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but is already connected to it.";
 							m_top_level_sim_pointer->LogBuildError(build_error);
+						} else {
+							if (target_pin_already_driven[0]) {
+								// Log build error here.		-- This target pin is already driven by another pin.
+								std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
+								m_top_level_sim_pointer->LogBuildError(build_error);
+							}
 						}
 					}
 				}
 			}
+		} else {
+			// Log build error here.		-- Origin pin does not exist.
+			std::string build_error = "Device " + m_full_name + " tried to connect from input " + origin_pin_name + " but it does not exist.";
+			m_top_level_sim_pointer->LogBuildError(build_error);
 		}
 	} else {
-		// Log build error here.		-- Origin pin does not exist.
-		std::string build_error = "Device " + m_full_name + " tried to connect from input " + origin_pin_name + " but it does not exist.";
+		// Log build error here.		-- Wrong number of connection parameters.
+		std::string build_error = "Device " + m_full_name + " tried to form a connection but the wrong number of connection parameters were provided.";
 		m_top_level_sim_pointer->LogBuildError(build_error);
 	}
 }
@@ -618,7 +639,7 @@ void Device::AddToPropagateNextTick(int propagation_identifier) {
 
 void Device::MakeProbable() {
 	if (this != m_top_level_sim_pointer) {
-		m_top_level_sim_pointer->AddToProbableDevices(m_full_name, this);
+		m_top_level_sim_pointer->AddToProbableComponents(this);
 	}
 }
 
@@ -684,5 +705,17 @@ void Device::ReportUnConnectedPins() {
 	}
 	for (const auto& this_component_descriptor : m_components) {
 		this_component_descriptor.component_pointer->ReportUnConnectedPins();
+	}
+}
+
+void Device::MarkInnerTerminalsDisconnected(void) {
+	// As there are no conventional Components inside MagicDevice(s), if we don't mark all of the 'inner terminals' (pin.drive[1] for
+	// in pins and pin.drive[0] for out pins) as 'connected', the end-of-build connections check will get upset.
+	for (auto& this_pin : m_pins) {
+		if (this_pin.direction == 1) {
+			this_pin.drive[1] = true;
+		} else if (this_pin.direction == 2) {
+			this_pin.drive[0] = true;
+		}
 	}
 }

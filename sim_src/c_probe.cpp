@@ -22,19 +22,20 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
 
-Probe::Probe(Simulation* top_level_device_pointer, std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name) {
-	m_top_level_sim_pointer = top_level_device_pointer;
+Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
+	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer
+	) {
+	m_top_level_sim_pointer = top_level_sim_pointer;
+	m_target_component_pointer = target_component_pointer;
 	m_name = probe_name;
-	m_target_component_full_name = target_component_full_name;
-	m_trigger_clock_name = trigger_clock_name;
-	m_trigger_clock_pointer = m_top_level_sim_pointer->GetClockPointer(m_trigger_clock_name);
+	m_target_component_full_name = target_component_pointer->GetFullName();
+	m_trigger_clock_name = trigger_clock_pointer->GetName();
+	m_trigger_clock_pointer = trigger_clock_pointer;
 	m_trigger_clock_pointer->AddToProbeList(m_name, this);
-	m_target_component_pointer = m_top_level_sim_pointer->GetProbableComponentPointer(m_target_component_full_name);
 	for (const auto& pin_name : target_pin_names) {
 		m_target_pin_indices.push_back(m_target_component_pointer->GetPinPortIndex(pin_name));
 	}

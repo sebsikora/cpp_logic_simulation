@@ -22,7 +22,6 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 #include <ctime>					// time()
 #include <cstdlib>					// srand()
 
@@ -34,7 +33,9 @@
 #include "utils.h"
 #include "colors.h"
 
-Simulation::Simulation(std::string const& simulation_name, int max_propagations, bool verbose_output_flag) : Device(static_cast<Device*>(this), simulation_name, "simulation", {}, {}, false, {}, max_propagations) {
+Simulation::Simulation(std::string const& simulation_name, int max_propagations, bool verbose_output_flag)
+ : Device(static_cast<Device*>(this), simulation_name, "simulation", {}, {}, false, {}, max_propagations
+	) {
 	m_next_new_CUID = 1;
 	m_simulation_running = false;
 	m_global_tick_index = 0;
@@ -172,27 +173,90 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 }
 
 void Simulation::AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on) {
-	clock_descriptor new_clock_descriptor;
-	new_clock_descriptor.clock_name = clock_name;
-	new_clock_descriptor.clock_pointer = new Clock(this, clock_name, toggle_pattern, monitor_on);
-	m_clocks.push_back(new_clock_descriptor);
+	bool found = false;
+	for (const auto& this_clock_descriptor : m_clocks) {
+		if (this_clock_descriptor.clock_name == clock_name) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		clock_descriptor new_clock_descriptor;
+		new_clock_descriptor.clock_name = clock_name;
+		new_clock_descriptor.clock_pointer = new Clock(this, clock_name, toggle_pattern, monitor_on);
+		m_clocks.push_back(new_clock_descriptor);
+	} else {
+		// Log error - Component is not on probable components list.
+		std::string build_error = "Clock " + clock_name + " can not be be created as another clock by this name already exists.";
+		LogBuildError(build_error);
+	}
 }
 
 void Simulation::ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name) {
-	GetClockPointer(target_clock_name)->Connect(target_component_name, target_terminal_name);
+	Clock* target_clock_pointer = GetClockPointer(target_clock_name);
+	if (target_clock_pointer != 0) {
+		target_clock_pointer->Connect(target_component_name, target_terminal_name);
+	} else {
+		// Log error - Target clock does not exist.
+		std::string build_error = "Clock " + target_clock_name + " can not be connected onward because it does not exist.";
+		LogBuildError(build_error);
+	}
 }
 
 void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name) {
-	probe_descriptor new_probe;
-	new_probe.probe_name = probe_name;
-	new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_full_name, target_pin_names, trigger_clock_name);
-	m_probes.push_back(new_probe);
+	Component* target_component_pointer = GetProbableComponentPointer(target_component_full_name);
+	if (target_component_pointer != 0) {
+		bool pins_exist = true;
+		for (const auto& this_pin_name : target_pin_names) {
+			pins_exist &= target_component_pointer->CheckIfPinExists(this_pin_name);
+			// If pins_exist ends up false, at least one of the pins does not exist.
+		}
+		if (pins_exist) {
+			Clock* trigger_clock_pointer;
+			bool trigger_clock_exists = false;
+			for (const auto& this_clock_descriptor : m_clocks) {
+				if (this_clock_descriptor.clock_name == trigger_clock_name) {
+					trigger_clock_exists = true;
+					trigger_clock_pointer = this_clock_descriptor.clock_pointer;
+					break;
+				}
+			}
+			if (trigger_clock_exists) {
+				probe_descriptor new_probe;
+				new_probe.probe_name = probe_name;
+				new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_pointer, target_pin_names, trigger_clock_pointer);
+				m_probes.push_back(new_probe);
+			} else {
+				// Log error - Trigger clock does not exist.
+				std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because trigger clock " + trigger_clock_pointer->GetName() + " does not exist.";
+				LogBuildError(build_error);
+			}
+		} else {
+			// Log error - One or more of the specified pins do not exist.
+			std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because one or more of the specified target pins do not exist.";
+			LogBuildError(build_error);
+		}
+	} else {
+		// Log error - Component is not on probable components list.
+		std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because target Component " + target_component_full_name + " is not on the top-level Simulation's probable Component list.";
+		LogBuildError(build_error);
+	}
 }
 
-void Simulation::AddToProbableDevices(std::string const& target_component_full_name, Component* target_component_pointer) {
-	bool identifier_in_map = IsStringInMapKeys(target_component_full_name, m_probable_components);
-	if (identifier_in_map == false) {
-		m_probable_components[target_component_full_name] = target_component_pointer;
+void Simulation::AddToProbableComponents(Component* target_component_pointer) {
+	bool found = false;
+	for (const auto& this_component_pointer : m_probable_components) {
+		if (this_component_pointer == target_component_pointer) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		m_probable_components.emplace_back(target_component_pointer);
+	} else {
+		// Log build error here.		-- This connection already exists.
+		std::string build_error = "Component " + target_component_pointer->GetFullName() + " can not be added to the probable Components list because it has already been added.";
+		LogBuildError(build_error);
 	}
 }
 
@@ -208,7 +272,7 @@ int Simulation::GetTopLevelMaxPropagations() {
 }
 
 Clock* Simulation::GetClockPointer(std::string const& target_clock_name) {
-	Clock* clock_pointer;
+	Clock* clock_pointer = 0;
 	for (const auto& this_clock_descriptor : m_clocks) {
 		if (this_clock_descriptor.clock_name == target_clock_name) {
 			clock_pointer = this_clock_descriptor.clock_pointer;
@@ -219,7 +283,14 @@ Clock* Simulation::GetClockPointer(std::string const& target_clock_name) {
 }
 
 Component* Simulation::GetProbableComponentPointer(std::string const& target_component_full_name) {
-	return m_probable_components[target_component_full_name];
+	Component* target_component_pointer = 0;
+	for (const auto& this_component_pointer : m_probable_components) {
+		if (this_component_pointer->GetFullName() == target_component_full_name) {
+			target_component_pointer = this_component_pointer;
+			break;
+		}
+	}
+	return target_component_pointer;
 }
 
 int Simulation::GetTopLevelComponentCount() {

@@ -22,14 +22,13 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
 #include "colors.h"
 
-Clock::Clock(Device* parent_device_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on) {
-	m_parent_device_pointer = parent_device_pointer;
+Clock::Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on) {
+	m_top_level_sim_pointer = top_level_sim_pointer;
 	m_name = clock_name;
 	m_toggle_pattern = toggle_pattern;
 	m_monitor_on = monitor_on;
@@ -37,6 +36,10 @@ Clock::Clock(Device* parent_device_pointer, std::string const& clock_name, std::
 	m_index = 0;
 	m_sub_index = 0;
 	m_ticked_flag = false;
+}
+
+std::string Clock::GetName() {
+	return m_name;
 }
 
 void Clock::AddToProbeList(std::string const& probe_identifier, Probe* probe_pointer) {
@@ -49,7 +52,7 @@ void Clock::AddToProbeList(std::string const& probe_identifier, Probe* probe_poi
 void Clock::Tick(void) {
 	bool new_logical_state = m_toggle_pattern[m_sub_index];
 	// Print output pin changes.
-	bool verbose_output_flag = m_parent_device_pointer->mg_verbose_output_flag;
+	bool verbose_output_flag = m_top_level_sim_pointer->mg_verbose_output_flag;
 	if (m_monitor_on || (verbose_output_flag)) {
 		std::cout << "T: " << std::to_string(m_index) << " " << BOLD(FYEL("CLOCKSET: ")) << "On tick " << BOLD("" << m_index << "") << " " << m_name << ":clock output set to " << BoolToChar(new_logical_state) << std::endl;
 		if ((m_monitor_on) && !(verbose_output_flag)) {
@@ -82,16 +85,40 @@ void Clock::Reset(void) {
 }
 
 void Clock::Connect(std::string const& target_component_name, std::string const& target_pin_name) {
-	Component* target_component_pointer;
-	if (target_component_name == "parent") {
-		target_component_pointer = m_parent_device_pointer;
+	Component* target_component_pointer = m_top_level_sim_pointer->GetChildComponentPointer(target_component_name);
+	if (target_component_pointer != 0) {
+		bool target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
+		if (target_pin_exists) {
+			int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+			int target_pin_direction = target_component_pointer->GetPinDirection(target_pin_port_index);
+			std::vector<bool> target_pin_drive_state = target_component_pointer->CheckIfPinDriven(target_pin_port_index);
+			if (!target_pin_drive_state[0]) {
+				if (target_pin_direction == 1) {
+					connection_descriptor new_connection_descriptor;
+					new_connection_descriptor.target_component_pointer = target_component_pointer;
+					new_connection_descriptor.target_pin_port_index = target_pin_port_index;
+					m_connections.push_back(new_connection_descriptor);
+					target_component_pointer->SetPinDrivenFlag(target_pin_port_index, false, true);
+				} else {
+					// Log build error here.		-- Target pin is not an in pin.
+					std::string build_error = "Clock " + m_name + " tried to connect to " + target_component_name + " in pin " + target_pin_name + " but it is not an in pin.";
+					m_top_level_sim_pointer->LogBuildError(build_error);
+				}
+			} else {
+				// Log build error here.		-- Target pin is already driven by another out pin.
+				std::string build_error = "Clock " + m_name + " tried to connect to Component " + target_component_name + " in pin " + target_pin_name + " but it is already driven by another out pin.";
+				m_top_level_sim_pointer->LogBuildError(build_error);
+			}
+		} else {
+			// Log build error here.		-- Target pin does not exist.
+			std::string build_error = "Clock " + m_name + " tried to connect to Component " + target_component_name + " in pin " + target_pin_name + " but it does not exist.";
+			m_top_level_sim_pointer->LogBuildError(build_error);
+		}
 	} else {
-		target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+		// Log build error here.		-- Component does not exist.
+		std::string build_error = "Clock " + m_name + " tried to connect to Component " + target_component_name + " but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
 	}
-	connection_descriptor new_connection_descriptor;
-	new_connection_descriptor.target_component_pointer = target_component_pointer;
-	new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-	m_connections.push_back(new_connection_descriptor);
 }
 
 void Clock::Propagate() {

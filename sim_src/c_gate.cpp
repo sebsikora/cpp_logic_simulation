@@ -22,7 +22,6 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 #include <algorithm>				// std::sort
 #include <cstdlib>					// rand()
 
@@ -31,7 +30,8 @@
 #include "strnatcmp.h"
 #include "colors.h"
 
-Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type, std::vector<std::string> in_pin_names, bool monitor_on) {
+Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
+	std::vector<std::string> in_pin_names, bool monitor_on) {
 	m_device_flag = false;
 	m_name = gate_name;
 	m_parent_device_pointer = parent_device_pointer;
@@ -44,8 +44,15 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 	m_operator_function_pointer = GetOperatorPointer(m_component_type);
 	m_monitor_on = monitor_on;
 	// If a not gate is being instantiated, cap the inputs list to the first input.
-	if ((m_component_type == "not") && (in_pin_names.size() > 1)) {
-		in_pin_names = {in_pin_names[0]};
+	if (m_component_type == "not") {
+		in_pin_names = {"input"};
+	} else {
+		int number_of_in_pins = in_pin_names.size();
+		if (number_of_in_pins < 2) {
+			// Log build error here.		-- Not enough pins defined for this Gate!
+			std::string build_error = "Gate " + m_full_name + "(" + m_component_type + ") added with only " + std::to_string(number_of_in_pins) + " in pins specified.";
+			m_top_level_sim_pointer->LogBuildError(build_error);
+		}
 	}
 	std::sort(in_pin_names.begin(), in_pin_names.end(), compareNat);
 	int new_pin_port_index = 0;
@@ -77,56 +84,67 @@ void Gate::Initialise() {
 	}
 }
 
-void Gate::Connect(std::vector<std::string> const& connection_parameters) {	
-	std::string target_component_name = connection_parameters[0];
-	std::string target_pin_name = connection_parameters[1];
-	Component* target_component_pointer;
-	bool target_component_exists = true;
-	if (target_component_name == "parent") {
-		target_component_pointer = m_parent_device_pointer;
-	} else {
-		target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
-		if (target_component_pointer == 0) {
-			target_component_exists = false;
+void Gate::Connect(std::vector<std::string> connection_parameters) {	
+	if ((connection_parameters.size() == 1) || (connection_parameters.size() == 2)) {
+		std::string target_component_name = connection_parameters[0];
+		std::string target_pin_name;
+		if (connection_parameters.size() == 1) {
+			target_pin_name = "input";
+		} else {
+			target_pin_name = connection_parameters[1];
 		}
-	}
-	if (target_component_exists) {
-		bool target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
-		if (target_pin_exists) {
-			connection_descriptor new_connection_descriptor;
-			new_connection_descriptor.target_component_pointer = target_component_pointer;
-			new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-			bool no_existing_connection = true;
-			for (const auto& this_connection_descriptor : m_connections) {
-				if ((this_connection_descriptor.target_pin_port_index == new_connection_descriptor.target_pin_port_index) && (this_connection_descriptor.target_component_pointer == new_connection_descriptor.target_component_pointer)) {
-					no_existing_connection = false;
-					break;
-				}
+		Component* target_component_pointer;
+		bool target_component_exists = true;
+		if (target_component_name == "parent") {
+			target_component_pointer = m_parent_device_pointer;
+		} else {
+			target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+			if (target_component_pointer == 0) {
+				target_component_exists = false;
 			}
-			if (no_existing_connection) {
-				std::vector<bool> target_pin_already_driven = target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index);
-				if (!target_pin_already_driven[0]) {
-					m_connections.push_back(new_connection_descriptor);
-					target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, false, true);
-					m_pins[m_out_pin_port_index].drive[1] = true;
+		}
+		if (target_component_exists) {
+			bool target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
+			if (target_pin_exists) {
+				connection_descriptor new_connection_descriptor;
+				new_connection_descriptor.target_component_pointer = target_component_pointer;
+				new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+				bool no_existing_connection = true;
+				for (const auto& this_connection_descriptor : m_connections) {
+					if ((this_connection_descriptor.target_pin_port_index == new_connection_descriptor.target_pin_port_index) && (this_connection_descriptor.target_component_pointer == new_connection_descriptor.target_component_pointer)) {
+						no_existing_connection = false;
+						break;
+					}
+				}
+				if (no_existing_connection) {
+					std::vector<bool> target_pin_already_driven = target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index);
+					if (!target_pin_already_driven[0]) {
+						m_connections.push_back(new_connection_descriptor);
+						target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, false, true);
+						m_pins[m_out_pin_port_index].drive[1] = true;
+					} else {
+						// Log build error here.		-- This target pin is already driven by another pin.
+						std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
+						m_top_level_sim_pointer->LogBuildError(build_error);
+					}
 				} else {
-					// Log build error here.		-- This target pin is already driven by another pin.
-					std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
+					// Log build error here.		-- This connection already exists.
+					std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but is already connected to it.";
 					m_top_level_sim_pointer->LogBuildError(build_error);
 				}
 			} else {
-				// Log build error here.		-- This connection already exists.
-				std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but is already connected to it.";
+				// Log build error here.		-- Target pin does not exist.
+				std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it does not exist.";
 				m_top_level_sim_pointer->LogBuildError(build_error);
 			}
 		} else {
-			// Log build error here.		-- Target pin does not exist.
-			std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it does not exist.";
+			// Log build error here.		-- Component does not exist.
+			std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " but it does not exist.";
 			m_top_level_sim_pointer->LogBuildError(build_error);
 		}
 	} else {
-		// Log build error here.		-- Component does not exist.
-		std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " but it does not exist.";
+		// Log build error here.		-- Wrong number of connection parameters.
+		std::string build_error = "Gate " + m_full_name + " tried to form a connection but the wrong number of connection parameters were provided.";
 		m_top_level_sim_pointer->LogBuildError(build_error);
 	}
 }
@@ -188,7 +206,7 @@ void Gate::Propagate() {
 }
 
 void Gate::MakeProbable() {
-	m_top_level_sim_pointer->AddToProbableDevices(m_full_name, this);
+	m_top_level_sim_pointer->AddToProbableComponents(this);
 }
 
 Component* Gate::GetSiblingComponentPointer (std::string const& target_sibling_component_name) {

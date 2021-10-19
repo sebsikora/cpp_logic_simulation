@@ -48,7 +48,7 @@ void JK_FF::Build() {
 	AddGate("nand_6", "nand", {"input_0", "input_1"}, false);
 	AddGate("nand_7", "nand", {"input_0", "input_1"}, false);
 	AddGate("nand_8", "nand", {"input_0", "input_1"}, false);
-	AddGate("not_1", "not", {"input_0"}, false);
+	AddGate("not_1", "not");	// in_pins vector defaults to {} which is fine for not Gates, monitor_on defaults to false.
 	
 	// Interconnect components.
 	ChildConnect("not_1", {"nand_5", "input_1"});
@@ -78,7 +78,7 @@ void JK_FF::Build() {
 	Connect("k", "nand_2", "input_0");
 	Connect("clk", "nand_1", "input_2");
 	Connect("clk", "nand_2", "input_2");
-	Connect("clk", "not_1", "input_0");
+	Connect("clk", "not_1");				// Not Gates created with only one in pin "input" so we can omit the target pin name parameter.
 	
 	// Add device to top-level probable list.
 	MakeProbable();
@@ -105,7 +105,7 @@ void JK_FF_ASPC::Build() {
 	AddGate("nand_6", "nand", {"input_0", "input_1"}, false);
 	AddGate("nand_7", "nand", {"input_0", "input_1", "input_2"}, false);
 	AddGate("nand_8", "nand", {"input_0", "input_1", "input_2"}, false);
-	AddGate("not_1", "not", {"input_0"}, false);
+	AddGate("not_1", "not", false);			// AddGate overloaded to allow optional inclusion of monitor_on option without specifying in pin names.
 	
 	// Interconnect components.
 	ChildConnect("not_1", {"nand_5", "input_1"});
@@ -139,7 +139,7 @@ void JK_FF_ASPC::Build() {
 	Connect("not_c", "nand_8", "input_2");
 	Connect("clk", "nand_1", "input_2");
 	Connect("clk", "nand_2", "input_2");
-	Connect("clk", "not_1", "input_0");
+	Connect("clk", "not_1");
 	
 	// Add device to top-level probable list.
 	MakeProbable();
@@ -368,10 +368,10 @@ void One_Bit_Register::Build() {
 	AddGate("and_1", "and", {"input_0", "input_1", "input_2"}, false);
 	AddGate("and_2", "and", {"input_0", "input_1"}, false);
 	AddGate("or_0", "or", {"input_0", "input_1"}, false);
-	AddGate("not_0", "not", {"input_0"}, false);
-	AddGate("not_1", "not", {"input_0"}, false);
-	AddGate("not_2", "not", {"input_0"}, false);
-	AddGate("not_3", "not", {"input_0"}, false);
+	AddGate("not_0", "not", {}, false);
+	AddGate("not_1", "not", {}, false);
+	AddGate("not_2", "not", {}, false);
+	AddGate("not_3", "not", {}, false);
 	
 	// Interconnect components.
 	ChildConnect("and_0", {"jk_ff_0", "j"});
@@ -387,11 +387,11 @@ void One_Bit_Register::Build() {
 	// Connect device terminals to components.
 	Connect("load", "and_0", "input_1");
 	Connect("load", "and_1", "input_1");
-	Connect("load", "not_3", "input_0");
+	Connect("load", "not_3");
 	Connect("d_in", "and_0", "input_0");
-	Connect("d_in", "not_1", "input_0");
-	Connect("clr", "not_0", "input_0");
-	Connect("clr", "not_2", "input_0");
+	Connect("d_in", "not_1");
+	Connect("clr", "not_0");
+	Connect("clr", "not_2");
 	Connect("clr", "and_2", "input_1");
 	Connect("clk", "jk_ff_0", "clk");
 	
@@ -538,9 +538,9 @@ void N_Bit_Decoder::Build() {
 	// The N select inputs each need a complement.
 	for (int i = 0; i < m_select_bus_width; i ++) {
 		std::string not_gate_identifier = "not_" + std::to_string(i);
-		AddGate(not_gate_identifier, "not", {"input"}, false);
+		AddGate(not_gate_identifier, "not", {}, false);
 		std::string sel_input_identifier = "sel_" + std::to_string(i);
-		Connect(sel_input_identifier, not_gate_identifier, "input");
+		Connect(sel_input_identifier, not_gate_identifier);
 	}
 	// The 2**N outputs each need an N-input AND Gate.
 	// First, generate input terminal names.

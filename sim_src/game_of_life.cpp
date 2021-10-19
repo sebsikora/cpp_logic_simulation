@@ -37,25 +37,25 @@ GameOfLife_Cell_Decider::GameOfLife_Cell_Decider(Device* parent_device_pointer, 
  }
 
 void GameOfLife_Cell_Decider::Build() {
-	AddGate("not_0", "not", {"input"}, false);
-	AddGate("not_1", "not", {"input"}, false);
+	AddGate("not_0", "not");
+	AddGate("not_1", "not");
 	
 	AddGate("and_0", "and", {"input_0", "input_1", "input_2"}, false);
 	AddGate("and_1", "and", {"input_0", "input_1", "input_2"}, false);
 	AddGate("or_0", "or", {"input_0", "input_1"}, false);
-	AddGate("not_2", "not", {"input"}, false);
+	AddGate("not_2", "not");
 	AddGate("and_2", "and", {"input_0", "input_1"}, false);
 	AddGate("and_3", "and", {"input_0", "input_1"}, false);
 	AddGate("or_1", "or", {"input_0", "input_1"}, false);
 	
-	Connect("count_in_0", "not_0", "input");
+	Connect("count_in_0", "not_0");
 	ChildConnect("not_0", {"and_0", "input_0"});
 	Connect("count_in_0", "and_1", "input_0");
 	
 	Connect("count_in_1", "and_0", "input_1");
 	Connect("count_in_1", "and_1", "input_1");
 	
-	Connect("count_in_2", "not_1", "input");
+	Connect("count_in_2", "not_1");
 	ChildConnect("not_1", {"and_0", "input_2"});
 	ChildConnect("not_1", {"and_1", "input_2"});
 	
@@ -64,7 +64,7 @@ void GameOfLife_Cell_Decider::Build() {
 	ChildConnect("or_0", {"and_2", "input_0"});
 	Connect("alive_in", "and_2", "input_1");
 	
-	Connect("alive_in", "not_2", "input");
+	Connect("alive_in", "not_2");
 	ChildConnect("and_1", {"and_3", "input_0"});
 	ChildConnect("not_2", {"and_3", "input_1"});
 	
@@ -124,7 +124,7 @@ void GameOfLife_Cell::Build() {
 	AddComponent(new GameOfLife_Cell_Decider(this, "decider", false));
 	AddComponent(new GameOfLife_Cell_SiblingSelector(this, "selector", false, {{"not_clear", true}}));
 	AddComponent(new N_Bit_Counter_ASC(this, "counter", 3, false, {{"not_clear", true}}));
-	AddGate("state_ff_not", "not", {"input"}, false);
+	AddGate("state_ff_not", "not");
 	AddComponent(new JK_FF_ASPC(this, "state_ff", false, {{"not_c", true}, {"not_p", true}}));
 
 	// "counter" connections.
@@ -136,7 +136,7 @@ void GameOfLife_Cell::Build() {
 	
 	// "decider" connections.
 	ChildConnect("decider", {"alive_out", "state_ff", "j"});
-	ChildConnect("decider", {"alive_out", "state_ff_not", "input"});
+	ChildConnect("decider", {"alive_out", "state_ff_not"});
 	ChildConnect("state_ff_not", {"state_ff", "k"});
 	
 	// "state_ff" connections.

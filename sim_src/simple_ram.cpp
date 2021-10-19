@@ -44,7 +44,9 @@ void SimpleRam::Build() {
 	// This device does not contain any components!
 	// We still need to call MakeProbable() here during Build() if we want to be able to attach logic probes.
 	MakeProbable();
-	PrintInPinStates();
+	// As there are no conventional Components inside the MagicDevice, if we don't mark all of the 'inner terminals' (pin.drive[1] for in pins
+	// and pin.drive[0] for out pins) as 'connected', the end-of-build connections check will get upset.
+	MarkInnerTerminalsDisconnected();
 }
 
 void SimpleRam::ConfigureMagic(Device* parent_device_pointer, int address_bus_width, int data_bus_width) {
