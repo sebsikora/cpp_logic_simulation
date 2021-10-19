@@ -400,7 +400,6 @@ void One_Bit_Register::Build() {
 	
 	// Add device to top-level probable list.
 	MakeProbable();
-	PrintInPinStates();
 }
 
 N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
@@ -452,7 +451,7 @@ void N_Bit_Register::Build() {
 	
 	// Add device to top-level probable list.
 	MakeProbable();
-	PrintInPinStates();
+	//~PrintInPinStates();
 }
 
 NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
@@ -461,6 +460,8 @@ NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, in
 	 ConfigureBusses(input_default_states);
 	 Build();
 	 Stabilise();
+	 //~PrintInPinStates();
+	 //~PrintOutPinStates();
 }
 
 void NxOne_Bit_Mux::ConfigureBusses(std::unordered_map<std::string, bool> input_default_states) {
@@ -503,8 +504,6 @@ void NxOne_Bit_Mux::Build() {
 	
 	//~// Add device to top-level probable list.
 	MakeProbable();
-	PrintInPinStates();
-	PrintOutPinStates();
 }
 
 N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
@@ -516,6 +515,8 @@ N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, in
 	ConfigureBusses(input_default_states);
 	Build();
 	Stabilise();
+	//~PrintInPinStates();
+	//~PrintOutPinStates();
  }
  
 void N_Bit_Decoder::ConfigureBusses(std::unordered_map<std::string, bool> input_default_states) {
@@ -579,8 +580,8 @@ void N_Bit_Decoder::Build() {
 		ChildConnect(and_gate_identifier, {"parent", output_pin_identifier});
 	}
 	MakeProbable();
-	PrintInPinStates();
-	PrintOutPinStates();
+	//~PrintInPinStates();
+	//~PrintOutPinStates();
 }
 
 NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 

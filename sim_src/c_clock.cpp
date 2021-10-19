@@ -91,9 +91,9 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 		if (target_pin_exists) {
 			int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
 			int target_pin_direction = target_component_pointer->GetPinDirection(target_pin_port_index);
-			std::vector<bool> target_pin_drive_state = target_component_pointer->CheckIfPinDriven(target_pin_port_index);
-			if (!target_pin_drive_state[0]) {
-				if (target_pin_direction == 1) {
+			std::vector<bool> target_pin_already_connected = target_component_pointer->CheckIfPinDriven(target_pin_port_index);
+			if (!target_pin_already_connected[0]) {		// Target pin drive-in must be false.
+				if (target_pin_direction == 1) {		// Can only connect Clock to an in pin.
 					connection_descriptor new_connection_descriptor;
 					new_connection_descriptor.target_component_pointer = target_component_pointer;
 					new_connection_descriptor.target_pin_port_index = target_pin_port_index;

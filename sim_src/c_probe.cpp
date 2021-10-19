@@ -29,6 +29,7 @@
 Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
 	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer
 	) {
+	// Probe constructor is called from within top-level Simulation, constructor arguments are all sanity-checked there.
 	m_top_level_sim_pointer = top_level_sim_pointer;
 	m_target_component_pointer = target_component_pointer;
 	m_name = probe_name;

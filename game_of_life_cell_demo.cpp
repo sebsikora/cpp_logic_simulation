@@ -16,6 +16,8 @@ int main () {
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim.Stabilise();
+
+	sim.ChildPrintPinStates("test_cell", 4);
 	
 	// Add a Clock.
 	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
