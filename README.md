@@ -4,7 +4,7 @@
 
 [seb.nf.sikora@protonmail.com](mailto:seb.nf.sikora@protonmail.com)
 
-Updated 17/10/2021.
+Updated 19/10/2021.
 
 What is it?
 -------------------------
@@ -57,7 +57,6 @@ In no particular order:
 * Only logic circuits that are statically-stable state can be simulated.
 * I have not written any destructors for any of the classes. As the simulation is 'one-shot', all the objects are created at runtime, the simulation runs, and then the program finishes. For this reason, we don't leak memory. If we wanted to use the simulator as the 'engine' of a larger application in which we wanted to be able to create and destroy components, clocks and probes at will without terminating the program, destructors would be needed for each class to avoid memory leakage.
 * All methods & data are public. Although for the most part *Components* use Getters & Setters to access each-other's variables rather than accessing them directly, it would be better to take advantage of the enforced separation of public & private methods and data that C++ allows. 
-* Needs build-time and run-time fault checks/warnings. At the moment, if you enter an incorrect identifier in new Device definition, the simulator will at best fail to settle to the intended state, at worst it will crash. It would be better to log warnings that for example Devices could not be created, Connections could not be made, etc (for whatever reason), and then to stop the simulation prior to calling Stabilise() with a warning on the console. Further to this, prior to calling Stabilise() each Device could check if any internal input is driven by more than one output (something that in reality cannot take place), and similarly alert the user via the console and stop the simulation.
 
 License:
 -------------------------
