@@ -53,6 +53,7 @@ class SimpleRom_MagicEngine : public MagicEngine {
 		std::vector<std::string> GenerateOutputs(void);
 		void GetPinPortIndices();
 		// Data particular to this sub-class.
+		std::vector<int> m_powers_of_2 = {1, 2, 4, 8, 16, 32, 64, 128};
 		std::string m_data_filepath;
 		int m_address_bus_width;
 		int m_data_bus_width;

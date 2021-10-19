@@ -45,6 +45,7 @@ struct pin {
 	bool state;
 	bool state_changed;
 	int port_index;
+	std::vector<bool> drive;
 };
 
 struct component_descriptor {
@@ -97,11 +98,12 @@ class Component {
 
 		// Component class virtual methods.
 		virtual void Initialise(void) = 0;
-		virtual void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) = 0;
+		virtual void Connect(std::vector<std::string> const& connection_parameters) = 0;
 		virtual void Set(int pin_port_index, bool state_to_set) = 0;
 		virtual void Propagate(void) = 0;
 		virtual void MakeProbable(void) = 0;
 		virtual void PrintPinStates(int max_levels) = 0;
+		virtual void ReportUnConnectedPins(void) = 0;
 
 		// Component class methods.
 		std::string GetName(void);
@@ -116,6 +118,9 @@ class Component {
 		int GetPinDirection(int pin_port_index);
 		int GetPinDirection(std::string const& pin_name);
 		int GetPinPortIndex(std::string const& pin_name);
+		bool CheckIfPinExists(std::string const& target_pin_name);
+		std::vector<bool> CheckIfPinDriven(int pin_port_index);
+		void SetPinDrivenFlag(int pin_port_index, bool drive_mode, bool state_to_set);
 		void PrintInPinStates(void);
 		void PrintOutPinStates(void);
 		
@@ -142,11 +147,12 @@ class Gate : public Component {
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
-		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
+		void Connect(std::vector<std::string> const& connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
+		void ReportUnConnectedPins(void) override;
 		
 		// Gate class methods.
 		void Evaluate(void);
@@ -172,11 +178,12 @@ class Device : public Component {
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
-		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) override;
+		void Connect(std::vector<std::string> const& connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
+		void ReportUnConnectedPins(void) override;
 		
 		// Device class methods.
 		virtual void Build(void);
@@ -191,6 +198,8 @@ class Device : public Component {
 		void ChildPrintInPinStates(std::string const& target_child_component_name);
 		void ChildPrintOutPinStates(std::string const& target_child_component_name);
 		void ChildMakeProbable(std::string const& target_child_component_name);
+		void ChildMarkOutputNotConnected(std::string const& target_child_component_name, std::string const& target_out_pin_name);
+		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name);
 		void Stabilise(void);
 		void Solve(void);
 		void SubTick(int index);
@@ -200,6 +209,7 @@ class Device : public Component {
 		bool CheckIfQueuedToPropagateThisTick(int propagation_identifier);
 		void AddToPropagateNextTick(int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
+		std::vector<std::string> GetHiddenInPins(void);
 		
 		// Device class data.
 		int m_max_propagations;
@@ -238,12 +248,16 @@ class Simulation : public Device {
 		void StopSimulation(void);
 		void ShutDown(void);
 		void CheckProbeTriggers(void);
+		void LogBuildError(std::string const& build_error);
+		void PrintBuildErrors(void);
+		std::vector<std::vector<std::vector<bool>>> GetProbedStates(std::vector<std::string> const& probe_names);
 		
 		// Simulation class data.
 		std::unordered_map<std::string, Component*> m_probable_components;
 		std::vector<probe_descriptor> m_probes;
 		std::vector<clock_descriptor> m_clocks;
 		std::vector<magic_engine_descriptor> m_magic_engines;
+		std::vector<std::string> m_build_errors;
 		termios m_old_term_io_settings;
 		bool m_simulation_running;
 		int m_global_tick_index;
@@ -288,7 +302,9 @@ class Probe {
 		// Probe class methods.
 		void Sample(int index);
 		void Reset(void);
+		void PreallocateSampleMemory(int number_of_ticks);
 		void PrintSamples(void);
+		std::vector<std::vector<bool>> GetSamples(void);
 		
 		// Probe class data.
 		Simulation* m_top_level_sim_pointer;

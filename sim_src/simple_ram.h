@@ -54,6 +54,7 @@ class SimpleRam_MagicEngine : public MagicEngine {
 		void ZeroMemory(int address_bus_width, int data_bus_width);
 		void GetPinPortIndices(int address_bus_width, int data_bus_width);
 		// Data particular to this sub-class.
+		std::vector<int> m_powers_of_two;
 		std::vector<std::vector<bool>> m_data;
 		int m_address_bus_width;
 		int m_data_bus_width;

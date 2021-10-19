@@ -23,7 +23,6 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 #include <cmath>					// pow()
 #include <fstream>					// std::ifstream
 
@@ -152,7 +151,7 @@ void SimpleRom_MagicEngine::InvokeMagic(std::string const& incantation) {
 		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
 			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			if (pin_state) {
-				address += pow(2, address_pin_index);
+				address += m_powers_of_2[address_pin_index];
 			}
 			address_pin_index ++;
 		}

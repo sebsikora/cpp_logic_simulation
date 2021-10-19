@@ -61,6 +61,7 @@ class SimpleTerminal_MagicEngine : public MagicEngine {
 							int *fifo_dat_slave_to_master, int *fifo_dat_master_to_slave, int *fifo_cmd_master_to_slave);
 		
 		// Data particular to this sub-class.
+		std::vector<int> m_powers_of_two = {1, 2, 4, 8, 16, 32, 64, 128};
 		std::string m_fifo_dat_s_m_ident_string;
 		std::string m_fifo_dat_m_s_ident_string;
 		std::string m_fifo_cmd_m_s_ident_string;

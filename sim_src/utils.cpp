@@ -27,6 +27,18 @@
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
 
+std::vector<bool> IntToStates(int value_to_convert, int pin_count) {
+	std::vector<bool> converted_value;
+	for (int pin_index = 0; pin_index < pin_count; pin_index ++) {
+		if ((value_to_convert & (1 << pin_index)) == (1 << pin_index)) {
+			converted_value.push_back(true);
+		} else {
+			converted_value.push_back(false);
+		}
+	}
+	return converted_value;
+}
+
 bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, pin> const& map_to_search) {
 	for (const auto& entry: map_to_search) {
 		if (key_to_find == entry.first) {

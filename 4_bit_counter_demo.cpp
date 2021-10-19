@@ -15,7 +15,7 @@ int main () {
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim.Stabilise();
-	
+
 	// Add a Clock and connect it to the clk input on the counter.
 	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
 	sim.AddClock("clock_0", {false, true}, monitor_on);

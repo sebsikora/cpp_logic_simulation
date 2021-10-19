@@ -28,6 +28,7 @@
 
 #include "c_core.h"					// Core simulator functionality
 
+std::vector<bool> IntToStates(int value_to_convert, int pin_count);
 
 bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, pin> const& map_to_search);
 bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search);

@@ -42,7 +42,7 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 		// The instantiating component is only the same as it's parent component when it is the top-level Simulation.
 		m_top_level_sim_pointer = static_cast<Simulation*>(m_parent_device_pointer);
 		m_CUID = 0;						// Top-level simulation always CUID 0.
-		m_nesting_level = 0;
+		m_nesting_level = 0;			// "" nesting_level 0
 		m_full_name = m_name;
 	} else {
 		m_top_level_sim_pointer = m_parent_device_pointer->GetTopLevelSimPointer();
@@ -73,7 +73,7 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 	int new_pin_port_index = m_pins.size();
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
-		pin new_in_pin = {pin_name, 1, false, false, new_pin_port_index};
+		pin new_in_pin = {pin_name, 1, false, false, new_pin_port_index, {false, false}};
 		if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
 			// If this is a user-defined input, handle as normal.
 			if (IsStringInMapKeys(pin_name, pin_default_states)) {
@@ -85,6 +85,7 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 			}
 		} else {
 			// Set hidden in pin default states.
+			new_in_pin.direction = 3;
 			if (pin_name == "true") {
 				new_in_pin.state = true;
 			} else if (pin_name == "false") {
@@ -103,9 +104,9 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 	int new_pin_port_index = m_pins.size();
 	// Create new outputs.
 	for (const auto& pin_name : pin_names) {
-		pin new_out_pin = {pin_name, 2, false, false, new_pin_port_index};
+		pin new_out_pin = {pin_name, 2, false, false, new_pin_port_index, {false, false}};
 		if (IsStringInVector(pin_name, m_hidden_out_pins)) {
-			new_out_pin.direction = 3;
+			new_out_pin.direction = 4;
 		}
 		m_pins.push_back(new_out_pin);
 		m_ports.push_back({});
@@ -118,18 +119,20 @@ void Device::Build() {
 }
 
 void Device::Stabilise() {
-	// Ensures that internal device state settles correctly. 
+	// Ensures that internal device state settles correctly.
+	if (this == m_top_level_sim_pointer) {
+		ReportUnConnectedPins();
+	}
 	if (mg_verbose_output_flag) {
 		std::string msg = "Stabilising new level " + std::to_string(m_nesting_level) + " device " + m_full_name;
 		std::cout << GenerateHeader(msg) << std::endl << std::endl;
 	}
 	// First we Set() all child component inputs that are connected to the parent device inputs to deafult states.
 	for (const auto& this_pin : m_pins) {
-		if (this_pin.direction == 1) {
+		if ((this_pin.direction == 1) || (this_pin.direction == 3)) {
 			for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
 				// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
-				// Propagate() method further down. Here we explicitly put the arguments on the stack before calling Set(),
-				// to show what's inside connection. It's faster not to do this, so we don't do it in Propagate(). 
+				// Propagate() method further down.
 				Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
 				int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 				target_component_pointer->Set(target_pin_port_index, this_pin.state);
@@ -203,74 +206,250 @@ void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<b
 }
 
 void Device::ChildConnect(std::string const& target_child_component_name, std::vector<std::string> const& connection_parameters) {
-	Component* target_component = GetChildComponentPointer(target_child_component_name);
-	target_component->Connect(connection_parameters[0], connection_parameters[1], connection_parameters[2]);
+	Component* target_component_pointer = GetChildComponentPointer(target_child_component_name);
+	if (target_component_pointer == 0) {
+		// Log build error here.		-- Child Component does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to connect from child Component " + target_child_component_name + " but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
+	} else {
+		target_component_pointer->Connect(connection_parameters);
+	}
 }
 
 void Device::ChildSet(std::string const& target_child_component_name, std::string const& target_pin_name, bool logical_state) {
-	Component* target_component = GetChildComponentPointer(target_child_component_name);
-	int target_pin_port_index = target_component->GetPinPortIndex(target_pin_name);
-	if (mg_verbose_output_flag || target_component->m_monitor_on) {
-		std::cout << BOLD(FYEL("CHILDSET: ")) << "Component " << BOLD("" << target_component->GetFullName() << ":" << target_component->GetComponentType() << "") << " terminal " << BOLD("" << target_pin_name << "") << " set to " << BoolToChar(logical_state) << std::endl;
-	}
-	target_component->Set(target_pin_port_index, logical_state);
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
-	// If this is a 1st-level device, if the simulation is not running the user would need to call Solve() after every
-	// 'manual' pin change to make sure that 1st-level device state is propagated. Instead, we check for them here if
-	// the simulation is not running and call Solve() at the end of the Set() call.
-	if (!m_top_level_sim_pointer->IsSimulationRunning()) {
-		m_top_level_sim_pointer->Solve();
+	Component* target_component_pointer = GetChildComponentPointer(target_child_component_name);
+	if (target_component_pointer == 0) {
+		// Log build error here.		-- Child Component does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to Set() an input of child Component " + target_child_component_name + " but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
+	} else {
+		int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+		if (mg_verbose_output_flag || target_component_pointer->m_monitor_on) {
+			std::cout << BOLD(FYEL("CHILDSET: ")) << "Component " << BOLD("" << target_component_pointer->GetFullName() << ":" << target_component_pointer->GetComponentType() << "") << " terminal " << BOLD("" << target_pin_name << "") << " set to " << BoolToChar(logical_state) << std::endl;
+		}
+		target_component_pointer->Set(target_pin_port_index, logical_state);
+		if (mg_verbose_output_flag) {
+			std::cout << std::endl;
+		}
+		// If this is a 1st-level device, if the simulation is not running the user would need to call Solve() after every
+		// 'manual' pin change to make sure that 1st-level device state is propagated. Instead, we check for them here if
+		// the simulation is not running and call Solve() at the end of the Set() call.
+		if (!m_top_level_sim_pointer->IsSimulationRunning()) {
+			m_top_level_sim_pointer->Solve();
+		}
 	}
 }
 
 void Device::ChildPrintPinStates(std::string const& target_child_component_name, int max_levels) {
-	Component* target_component = GetChildComponentPointer(target_child_component_name);
-	target_component->PrintPinStates(max_levels);
+	Component* target_component_pointer = GetChildComponentPointer(target_child_component_name);
+	if (target_component_pointer == 0) {
+		// Log build error here.		-- Child Component does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to recursively print pin states from child Component " + target_child_component_name + " but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
+	} else {
+		target_component_pointer->PrintPinStates(max_levels);
+	}
 }
 
 void Device::ChildPrintInPinStates(std::string const& target_child_component_name) {
-	Component* target_component = GetChildComponentPointer(target_child_component_name);
-	target_component->PrintInPinStates();
+	Component* target_component_pointer = GetChildComponentPointer(target_child_component_name);
+	if (target_component_pointer == 0) {
+		// Log build error here.		-- Child Component does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to print in pin states for child Component " + target_child_component_name + " but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
+	} else {
+		target_component_pointer->PrintInPinStates();
+	}
 }
 
 void Device::ChildPrintOutPinStates(std::string const& target_child_component_name) {
-	Component* target_component = GetChildComponentPointer(target_child_component_name);
-	target_component->PrintOutPinStates();
+	Component* target_component_pointer = GetChildComponentPointer(target_child_component_name);
+	if (target_component_pointer == 0) {
+		// Log build error here.		-- Child Component does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to print out pin states for child Component " + target_child_component_name + " but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
+	} else {
+		target_component_pointer->PrintOutPinStates();
+	}
 }
 
 void Device::ChildMakeProbable(std::string const& target_child_component_name) {
-	Component* target_component = GetChildComponentPointer(target_child_component_name);
-	target_component->MakeProbable();
+	Component* target_component_pointer = GetChildComponentPointer(target_child_component_name);
+	if (target_component_pointer == 0) {
+		// Log build error here.		-- Child Component does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to make child Component " + target_child_component_name + " probable but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
+	} else {
+		target_component_pointer->MakeProbable();
+	}
+}
+
+void Device::ChildMarkOutputNotConnected(std::string const& target_child_component_name, std::string const& target_out_pin_name) {
+	Component* target_component_pointer = GetChildComponentPointer(target_child_component_name);
+	if (target_component_pointer == 0) {
+		// Log build error here.		-- Child Component does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to mark child Component " + target_child_component_name + " output pin " + target_out_pin_name + " not connected but the component does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
+	} else {
+		bool found = false;
+		for (const auto& this_pin_name : target_component_pointer->GetSortedOutPinNames()) {
+			if (this_pin_name == target_out_pin_name) {
+				int target_pin_port_index = target_component_pointer->GetPinPortIndex(this_pin_name);
+				target_component_pointer->SetPinDrivenFlag(target_pin_port_index, true, true);
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			// Log build error here.		-- Output pin does not exist.
+			std::string build_error = "Device " + m_full_name + " tried to mark child Component " + target_child_component_name + " output pin " + target_out_pin_name + " not connected but the pin does not exist.";
+			m_top_level_sim_pointer->LogBuildError(build_error);
+		}
+	}
 }
 
 void Device::Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name) {
-	Component* target_component_pointer;
-	int origin_pin_direction = GetPinDirection(origin_pin_name);
-	int origin_pin_port_index = GetPinPortIndex(origin_pin_name);
-	if (origin_pin_direction == 1) {
-		// If the device state is one of it's inputs, it can only be connected to an input terminal
-		// of an internal child device.
-		target_component_pointer = GetChildComponentPointer(target_component_name);
-		connection_descriptor new_connection_descriptor;
-		new_connection_descriptor.target_component_pointer = target_component_pointer;
-		new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-		m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
-	} else {
-		if (target_component_name == "parent") {
-			// If the target is the parent device, then we are connecting to an output belonging to the
-			// parent device.
-			target_component_pointer = m_parent_device_pointer;
-		} else {
-			// If the target is not the parent device then it is another colleague device within the
-			// same parent device.
-			target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+	std::vector<std::string> connection_parameters = {origin_pin_name, target_component_name, target_pin_name};
+	Connect(connection_parameters);
+}
+
+void Device::Connect(std::vector<std::string> const& connection_parameters) {
+	// The below seems to work fine, but it is very untidy and hard to follow and *needs refactoring*.
+	std::string origin_pin_name = connection_parameters[0];
+	bool origin_pin_exists = CheckIfPinExists(origin_pin_name);
+	if (origin_pin_exists) {
+		bool target_component_exists = true;
+		std::string target_component_nature_string = "";
+		bool target_pin_exists = true;
+		int target_pin_direction = 0;
+		bool target_pin_direction_compatible = false;
+		bool no_existing_connection = true;
+		std::vector<bool> target_pin_already_driven;
+		
+		std::string target_component_name = connection_parameters[1];
+		std::string target_pin_name = connection_parameters[2];
+		int origin_pin_direction = GetPinDirection(origin_pin_name);
+		
+		std::string origin_direction = "";
+		if (origin_pin_direction == 1) {
+			origin_direction = "input";
+		} else if (origin_pin_direction == 2) {
+			origin_direction = "output";
+		} else if (origin_pin_direction == 3) {
+			origin_direction = "hidden input";
+		} else if (origin_pin_direction == 4) {
+			origin_direction = "hidden output";
 		}
-		connection_descriptor new_connection_descriptor;
-		new_connection_descriptor.target_component_pointer = target_component_pointer;
-		new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-		m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
+		
+		int origin_pin_port_index = GetPinPortIndex(origin_pin_name);
+		std::vector<int> required_target_directions;
+		Component* target_component_pointer;
+		if ((origin_pin_direction == 1) || (origin_pin_direction == 3)) {
+			// If the device state is one of it's inputs, it can only be connected to an input terminal
+			// of an internal child device.
+			required_target_directions = {1};
+			target_component_nature_string = "child";
+			target_component_pointer = GetChildComponentPointer(target_component_name);
+			if (target_component_pointer == 0) {
+				target_component_exists = false;
+			}
+		} else if (origin_pin_direction == 2) {
+			if (target_component_name == "parent") {
+				// If the target is the parent device, then we are connecting to an output belonging to the
+				// parent device.
+				required_target_directions = {2, 4};
+				target_component_nature_string = "parent";
+				target_component_pointer = m_parent_device_pointer;
+			} else {
+				// If the target is not the parent device then it is another colleague device within the
+				// same parent device.
+				required_target_directions = {1};
+				target_component_nature_string = "sibling";
+				target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
+				if (target_component_pointer == 0) {
+					target_component_exists = false;
+				}
+			}
+		} else {
+			// Pin is a hidden output and cannot be connected onwards...
+		}
+		
+		if (target_component_exists) {
+			target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
+			if (target_pin_exists) {
+				connection_descriptor new_connection_descriptor;
+				new_connection_descriptor.target_component_pointer = target_component_pointer;
+				new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
+				target_pin_direction = target_component_pointer->GetPinDirection(new_connection_descriptor.target_pin_port_index);
+				for (const auto& this_required_direction : required_target_directions) {
+					if (this_required_direction == target_pin_direction) {
+						target_pin_direction_compatible = true;
+						break;
+					}
+				}
+				if (target_pin_direction_compatible) {
+					for (const auto& this_connection_descriptor : m_ports[origin_pin_port_index]) {
+						if ((this_connection_descriptor.target_pin_port_index == new_connection_descriptor.target_pin_port_index) && (this_connection_descriptor.target_component_pointer == new_connection_descriptor.target_component_pointer)) {
+							no_existing_connection = false;
+							break;
+						}
+					}
+					if (no_existing_connection) {
+						target_pin_already_driven = target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index);
+						if (!target_pin_already_driven[0]) {
+							m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
+							target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, false, true);
+							m_pins[origin_pin_port_index].drive[1] = true;
+						}
+					}
+				}
+			}
+		}
+		
+		std::string target_direction = "";
+		if (target_pin_direction == 1) {
+			target_direction = "input";
+		} else if (target_pin_direction == 2) {
+			target_direction = "output";
+		} else if (target_pin_direction == 3) {
+			target_direction = "hidden input";
+		} else if (target_pin_direction == 4) {
+			target_direction = "hidden output";
+		}
+		
+		if (!target_component_exists) {
+			// Log build error here.		-- Component does not exist.
+			std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " but it does not exist.";
+			m_top_level_sim_pointer->LogBuildError(build_error);
+		} else {
+			if (!target_pin_exists) {
+				// Log build error here.		-- Target pin does not exist.
+				std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it does not exist.";
+				m_top_level_sim_pointer->LogBuildError(build_error);
+			} else {
+				if (!target_pin_direction_compatible) {
+					// Log build error here.		-- Origin and target pin directions are not compatible.
+					std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " " + target_direction + " pin " + target_pin_name + " but they are not compatible";
+					m_top_level_sim_pointer->LogBuildError(build_error);
+				} else {
+					if (!no_existing_connection) {
+						// Log build error here.		-- This connection already exists.
+						std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but is already connected to it.";
+						m_top_level_sim_pointer->LogBuildError(build_error);
+					} else {
+						if (target_pin_already_driven[0]) {
+							// Log build error here.		-- This target pin is already driven by another pin.
+							std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
+							m_top_level_sim_pointer->LogBuildError(build_error);
+						}
+					}
+				}
+			}
+		}
+	} else {
+		// Log build error here.		-- Origin pin does not exist.
+		std::string build_error = "Device " + m_full_name + " tried to connect from input " + origin_pin_name + " but it does not exist.";
+		m_top_level_sim_pointer->LogBuildError(build_error);
 	}
 }
 
@@ -373,7 +552,7 @@ void Device::Propagate() {
 
 void Device::Set(int pin_port_index, bool state_to_set) {
 	pin* this_pin = &m_pins[pin_port_index];
-	if (this_pin->direction != 3) {
+	if ((this_pin->direction == 1) || (this_pin->direction == 2)) {
 		if (state_to_set != this_pin->state) {
 			if ((m_monitor_on) || (mg_verbose_output_flag)) {
 				std::string direction_string = "";
@@ -409,7 +588,7 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 }
 
 Component* Device::GetChildComponentPointer(std::string const& target_child_component_name) {
-	Component* child_component_pointer;
+	Component* child_component_pointer = 0;
 	for (const auto& this_component_descriptor : m_components) {
 		if (this_component_descriptor.component_name == target_child_component_name) {
 			child_component_pointer = this_component_descriptor.component_pointer;
@@ -434,7 +613,7 @@ bool Device::CheckIfQueuedToPropagateThisTick(int propagation_identifier) {
 }
 
 void Device::AddToPropagateNextTick(int propagation_identifier) {
-	m_propagate_next_tick.push_back(propagation_identifier);
+	m_propagate_next_tick.emplace_back(propagation_identifier);
 }
 
 void Device::MakeProbable() {
@@ -448,15 +627,15 @@ void Device::PrintPinStates(int max_levels) {
 		max_levels = max_levels - 1;
 		std::cout << m_full_name << ": [";
 		for (const auto& pin_name : GetSortedInPinNames()) {
-			if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
-				int pin_port_index = GetPinPortIndex(pin_name);
+			int pin_port_index = GetPinPortIndex(pin_name);
+			if (m_pins[pin_port_index].direction == 1) {
 				std::cout << " " << BoolToChar(m_pins[pin_port_index].state) << " ";
 			}
 		}
 		std::cout << "] [";
 		for (const auto& pin_name : GetSortedOutPinNames()) {
-			if (!IsStringInVector(pin_name, m_hidden_out_pins)) {
-				int pin_port_index = GetPinPortIndex(pin_name);
+			int pin_port_index = GetPinPortIndex(pin_name);
+			if (m_pins[pin_port_index].direction == 2) {
 				std::cout << " " << BoolToChar(m_pins[pin_port_index].state) << " ";
 			}
 		}
@@ -472,5 +651,38 @@ void Device::PrintInternalPinStates(int max_levels) {
 		int this_level = max_levels;
 		Component* component_pointer = this_component_descriptor.component_pointer;
 		component_pointer->PrintPinStates(this_level);
+	}
+}
+
+void Device::ReportUnConnectedPins() {
+	for (const auto& this_pin : m_pins) {
+		if (this_pin.direction == 1) {
+			// We don't halt on a build error for un-driven input pins of upper-most level Devices.
+			if ((!this_pin.drive[0]) && (m_nesting_level > 1)) {
+				// Log undriven Device in pin.
+				std::string build_error = "Device " + m_full_name + " in pin " + this_pin.name + " is not driven by any Component.";
+				m_top_level_sim_pointer->LogBuildError(build_error);
+			}
+			if (!this_pin.drive[1]) {
+				// Log undriving Device in pin.
+				std::string build_error = "Device " + m_full_name + " in pin " + this_pin.name + " drives no internal Components.";
+				m_top_level_sim_pointer->LogBuildError(build_error);
+			}
+		} else if (this_pin.direction == 2) {
+			if (!this_pin.drive[0]) {
+				// Log undriven Device out pin.
+				std::string build_error = "Device " + m_full_name + " out pin " + this_pin.name + " is not driven by any child Component.";
+				m_top_level_sim_pointer->LogBuildError(build_error);
+			}
+			// We don't halt on a build error for un-driving output pins of upper-most level Devices.
+			if ((!this_pin.drive[1]) && (m_nesting_level > 1)) {
+				// Log undriving Device out pin.
+				std::string build_error = "Device " + m_full_name + " out pin " + this_pin.name + " drives no Component.";
+				m_top_level_sim_pointer->LogBuildError(build_error);
+			}
+		}
+	}
+	for (const auto& this_component_descriptor : m_components) {
+		this_component_descriptor.component_pointer->ReportUnConnectedPins();
 	}
 }

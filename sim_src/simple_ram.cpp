@@ -23,7 +23,6 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
-#include <functional>				// std::hash
 #include <cmath>					// pow()
 #include <fstream>					// std::ifstream
 
@@ -79,6 +78,15 @@ void SimpleRam::ConfigureBusses(int address_bus_width, int data_bus_width, std::
 SimpleRam_MagicEngine::SimpleRam_MagicEngine(Device* parent_device_pointer, int address_bus_width, int data_bus_width) : MagicEngine(parent_device_pointer) {
 	m_address_bus_width = address_bus_width;
 	m_data_bus_width = data_bus_width;
+	int largest;
+	if (m_address_bus_width > m_data_bus_width) {
+		largest = m_address_bus_width;
+	} else {
+		largest = m_data_bus_width;
+	}
+	for (int index = 0; index < largest; index ++) {
+		m_powers_of_two.push_back(pow(2, index));
+	}
 	ZeroMemory(address_bus_width, data_bus_width);
 	GetPinPortIndices(address_bus_width, data_bus_width);
 }
@@ -124,7 +132,7 @@ void SimpleRam_MagicEngine::InvokeMagic(std::string const& incantation) {
 		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
 			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			if (pin_state) {
-				address += pow(2, address_pin_index);
+				address += m_powers_of_two[address_pin_index];
 			}
 			address_pin_index ++;
 		}
@@ -145,7 +153,7 @@ void SimpleRam_MagicEngine::InvokeMagic(std::string const& incantation) {
 		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
 			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
 			if (pin_state) {
-				address += pow(2, address_pin_index);
+				address += m_powers_of_two[address_pin_index];
 			}
 		}
 		// Get parent device data input pin states and set bits at address correspondingly.

@@ -51,27 +51,27 @@ void JK_FF::Build() {
 	AddGate("not_1", "not", {"input_0"}, false);
 	
 	// Interconnect components.
-	ChildConnect("not_1", {"output", "nand_5", "input_1"});
-	ChildConnect("not_1", {"output", "nand_6", "input_1"});
+	ChildConnect("not_1", {"nand_5", "input_1"});
+	ChildConnect("not_1", {"nand_6", "input_1"});
 	
-	ChildConnect("nand_1", {"output", "nand_3", "input_0"});
-	ChildConnect("nand_2", {"output", "nand_4", "input_0"});
-	ChildConnect("nand_3", {"output", "nand_4", "input_1"});
-	ChildConnect("nand_4", {"output", "nand_3", "input_1"});
+	ChildConnect("nand_1", {"nand_3", "input_0"});
+	ChildConnect("nand_2", {"nand_4", "input_0"});
+	ChildConnect("nand_3", {"nand_4", "input_1"});
+	ChildConnect("nand_4", {"nand_3", "input_1"});
 	
-	ChildConnect("nand_3", {"output", "nand_5", "input_0"});
-	ChildConnect("nand_4", {"output", "nand_6", "input_0"});
+	ChildConnect("nand_3", {"nand_5", "input_0"});
+	ChildConnect("nand_4", {"nand_6", "input_0"});
 	
-	ChildConnect("nand_5", {"output", "nand_7", "input_0"});
-	ChildConnect("nand_6", {"output", "nand_8", "input_0"});
-	ChildConnect("nand_7", {"output", "nand_8", "input_1"});
-	ChildConnect("nand_8", {"output", "nand_7", "input_1"});
+	ChildConnect("nand_5", {"nand_7", "input_0"});
+	ChildConnect("nand_6", {"nand_8", "input_0"});
+	ChildConnect("nand_7", {"nand_8", "input_1"});
+	ChildConnect("nand_8", {"nand_7", "input_1"});
 	
-	ChildConnect("nand_7", {"output", "nand_2", "input_1"});
-	ChildConnect("nand_8", {"output", "nand_1", "input_1"});
+	ChildConnect("nand_7", {"nand_2", "input_1"});
+	ChildConnect("nand_8", {"nand_1", "input_1"});
 	
-	ChildConnect("nand_7", {"output", "parent", "q"});
-	ChildConnect("nand_8", {"output", "parent", "not_q"});
+	ChildConnect("nand_7", {"parent", "q"});
+	ChildConnect("nand_8", {"parent", "not_q"});
 	
 	// Connect device terminals to components.
 	Connect("j", "nand_1", "input_0");
@@ -108,27 +108,27 @@ void JK_FF_ASPC::Build() {
 	AddGate("not_1", "not", {"input_0"}, false);
 	
 	// Interconnect components.
-	ChildConnect("not_1", {"output", "nand_5", "input_1"});
-	ChildConnect("not_1", {"output", "nand_6", "input_1"});
+	ChildConnect("not_1", {"nand_5", "input_1"});
+	ChildConnect("not_1", {"nand_6", "input_1"});
 	
-	ChildConnect("nand_1", {"output", "nand_3", "input_0"});
-	ChildConnect("nand_2", {"output", "nand_4", "input_0"});
-	ChildConnect("nand_3", {"output", "nand_4", "input_1"});
-	ChildConnect("nand_4", {"output", "nand_3", "input_1"});
+	ChildConnect("nand_1", {"nand_3", "input_0"});
+	ChildConnect("nand_2", {"nand_4", "input_0"});
+	ChildConnect("nand_3", {"nand_4", "input_1"});
+	ChildConnect("nand_4", {"nand_3", "input_1"});
 	
-	ChildConnect("nand_3", {"output", "nand_5", "input_0"});
-	ChildConnect("nand_4", {"output", "nand_6", "input_0"});
+	ChildConnect("nand_3", {"nand_5", "input_0"});
+	ChildConnect("nand_4", {"nand_6", "input_0"});
 	
-	ChildConnect("nand_5", {"output", "nand_7", "input_0"});
-	ChildConnect("nand_6", {"output", "nand_8", "input_0"});
-	ChildConnect("nand_7", {"output", "nand_8", "input_1"});
-	ChildConnect("nand_8", {"output", "nand_7", "input_1"});
+	ChildConnect("nand_5", {"nand_7", "input_0"});
+	ChildConnect("nand_6", {"nand_8", "input_0"});
+	ChildConnect("nand_7", {"nand_8", "input_1"});
+	ChildConnect("nand_8", {"nand_7", "input_1"});
 	
-	ChildConnect("nand_7", {"output", "nand_2", "input_1"});
-	ChildConnect("nand_8", {"output", "nand_1", "input_1"});
+	ChildConnect("nand_7", {"nand_2", "input_1"});
+	ChildConnect("nand_8", {"nand_1", "input_1"});
 	
-	ChildConnect("nand_7", {"output", "parent", "q"});
-	ChildConnect("nand_8", {"output", "parent", "not_q"});
+	ChildConnect("nand_7", {"parent", "q"});
+	ChildConnect("nand_8", {"parent", "not_q"});
 	
 	// Connect device terminals to components.
 	Connect("j", "nand_1", "input_0");
@@ -173,15 +173,15 @@ void Four_Bit_Counter::Build() {
 	ChildConnect("jk_ff_1", {"q", "and_0", "input_1"});
 	ChildConnect("jk_ff_1", {"q", "parent", "q_1"});
 	
-	ChildConnect("and_0", {"output", "jk_ff_2", "j"});
-	ChildConnect("and_0", {"output", "jk_ff_2", "k"});
-	ChildConnect("and_0", {"output", "and_1", "input_0"});
+	ChildConnect("and_0", {"jk_ff_2", "j"});
+	ChildConnect("and_0", {"jk_ff_2", "k"});
+	ChildConnect("and_0", {"and_1", "input_0"});
 	
 	ChildConnect("jk_ff_2", {"q", "and_1", "input_1"});
 	ChildConnect("jk_ff_2", {"q", "parent", "q_2"});
 	
-	ChildConnect("and_1", {"output", "jk_ff_3", "j"});
-	ChildConnect("and_1", {"output", "jk_ff_3", "k"});
+	ChildConnect("and_1", {"jk_ff_3", "j"});
+	ChildConnect("and_1", {"jk_ff_3", "k"});
 	
 	ChildConnect("jk_ff_3", {"q", "parent", "q_3"});
 	
@@ -192,6 +192,12 @@ void Four_Bit_Counter::Build() {
 	Connect("clk", "jk_ff_1", "clk");
 	Connect("clk", "jk_ff_2", "clk");
 	Connect("clk", "jk_ff_3", "clk");
+
+	// Mark unused outputs as not connected.
+	ChildMarkOutputNotConnected("jk_ff_0", "not_q");
+	ChildMarkOutputNotConnected("jk_ff_1", "not_q");
+	ChildMarkOutputNotConnected("jk_ff_2", "not_q");
+	ChildMarkOutputNotConnected("jk_ff_3", "not_q");
 	
 	// Add device to top-level probable list.
 	MakeProbable();
@@ -233,7 +239,7 @@ void N_Bit_Counter::Build() {
 	ChildConnect("jk_ff_0", {"q", "jk_ff_1", "k"});
 	Connect("clk", "jk_ff_0", "clk");
 	Connect("clk", "jk_ff_1", "clk");
-
+	
 	// Instantiate and connect components for bits > 1.
 	for (int slice_index = 2; slice_index < m_width; slice_index ++) {
 		// Each additional bit uses one jk flip-flip and one 2-input and Gate.
@@ -252,14 +258,19 @@ void N_Bit_Counter::Build() {
 			// For all further bits, the and Gate is driven by both the previous and Gate and previous flip-flop.
 			std::string last_and_identifier = "and_" + std::to_string(slice_index - 1);
 			std::string last_ff_identifier = "jk_ff_" + std::to_string(slice_index - 1);
-			ChildConnect(last_and_identifier, {"output", new_and_identifier, "input_0"});
+			ChildConnect(last_and_identifier, {new_and_identifier, "input_0"});
 			ChildConnect(last_ff_identifier, {"q", new_and_identifier, "input_1"});
 		}
 		// Other connections for this additional bit do not vary.
-		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "j"});
-		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "k"});
+		ChildConnect(new_and_identifier, {new_ff_identifier, "j"});
+		ChildConnect(new_and_identifier, {new_ff_identifier, "k"});
 		std::string new_output_identifier = "q_" + std::to_string(slice_index);
 		ChildConnect(new_ff_identifier, {"q", "parent", new_output_identifier});
+	}
+	// Mark unused flip-flop outputs as not connected.
+	for (int i = 0; i < m_width; i ++) {
+		std::string ff_identifier = "jk_ff_" + std::to_string(i);
+		ChildMarkOutputNotConnected(ff_identifier, "not_q");
 	}
 	MakeProbable();
 }
@@ -325,14 +336,19 @@ void N_Bit_Counter_ASC::Build() {
 			// For all further bits, the and Gate is driven by both the previous and Gate and previous flip-flop.
 			std::string last_and_identifier = "and_" + std::to_string(slice_index - 1);
 			std::string last_ff_identifier = "jk_ff_" + std::to_string(slice_index - 1);
-			ChildConnect(last_and_identifier, {"output", new_and_identifier, "input_0"});
+			ChildConnect(last_and_identifier, {new_and_identifier, "input_0"});
 			ChildConnect(last_ff_identifier, {"q", new_and_identifier, "input_1"});
 		}
 		// Other connections for this additional bit do not vary.
-		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "j"});
-		ChildConnect(new_and_identifier, {"output", new_ff_identifier, "k"});
+		ChildConnect(new_and_identifier, {new_ff_identifier, "j"});
+		ChildConnect(new_and_identifier, {new_ff_identifier, "k"});
 		std::string new_output_identifier = "q_" + std::to_string(slice_index);
 		ChildConnect(new_ff_identifier, {"q", "parent", new_output_identifier});
+	}
+	// Mark unused flip-flop outputs as not connected.
+	for (int i = 0; i < m_width; i ++) {
+		std::string ff_identifier = "jk_ff_" + std::to_string(i);
+		ChildMarkOutputNotConnected(ff_identifier, "not_q");
 	}
 	MakeProbable();
 }
@@ -358,14 +374,14 @@ void One_Bit_Register::Build() {
 	AddGate("not_3", "not", {"input_0"}, false);
 	
 	// Interconnect components.
-	ChildConnect("and_0", {"output", "jk_ff_0", "j"});
-	ChildConnect("and_1", {"output", "or_0", "input_0"});
-	ChildConnect("and_2", {"output", "or_0", "input_1"});
-	ChildConnect("or_0", {"output", "jk_ff_0", "k"});
-	ChildConnect("not_0", {"output", "and_0", "input_2"});
-	ChildConnect("not_1", {"output", "and_1", "input_0"});
-	ChildConnect("not_2", {"output", "and_1", "input_2"});
-	ChildConnect("not_3", {"output", "and_2", "input_0"});
+	ChildConnect("and_0", {"jk_ff_0", "j"});
+	ChildConnect("and_1", {"or_0", "input_0"});
+	ChildConnect("and_2", {"or_0", "input_1"});
+	ChildConnect("or_0", {"jk_ff_0", "k"});
+	ChildConnect("not_0", {"and_0", "input_2"});
+	ChildConnect("not_1", {"and_1", "input_0"});
+	ChildConnect("not_2", {"and_1", "input_2"});
+	ChildConnect("not_3", {"and_2", "input_0"});
 	ChildConnect("jk_ff_0", {"q", "parent", "d_out"});
 	
 	// Connect device terminals to components.
@@ -378,6 +394,9 @@ void One_Bit_Register::Build() {
 	Connect("clr", "not_2", "input_0");
 	Connect("clr", "and_2", "input_1");
 	Connect("clk", "jk_ff_0", "clk");
+	
+	// Mark unused flip-flop outputs as not connected.
+	ChildMarkOutputNotConnected("jk_ff_0", "not_q");
 	
 	// Add device to top-level probable list.
 	MakeProbable();
@@ -468,7 +487,7 @@ void NxOne_Bit_Mux::Build() {
 		or_gate_input_identifiers.push_back(input_identifier);
 	}
 	AddGate("or_0", "or", or_gate_input_identifiers, false);
-	ChildConnect("or_0", {"output", "parent", "d_out"});
+	ChildConnect("or_0", {"parent", "d_out"});
 
 	// And gates.
 	for (int i = 0; i < m_input_count; i ++) {
@@ -479,7 +498,7 @@ void NxOne_Bit_Mux::Build() {
 		Connect(parent_input_pin_identifier, and_gate_identifier, "input_0");
 		Connect(parent_select_pin_identifier, and_gate_identifier, "input_1");
 		std::string or_gate_input_identifier = "input_" + std::to_string(i);
-		ChildConnect(and_gate_identifier, {"output", "or_0", or_gate_input_identifier});
+		ChildConnect(and_gate_identifier, {"or_0", or_gate_input_identifier});
 	}
 	
 	//~// Add device to top-level probable list.
@@ -549,7 +568,7 @@ void N_Bit_Decoder::Build() {
 			if (!((output_index & (1 << input_pin_index)) == (1 << input_pin_index))) {
 				// This input needs to be connected to the complementary input.
 				std::string not_gate_identifier = "not_" + std::to_string(input_pin_index);
-				ChildConnect(not_gate_identifier, {"output", and_gate_identifier, input_terminal_identifiers[input_pin_index]});
+				ChildConnect(not_gate_identifier, {and_gate_identifier, input_terminal_identifiers[input_pin_index]});
 			} else {
 				// This input needs to be connected directly to the select input.
 				std::string select_input_identifier = "sel_" + std::to_string(input_pin_index);
@@ -557,7 +576,7 @@ void N_Bit_Decoder::Build() {
 			}
 		}
 		std::string output_pin_identifier = "out_" + std::to_string(output_index);
-		ChildConnect(and_gate_identifier, {"output", "parent", output_pin_identifier});
+		ChildConnect(and_gate_identifier, {"parent", output_pin_identifier});
 	}
 	MakeProbable();
 	PrintInPinStates();

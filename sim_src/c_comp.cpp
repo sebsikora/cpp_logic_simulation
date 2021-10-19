@@ -62,7 +62,7 @@ std::string Component::GetPinName(int pin_port_index) {
 std::vector<std::string> Component::GetSortedInPinNames() {
 	std::vector<std::string> sorted_in_pin_names = {};
 	for (const auto& this_pin : m_pins) {
-		if (this_pin.direction == 1) {
+		if ((this_pin.direction == 1) || (this_pin.direction == 3)) {
 			sorted_in_pin_names.push_back(this_pin.name);
 		}
 	}
@@ -73,7 +73,7 @@ std::vector<std::string> Component::GetSortedInPinNames() {
 std::vector<std::string> Component::GetSortedOutPinNames() {
 	std::vector<std::string> sorted_out_pin_names = {};
 	for (const auto& this_pin : m_pins) {
-		if (this_pin.direction == 2) {
+		if ((this_pin.direction == 2) || (this_pin.direction == 4)) {
 			sorted_out_pin_names.push_back(this_pin.name);
 		}
 	}
@@ -107,25 +107,35 @@ int Component::GetPinPortIndex(std::string const& pin_name) {
 	return pin_port_index;
 }
 
+bool Component::CheckIfPinExists(std::string const& target_pin_name) {
+	bool pin_exists = false;
+	for (const auto& this_pin : m_pins) {
+		if (this_pin.name == target_pin_name) {
+			pin_exists = true;
+			break;
+		}
+	}
+	return pin_exists;
+}
+
+std::vector<bool> Component::CheckIfPinDriven(int pin_port_index) {
+	return m_pins[pin_port_index].drive;
+}
+
+void Component::SetPinDrivenFlag(int pin_port_index, bool drive_mode, bool state_to_set) {
+	if (!drive_mode) {
+		m_pins[pin_port_index].drive[0] = state_to_set;
+	} else {
+		m_pins[pin_port_index].drive[1] = state_to_set;
+	}
+}
+
 void Component::PrintInPinStates() {
 	std::cout << m_name << ": [ ";
 	for (const auto& in_pin_name: GetSortedInPinNames()) {
-		bool print_this_input = false;
-		if (!m_device_flag) {
-			// If we are in a Gate, there are no hidden in states.
-			print_this_input = true;
-		} else {
-			// Otherwise, we are in a device, recast 'this' to Device and check key against hidden in states list.
-			Device* device_pointer = static_cast<Device*>(this);
-			if (!IsStringInVector(in_pin_name, device_pointer->m_hidden_in_pins)) {
-				print_this_input = true;
-			} else {
-				print_this_input = false;
-			}
-		}
-		if (print_this_input) {
-			std::cout << in_pin_name;
-			int in_pin_port_index = GetPinPortIndex(in_pin_name);
+		int in_pin_port_index = GetPinPortIndex(in_pin_name);
+		if (m_pins[in_pin_port_index].direction == 1) {
+			std::cout << m_pins[in_pin_port_index].name;
 			if (m_pins[in_pin_port_index].state) {
 				std::cout << ": T ";
 			} else {
@@ -139,22 +149,9 @@ void Component::PrintInPinStates() {
 void Component::PrintOutPinStates() {
 	std::cout << m_name << ": [ ";
 	for (const auto& out_pin_name: GetSortedOutPinNames()) {
-		bool print_this_output = false;
-		if (!m_device_flag) {
-			// If we are in a Gate, there are no hidden in states.
-			print_this_output = true;
-		} else {
-			// Otherwise, we are in a device, recast 'this' to Device and check key against hidden in states list.
-			Device* device_pointer = static_cast<Device*>(this);
-			if (!IsStringInVector(out_pin_name, device_pointer->m_hidden_out_pins)) {
-				print_this_output = true;
-			} else {
-				print_this_output = false;
-			}
-		}
-		if (print_this_output) {
-			std::cout << out_pin_name;
-			int out_pin_port_index = GetPinPortIndex(out_pin_name);
+		int out_pin_port_index = GetPinPortIndex(out_pin_name);
+		if (m_pins[out_pin_port_index].direction == 2) {
+			std::cout << m_pins[out_pin_port_index].name;
 			if (m_pins[out_pin_port_index].state) {
 				std::cout << ": T ";
 			} else {

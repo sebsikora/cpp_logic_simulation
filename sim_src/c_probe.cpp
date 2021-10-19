@@ -41,21 +41,29 @@ Probe::Probe(Simulation* top_level_device_pointer, std::string const& probe_name
 }
 
 void Probe::Sample(int index) {
-	m_timestamps.push_back(index);
 	m_this_sample.clear();
-	int pin_index = 0;
+	m_timestamps.emplace_back(index);
 	bool pin_state = false;
 	for (const auto& pin_port_index : m_target_pin_indices) {
 		pin_state = m_target_component_pointer->GetPinState(pin_port_index);
-		pin_index ++;
-		m_this_sample.push_back(pin_state);
+		m_this_sample.emplace_back(pin_state);
 	}
-	m_samples.push_back(m_this_sample);
+	m_samples.emplace_back(m_this_sample);
 }
 
 void Probe::Reset() {
+	m_this_sample.clear();
 	m_samples.clear();
 	m_timestamps.clear();
+}
+
+void Probe::PreallocateSampleMemory(int number_of_ticks) {
+	size_t current_size = m_samples.size();
+	size_t new_capacity = current_size + number_of_ticks;
+	m_samples.reserve(new_capacity);
+	m_timestamps.reserve(new_capacity);
+	m_this_sample.reserve(m_target_pin_indices.size());
+	
 }
 
 void Probe::PrintSamples() {
@@ -73,4 +81,8 @@ void Probe::PrintSamples() {
 		std::cout << std::endl;
 		index = index + 1;
 	}
+}
+
+std::vector<std::vector<bool>> Probe::GetSamples(void) {
+	return m_samples;
 }

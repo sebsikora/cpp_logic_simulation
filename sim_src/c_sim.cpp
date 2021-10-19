@@ -84,83 +84,91 @@ char Simulation::CheckForCharacter() {
 }
 
 void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output_flag, bool print_probes_flag) {
-	bool previous_verbose_output_flag = mg_verbose_output_flag;
-	mg_verbose_output_flag = verbose_output_flag;
-	m_simulation_running = true;
-	if (restart_flag) {
-		std::cout << GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
-		m_global_tick_index = 0;
-		for (const auto& this_clock_descriptor : m_clocks) {
-			this_clock_descriptor.clock_pointer->Reset();
-		}
-	} else {
-		std::cout << GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
-	}
-	if (mg_verbose_output_flag == false) {
-		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
-	}
-	// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
-	// ~~~ We need to manually set it back when we are done! ~~~
-	EnableTerminalRawIO(true);
-	int tick_count = 0;
-	int input_check_count = 0, input_check_count_limit = 1000;
-	// And we're live - Spin main simulation loop.
-	while (true) {
-		// Update all magic device engines.
-		for (const auto& this_magic_engine_descriptor : m_magic_engines) {
-			this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
-		}
-		if (mg_verbose_output_flag) {
-			std::string msg = std::string("Start of global tick ") + std::to_string(m_global_tick_index);
-			std::cout << GenerateHeader(msg) << std::endl << std::endl;
-		}
-		// Advance all clocks.
-		for (const auto& this_clock_descriptor : m_clocks) {
-			this_clock_descriptor.clock_pointer->Tick();
-		}
-		// Solve top-level simulation state.
-		Solve();
-		// If something has asserted the __ALL_STOP__ internal input somewhere, the m_sim_running flag will
-		// have been de-asserted and we should break here and finish.
-		if (m_simulation_running == false) {
-			break;
-		}
-		// Every input_check_count_limit ticks check if user has pressed a key and respond.
-		if (input_check_count >= input_check_count_limit) {
-			char key_pressed = CheckForCharacter();
-			if (key_pressed == 'q') {
-				// Really we need to choose a more involved key-combination than 'q' here for the stop key...
-				std::cout << std::endl << GenerateHeader("STOP KEY PRESSED") << std::endl << std::endl;
-				m_simulation_running = false;
-				break;
+	if (m_build_errors.size() == 0) {
+		bool previous_verbose_output_flag = mg_verbose_output_flag;
+		mg_verbose_output_flag = verbose_output_flag;
+		m_simulation_running = true;
+		if (restart_flag) {
+			std::cout << GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
+			m_global_tick_index = 0;
+			for (const auto& this_clock_descriptor : m_clocks) {
+				this_clock_descriptor.clock_pointer->Reset();
 			}
-			input_check_count = 0;
 		} else {
-			input_check_count += 1;
+			std::cout << GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
 		}
-		// number_of_ticks = 0 is continuous mode.
-		m_global_tick_index += 1;
-		if (number_of_ticks > 0) {
-			tick_count += 1;
-			if (tick_count == number_of_ticks) {
-				m_simulation_running = false;
+		// Preallocate vectors for storage of Probe samples.
+		for (const auto& this_probe_descriptor : m_probes) {
+			this_probe_descriptor.probe_pointer->PreallocateSampleMemory(number_of_ticks);
+		}
+		if (mg_verbose_output_flag == false) {
+			std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
+		}
+		// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
+		// ~~~ We need to manually set it back when we are done! ~~~
+		EnableTerminalRawIO(true);
+		int tick_count = 0;
+		int input_check_count = 0, input_check_count_limit = 1000;
+		// And we're live - Spin main simulation loop.
+		while (true) {
+			// Update all magic device engines.
+			for (const auto& this_magic_engine_descriptor : m_magic_engines) {
+				this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
+			}
+			if (mg_verbose_output_flag) {
+				std::string msg = std::string("Start of global tick ") + std::to_string(m_global_tick_index);
+				std::cout << GenerateHeader(msg) << std::endl << std::endl;
+			}
+			// Advance all clocks.
+			for (const auto& this_clock_descriptor : m_clocks) {
+				this_clock_descriptor.clock_pointer->Tick();
+			}
+			// Solve top-level simulation state.
+			Solve();
+			// If something has asserted the __ALL_STOP__ internal input somewhere, the m_sim_running flag will
+			// have been de-asserted and we should break here and finish.
+			if (m_simulation_running == false) {
 				break;
 			}
+			// Every input_check_count_limit ticks check if user has pressed a key and respond.
+			if (input_check_count >= input_check_count_limit) {
+				char key_pressed = CheckForCharacter();
+				if (key_pressed == 'q') {
+					// Really we need to choose a more involved key-combination than 'q' here for the stop key...
+					std::cout << std::endl << GenerateHeader("STOP KEY PRESSED") << std::endl << std::endl;
+					m_simulation_running = false;
+					break;
+				}
+				input_check_count = 0;
+			} else {
+				input_check_count += 1;
+			}
+			// number_of_ticks = 0 is continuous mode.
+			m_global_tick_index += 1;
+			if (number_of_ticks > 0) {
+				tick_count += 1;
+				if (tick_count == number_of_ticks) {
+					m_simulation_running = false;
+					break;
+				}
+			}
 		}
-	}
-	// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
-	EnableTerminalRawIO(false);	
-	std::cout << GenerateHeader("Done.") << std::endl << std::endl;
-	// Print probe samples.
-	if (print_probes_flag) {
-		std::cout << GenerateHeader("Probed values.") << std::endl << std::endl;
-		for (const auto& this_probe_descriptor : m_probes) {
-			this_probe_descriptor.probe_pointer->PrintSamples();
-			std::cout << std::endl;
-		}
+		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
+		EnableTerminalRawIO(false);	
 		std::cout << GenerateHeader("Done.") << std::endl << std::endl;
+		// Print probe samples.
+		if (print_probes_flag) {
+			std::cout << GenerateHeader("Probed values.") << std::endl << std::endl;
+			for (const auto& this_probe_descriptor : m_probes) {
+				this_probe_descriptor.probe_pointer->PrintSamples();
+				std::cout << std::endl;
+			}
+			std::cout << GenerateHeader("Done.") << std::endl << std::endl;
+		}
+		mg_verbose_output_flag = previous_verbose_output_flag;
+	} else {
+		PrintBuildErrors();
 	}
-	mg_verbose_output_flag = previous_verbose_output_flag;
 }
 
 void Simulation::AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on) {
@@ -218,7 +226,7 @@ int Simulation::GetTopLevelComponentCount() {
 	return m_components.size();
 }
 
-bool Simulation::IsSimulationRunning(void) {
+bool Simulation::IsSimulationRunning() {
 	return m_simulation_running;
 }
 
@@ -238,4 +246,37 @@ void Simulation::CheckProbeTriggers() {
 			this_clock_descriptor.clock_pointer->TriggerProbes();
 		}
 	}
+}
+
+void Simulation::LogBuildError(std::string const& build_error) {
+	m_build_errors.emplace_back(build_error);
+}
+
+void Simulation::PrintBuildErrors(void) {
+	std::cout << GenerateHeader("Build Errors.") << std::endl << std::endl;
+	int index = 0;
+	for (const auto& this_build_error : m_build_errors) {
+		std::cout << "Error " << std::to_string(index) << " : " << this_build_error << std::endl;
+		index ++;
+	}
+	std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
+}
+
+std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vector<std::string> const& probe_names) {
+	std::vector<std::vector<std::vector<bool>>> probed_states;
+	int name_index = 0;
+	if (probe_names[0] == "all") {
+		for (const auto& this_probe_descriptor : m_probes) {
+			probed_states.emplace_back(this_probe_descriptor.probe_pointer->GetSamples());	
+		}
+	} else {
+		for (const auto& this_probe_name : probe_names) {
+			for (const auto& this_probe_descriptor : m_probes) {
+				if (this_probe_descriptor.probe_name == this_probe_name) {
+					probed_states.emplace_back(this_probe_descriptor.probe_pointer->GetSamples());
+				}
+			}
+		}
+	}
+	return probed_states;
 }
