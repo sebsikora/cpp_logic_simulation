@@ -97,7 +97,6 @@ class Component {
 		Component() {}
 
 		// Component class virtual methods.
-		virtual void Initialise(void) = 0;
 		virtual void Connect(std::vector<std::string> connection_parameters) = 0;
 		virtual void Set(int pin_port_index, bool state_to_set) = 0;
 		virtual void Propagate(void) = 0;
@@ -148,7 +147,6 @@ class Gate : public Component {
 		);
 		
 		// Override Component virtual methods.
-		void Initialise(void) override;
 		void Connect(std::vector<std::string> connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
@@ -157,6 +155,7 @@ class Gate : public Component {
 		void ReportUnConnectedPins(void) override;
 		
 		// Gate class methods.
+		void Initialise(void);
 		void Evaluate(void);
 		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
 		operator_pointer GetOperatorPointer(std::string const& operator_name);
@@ -182,7 +181,6 @@ class Device : public Component {
 		);
 		
 		// Override Component virtual methods.
-		void Initialise(void) override;
 		void Connect(std::vector<std::string> connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;

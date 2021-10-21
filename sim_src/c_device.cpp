@@ -144,18 +144,22 @@ void Device::Stabilise() {
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
-	// Next we call Initialise() for all components in this device.
+	// Next we call Initialise() for all Gates in this device.
 	for (const auto& this_component_descriptor : m_components) {
-		if (mg_verbose_output_flag) {
-			std::cout << "Initialising " << this_component_descriptor.component_full_name << std::endl;
+		if (!this_component_descriptor.component_pointer->GetDeviceFlag()) {
+			if (mg_verbose_output_flag) {
+				std::cout << "Initialising " << this_component_descriptor.component_full_name << std::endl;
+			}
+			Gate* gate_pointer = static_cast<Gate*>(this_component_descriptor.component_pointer);
+			gate_pointer->Initialise();
 		}
-		Component* component_pointer = this_component_descriptor.component_pointer;
-		component_pointer->Initialise();
 	}
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
-	// Lastly we Solve() by iterating SubTick() until device state has stabilised.
+	// Lastly we Solve() by iterating SubTick() until device internal state has stabilised.
+	// Solve() will a flag if there are still out pin propagations that have to be handled by the parent
+	// device during *it's* next Solve() call.
 	if (Solve()) {
 		if (this != m_top_level_sim_pointer) {
 			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
@@ -167,16 +171,6 @@ void Device::Stabilise() {
 	}
 }
 
-void Device::Initialise() {
-	for (auto& this_pin : m_pins) {
-		if (this_pin.direction == 2) {
-			this_pin.state_changed = true;
-		}
-	}
-	m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
-	m_solve_this_tick_flag = true;
-}
-
 void Device::AddComponent(Component* new_component_pointer) {
 	std::string new_component_name = new_component_pointer->GetName();
 	std::string new_component_full_name = new_component_pointer->GetFullName();
@@ -185,6 +179,8 @@ void Device::AddComponent(Component* new_component_pointer) {
 	new_component_descriptor.component_full_name = new_component_full_name;
 	new_component_descriptor.component_pointer = new_component_pointer;
 	m_components.push_back(new_component_descriptor);
+	// Keep an additional vector of the local component indices of Device Components so that we don't
+	// have to iterate over all Components to call Solve() on Devices, during the Solve() call.
 	if (new_component_pointer->GetDeviceFlag()) {
 		m_devices.push_back(new_component_pointer->m_local_component_index);
 	}
@@ -615,7 +611,6 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 			// is already queued-up to propagate this SubTick.
 			if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
 				m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
-				//~m_propagate_next_tick_flag = true;
 			}
 			m_solve_this_tick_flag = true;
 		}

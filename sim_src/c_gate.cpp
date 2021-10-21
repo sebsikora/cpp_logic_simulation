@@ -80,7 +80,6 @@ void Gate::Initialise() {
 	m_pins[m_out_pin_port_index].state = new_state;
 	m_pins[m_out_pin_port_index].state_changed = true;
 	m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
-	//~m_propagate_next_tick_flag = true;
 }
 
 void Gate::Connect(std::vector<std::string> connection_parameters) {	
@@ -177,7 +176,6 @@ void Gate::Evaluate() {
 		out_pin->state_changed = true;
 		if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
 			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
-			//~m_propagate_next_tick_flag = true;
 		}
 		// Print output pin changes if we are monitoring this gate.
 		if (m_monitor_on == true) {
