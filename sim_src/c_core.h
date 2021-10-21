@@ -125,6 +125,8 @@ class Component {
 		void PrintOutPinStates(void);
 		
 		// Component class data.
+		static bool mg_verbose_output_flag;
+		bool m_monitor_on;
 		int m_nesting_level;
 		bool m_device_flag;
 		std::string m_name;
@@ -135,8 +137,6 @@ class Component {
 		Simulation* m_top_level_sim_pointer;
 		Device* m_parent_device_pointer;
 		std::vector<pin> m_pins;
-		bool m_monitor_on;
-		static bool mg_verbose_output_flag;
 };
 
 // Logic Gate Component sub-class.
@@ -210,7 +210,7 @@ class Device : public Component {
 		void ChildMarkOutputNotConnected(std::string const& target_child_component_name, std::string const& target_out_pin_name);
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name = "input");
 		void Stabilise(void);
-		void Solve(void);
+		bool Solve(void);
 		void SubTick(int index);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		int GetNestingLevel(void);
@@ -220,13 +220,17 @@ class Device : public Component {
 		void PrintInternalPinStates(int max_levels);
 		std::vector<std::string> GetHiddenInPins(void);
 		void MarkInnerTerminalsDisconnected(void);
+		bool CheckAndClearSolutionFlag(void);
 		
 		// Device class data.
 		int m_max_propagations;
 		std::vector<component_descriptor> m_components;
+		std::vector<int> m_devices;
 		std::vector<int> m_propagate_next_tick;
 		std::vector<int> m_propagate_this_tick;
 		std::vector<int> m_still_to_propagate;
+		bool m_buffered_propagation = false;
+		bool m_solve_this_tick_flag = false;
 		std::vector<std::vector<connection_descriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.
 		bool m_magic_device_flag = false;
 		MagicEngine* m_magic_engine_pointer;

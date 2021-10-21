@@ -156,7 +156,12 @@ void Device::Stabilise() {
 		std::cout << std::endl;
 	}
 	// Lastly we Solve() by iterating SubTick() until device state has stabilised.
-	Solve();
+	if (Solve()) {
+		if (this != m_top_level_sim_pointer) {
+			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
+		}
+	}
+	
 	if (mg_verbose_output_flag) {
 		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
 	}
@@ -169,6 +174,7 @@ void Device::Initialise() {
 		}
 	}
 	m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
+	m_solve_this_tick_flag = true;
 }
 
 void Device::AddComponent(Component* new_component_pointer) {
@@ -179,6 +185,9 @@ void Device::AddComponent(Component* new_component_pointer) {
 	new_component_descriptor.component_full_name = new_component_full_name;
 	new_component_descriptor.component_pointer = new_component_pointer;
 	m_components.push_back(new_component_descriptor);
+	if (new_component_pointer->GetDeviceFlag()) {
+		m_devices.push_back(new_component_pointer->m_local_component_index);
+	}
 }
 
 void Device::AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on) {
@@ -474,7 +483,13 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 	}
 }
 
-void Device::Solve() {
+bool Device::CheckAndClearSolutionFlag() {
+	bool current_solution_flag = m_solve_this_tick_flag;
+	m_solve_this_tick_flag = false;
+	return current_solution_flag;
+}
+
+bool Device::Solve() {
 	int sub_tick_count = 0;
 	int sub_tick_limit = m_max_propagations;
 	while (m_propagate_next_tick.size() > 0) {
@@ -497,23 +512,26 @@ void Device::Solve() {
 				std::cout << "...Solve()d." << std::endl << std::endl;
 			}
 		}
-		for (const auto& this_component_descriptor : m_components) {
-			if (this_component_descriptor.component_pointer->GetDeviceFlag()) {
-				if ((this_component_descriptor.component_pointer->m_monitor_on) && !(mg_verbose_output_flag)) {
+		for (const auto& this_local_device_index : m_devices) {
+			Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
+			if (this_device_pointer->CheckAndClearSolutionFlag()) {
+				if ((this_device_pointer->m_monitor_on) && !(mg_verbose_output_flag)) {
 					std::cout << std::endl;
 				}
-				// If this child Component is a child Device, recast the Component pointer to a Device pointer
-				// and call the child Devices' Solve() method.
-				Device* device_pointer = static_cast<Device*>(this_component_descriptor.component_pointer);
-				device_pointer->Solve();
+				if (this_device_pointer->Solve()) {
+					m_propagate_next_tick.emplace_back(this_local_device_index);
+				}
 			}
 		}
 	}
+	// At end of top-level Simulation Solve() call trigger Probes. We do it here to ensure that Probes are triggered by manual clk toggling.
 	if (this == m_top_level_sim_pointer) {
-		// We check if we need to trigger probes here, rather than in the sim's Run() method after the sim's Solve()
-		// returns, so that if we manually toggle the clock, the probes get triggered.
 		m_top_level_sim_pointer->CheckProbeTriggers();
 	}
+	// Set m_buffered_propagation to false and return it's previous value.
+	bool buffered_propagation_to_return = m_buffered_propagation;
+	m_buffered_propagation = false;
+	return buffered_propagation_to_return;
 }
 
 void Device::SubTick(int index) {
@@ -530,12 +548,17 @@ void Device::SubTick(int index) {
 	// To compare:
 	// Swap the commented and uncommented std::sort(s) below this, and then swap the commented and uncommented for-loops.
 	// Also swap the commented and uncommented std::binary_search(es) in CheckIfQueuedToPropagateThisTick().
-	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), backwards_comp);
-	//~std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end());
+	//~std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), backwards_comp);
+	// 		NOTE - Confusingly the forward sort is uncommented here at the moment as the following for-loop copies
+	// 		m_propagate_next_tick *backwards* so it can clear it by popping elements off the end, as this seems yet-faster.
+	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end());
 	m_propagate_next_tick.erase(std::unique(m_propagate_next_tick.begin(), m_propagate_next_tick.end()), m_propagate_next_tick.end()); 
-	m_propagate_this_tick = m_propagate_next_tick;
-	m_propagate_next_tick.clear();
-	m_still_to_propagate = m_propagate_this_tick;
+	int copy_range = m_propagate_next_tick.size();
+	for (int i = copy_range - 1; i >= 0; i --) {
+		m_propagate_this_tick.emplace_back(m_propagate_next_tick[i]);
+		m_still_to_propagate.emplace_back(m_propagate_next_tick[i]);
+		m_propagate_next_tick.pop_back();
+	}
 	//~for (const auto& this_component_local_index : m_propagate_this_tick) {
 		//~m_still_to_propagate.erase(m_still_to_propagate.begin());
 		//~Component* component_pointer = m_components[this_component_local_index].component_pointer;
@@ -543,9 +566,11 @@ void Device::SubTick(int index) {
 	//~}
 	for (int i = m_propagate_this_tick.size() - 1; i >= 0; i --) {
 		m_still_to_propagate.pop_back();
-		Component* component_pointer = m_components[m_propagate_this_tick[i]].component_pointer;
-		component_pointer->Propagate();
-	}	
+		//~Component* component_pointer = m_components[m_propagate_this_tick[i]].component_pointer;
+		//~component_pointer->Propagate();
+		m_components[m_propagate_this_tick[i]].component_pointer->Propagate();
+	}
+	m_propagate_this_tick.clear();
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
@@ -573,21 +598,15 @@ void Device::Propagate() {
 
 void Device::Set(int pin_port_index, bool state_to_set) {
 	pin* this_pin = &m_pins[pin_port_index];
-	if ((this_pin->direction == 1) || (this_pin->direction == 2)) {
+	if (this_pin->direction == 1) {
 		if (state_to_set != this_pin->state) {
 			if ((m_monitor_on) || (mg_verbose_output_flag)) {
-				std::string direction_string = "";
-				if (this_pin->direction == 1) {
-					direction_string = "input ";
-				} else {
-					direction_string = "output ";
-				}
 				if (mg_verbose_output_flag) {
-					std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
+					std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << " input terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
 				}
-				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << direction_string << "terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
+				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << "input terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
 			}
-			if ((m_magic_device_flag == true) && (this_pin->direction == 1)) {
+			if (m_magic_device_flag == true) {
 				m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
 			}
 			this_pin->state = state_to_set;
@@ -596,7 +615,22 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 			// is already queued-up to propagate this SubTick.
 			if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
 				m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
+				//~m_propagate_next_tick_flag = true;
 			}
+			m_solve_this_tick_flag = true;
+		}
+	} else if (this_pin->direction == 2) {
+		if (state_to_set != this_pin->state) {
+			if ((m_monitor_on) || (mg_verbose_output_flag)) {
+				if (mg_verbose_output_flag) {
+					std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << " output terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
+				}
+				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << "output terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
+			}
+			this_pin->state = state_to_set;
+			this_pin->state_changed = true;
+			// Buffer output pin changes until end of Solve()...
+			m_buffered_propagation = true;
 		}
 	} else {
 		if ((this_pin->name == "all_stop") && (m_top_level_sim_pointer->IsSimulationRunning())) {
