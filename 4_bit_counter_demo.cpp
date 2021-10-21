@@ -1,5 +1,5 @@
-#include "c_core.h"			// Core simulator functionality
-#include "devices.h"		// Four_Bit_Counter Device
+#include "c_core.h"					// Core simulator functionality
+#include "devices.h"				// Four_Bit_Counter Device
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
@@ -8,7 +8,7 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation sim = Simulation("test_sim", 10, verbose);
+	Simulation sim("test_sim", 10, verbose);
 	
 	// Add a 4-bit counter device.
 	sim.AddComponent(new Four_Bit_Counter(&sim, "test_counter", monitor_on, {{"run", true}}));

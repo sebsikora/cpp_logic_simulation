@@ -29,65 +29,7 @@
 #include <unordered_map>			// std::unordered_map
 #include <termios.h>				// terminal settings data structure
 
-// Forward declarations for struct and class definitions below.
-class Component;
-class Gate;
-class Device;
-class Simulation;
-class Clock;
-class Probe;
-class MagicEngine;
-
-// Define data structures.
-struct pin {
-	std::string name;
-	int direction;
-	bool state;
-	bool state_changed;
-	int port_index;
-	std::vector<bool> drive;
-};
-
-struct component_descriptor {
-	std::string component_name;
-	std::string component_full_name;
-	Component* component_pointer;
-};
-
-struct connection_descriptor {
-	Component* target_component_pointer;
-	int target_pin_port_index;
-};
-
-struct clock_descriptor {
-	std::string clock_name;
-	Clock* clock_pointer;
-};
-
-struct probe_descriptor {
-	std::string probe_name;
-	Probe* probe_pointer;
-};
-
-struct magic_engine_descriptor {
-	std::string magic_engine_identifier;
-	MagicEngine* magic_engine_pointer;
-};
-
-struct magic_event_co_condition {
-	int pin_port_index; 
-	bool pin_state;
-};
-
-struct human_writable_magic_event_co_condition {
-	std::string pin_name;
-	bool pin_state;
-};
-
-// This typedef defines the type 'pointer to a Gate class member function that takes a vector of pin
-// structs as arguments and returns an output bool. This allows us to *dramatically* simplify the code
-// for declaring such function pointers and member functions that take them as arguments and/or return them.
-typedef bool (Gate::*operator_pointer)(std::vector<pin> const&);
+#include "c_structs.h"				// struct definitions and forward Class delarations for the below.
 
 // Class prototypes.
 // Base Component class.
@@ -97,6 +39,7 @@ class Component {
 		Component() {}
 
 		// Component class virtual methods.
+		virtual void Initialise(void) = 0;
 		virtual void Connect(std::vector<std::string> connection_parameters) = 0;
 		virtual void Set(int pin_port_index, bool state_to_set) = 0;
 		virtual void Propagate(void) = 0;
@@ -138,6 +81,11 @@ class Component {
 		std::vector<pin> m_pins;
 };
 
+// This typedef defines the type 'pointer to a Gate class member function that takes a vector of pin
+// structs as arguments and returns an output bool. This allows us to *dramatically* simplify the code
+// for declaring such function pointers and member functions that take them as arguments and/or return them.
+typedef bool (Gate::*operator_pointer)(std::vector<pin> const&);
+
 // Logic Gate Component sub-class.
 class Gate : public Component {
 	public:
@@ -147,6 +95,7 @@ class Gate : public Component {
 		);
 		
 		// Override Component virtual methods.
+		void Initialise(void) override;
 		void Connect(std::vector<std::string> connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
@@ -155,7 +104,6 @@ class Gate : public Component {
 		void ReportUnConnectedPins(void) override;
 		
 		// Gate class methods.
-		void Initialise(void);
 		void Evaluate(void);
 		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
 		operator_pointer GetOperatorPointer(std::string const& operator_name);
@@ -181,6 +129,7 @@ class Device : public Component {
 		);
 		
 		// Override Component virtual methods.
+		void Initialise(void) override;
 		void Connect(std::vector<std::string> connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
@@ -334,13 +283,6 @@ class Probe {
 		std::vector<int> m_timestamps;
 		std::vector<std::vector<bool>> m_samples;
 		std::vector<bool> m_this_sample;
-};
-
-struct magic_event {
-	int target_pin_port_index;
-	std::vector<bool> state_change;
-	std::vector<magic_event_co_condition> co_conditions;
-	std::string incantation;
 };
 
 class MagicEngine {

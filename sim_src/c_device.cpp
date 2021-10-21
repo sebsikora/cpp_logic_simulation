@@ -144,31 +144,39 @@ void Device::Stabilise() {
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
-	// Next we call Initialise() for all Gates in this device.
+	// Next we call Initialise() for all Components.
 	for (const auto& this_component_descriptor : m_components) {
-		if (!this_component_descriptor.component_pointer->GetDeviceFlag()) {
 			if (mg_verbose_output_flag) {
 				std::cout << "Initialising " << this_component_descriptor.component_full_name << std::endl;
 			}
-			Gate* gate_pointer = static_cast<Gate*>(this_component_descriptor.component_pointer);
-			gate_pointer->Initialise();
-		}
+			this_component_descriptor.component_pointer->Initialise();
 	}
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
 	// Lastly we Solve() by iterating SubTick() until device internal state has stabilised.
-	// Solve() will a flag if there are still out pin propagations that have to be handled by the parent
-	// device during *it's* next Solve() call.
-	if (Solve()) {
-		if (this != m_top_level_sim_pointer) {
-			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
-		}
-	}
+	// In the runtime Solve() loop, we need to handle the m_buffered_propagations flag returned
+	// by Solve(). We don't need to do that here, as the parent Device will add *all* it's child
+	// Devices to it's m_propagate_next list, as we did here above.
+	Solve();
 	
 	if (mg_verbose_output_flag) {
 		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
 	}
+}
+
+void Device::Initialise() {
+	// We need to make sure that all Device out pins get propagated during the parent Device's Stabilise()
+	// call at the end of it's Build() call. This ensures that Sibling Gates that are set by the out pins of
+	// this Device - that then set in pins of other sibling Devices - have their in pins set to the correct
+	// states. Ordinarily we only want to propagate the Device out pin states if they have changed, here they
+	// all need to be propagated so that they 'overwrite' the initial random build-time Gate inputs.
+	for (auto& this_pin : m_pins) {
+		if (this_pin.direction == 2) {
+			this_pin.state_changed = true;
+		}
+	}
+	m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
 }
 
 void Device::AddComponent(Component* new_component_pointer) {
@@ -492,6 +500,8 @@ bool Device::Solve() {
 		if (mg_verbose_output_flag) {
 			std::cout << BOLD(FMAG("Level " << BOLD("" << m_nesting_level << "") << " Device " << BOLD("" << m_full_name << "") << " starting to Solve()...")) << std::endl << std::endl;
 		}
+		// Handle pending propagations for child Gates and child Device in pins.
+		// Loop terminates when there are no outstanding propagations.
 		while (sub_tick_count <= sub_tick_limit) {
 			SubTick(sub_tick_count);
 			if (m_propagate_next_tick.size() > 0) {
@@ -501,6 +511,9 @@ bool Device::Solve() {
 			}
 		}
 		if (sub_tick_count > sub_tick_limit) {
+			//~// Log error here.		-- Not able to stabilise Device state.
+			//~std::string build_error = "~~~~~~~~";
+			//~m_top_level_sim_pointer->LogBuildError(build_error);
 			std::cout << "Could not stabilise " << m_full_name << " state within " << m_max_propagations << " propagation steps." << std::endl;
 			break;
 		} else {
@@ -508,19 +521,22 @@ bool Device::Solve() {
 				std::cout << "...Solve()d." << std::endl << std::endl;
 			}
 		}
+		// Solve() for all pending child Devices.
 		for (const auto& this_local_device_index : m_devices) {
 			Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
 			if (this_device_pointer->CheckAndClearSolutionFlag()) {
 				if ((this_device_pointer->m_monitor_on) && !(mg_verbose_output_flag)) {
 					std::cout << std::endl;
 				}
+				// If the child Device's Solve() returns true, it's out pins have changed and it needs to be
+				// added to the propagation list.
 				if (this_device_pointer->Solve()) {
 					m_propagate_next_tick.emplace_back(this_local_device_index);
 				}
 			}
 		}
 	}
-	// At end of top-level Simulation Solve() call trigger Probes. We do it here to ensure that Probes are triggered by manual clk toggling.
+	// If we're solving the top-level Simulation state, we need to check if the Clock has triggered any Probes.
 	if (this == m_top_level_sim_pointer) {
 		m_top_level_sim_pointer->CheckProbeTriggers();
 	}

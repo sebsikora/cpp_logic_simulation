@@ -13,9 +13,6 @@ std::vector<int> RunTheTest(Simulation* sim, bool restart, bool verbose, bool pr
 	std::vector<int> run_times = {};
 	for (int i = 0; i < number_of_runs; i ++) {
 		std::cout << " LOOPED RUN # " << std::to_string(i) << std::endl;
-		//~if (i == (number_of_runs - 1)) {
-			//~print_probe_samples = true;
-		//~}
 		auto t1 = std::chrono::high_resolution_clock::now();
 		sim->Run(50000, restart, verbose, print_probe_samples);
 		auto t2 = std::chrono::high_resolution_clock::now();
@@ -37,7 +34,7 @@ int main () {
 	int number_of_runs = 50;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation sim = Simulation("test_sim", 10, verbose);
+	Simulation sim("test_sim", 10, verbose);
 	
 	// Add a 4-bit counter device.
 	sim.AddComponent(new Four_Bit_Counter(&sim, "test_counter", monitor_on, {{"run", true}}));
@@ -72,11 +69,6 @@ int main () {
 		run_counter ++;
 	}
 	
-	//~int index = 0;
-	//~for (const auto& run_time: run_times) {
-		//~std::cout << std::to_string(index) << "," << std::to_string(run_time) << std::endl;
-		//~index ++;
-	//~}
 	return 0;
 }
 

@@ -8,11 +8,11 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Set the desired bit-width of the counter here.
-	int counter_width = 3;
+	int counter_width = 4;
 	
 	// Instantiate the top-level Device (the Simulation).
 	std::string sim_name = "test_sim";
-	Simulation sim = Simulation(sim_name, 10, verbose);
+	Simulation sim(sim_name, 10, verbose);
 	
 	// Add the n-bit counter Device. Note the parameterised counter width.
 	sim.AddComponent(new N_Bit_Counter(&sim, "test_counter", counter_width, monitor_on, {{"run", true}}));
@@ -37,7 +37,7 @@ int main () {
 	//~sim.AddProbe("counter_clk_in", "test_sim:test_counter", {"clk"}, "clock_0");
 	//~sim.AddProbe("counter_run_in", "test_sim:test_counter", {"run"}, "clock_0");
 	
-	sim.Run(40, true, verbose, print_probe_samples);
+	sim.Run(33, true, verbose, print_probe_samples);
 	
 	return 0;
 }

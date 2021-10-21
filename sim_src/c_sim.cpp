@@ -34,7 +34,7 @@
 #include "colors.h"
 
 Simulation::Simulation(std::string const& simulation_name, int max_propagations, bool verbose_output_flag)
- : Device(static_cast<Device*>(this), simulation_name, "simulation", {}, {}, false, {}, max_propagations
+ : Device(this, simulation_name, "simulation", {}, {}, false, {}, max_propagations
 	) {
 	m_next_new_CUID = 1;
 	m_simulation_running = false;
