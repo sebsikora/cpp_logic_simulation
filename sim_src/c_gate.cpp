@@ -324,7 +324,9 @@ void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 			new_connections.push_back(this_connection_descriptor);
 		} else {
 			connections_removed ++;
-			std::cout << "Gate " << m_full_name << " removing an output connection to " << this_connection_descriptor.target_component_pointer->GetFullName() << std::endl;
+			std::cout << "Gate " << m_full_name << " removed an out connection to "
+				<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
+					<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
 		}
 	}
 	if ((new_connections.size() == 0) && (connections_removed > 0)) {
@@ -345,7 +347,8 @@ void Gate::PurgeOutboundConnections() {
 		} else if (pin_direction == 2) {
 			direction = " out";
 		}
-		std::cout << "Component " << target_component_pointer->GetFullName() << direction << " pin " << target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+		std::cout << "Component " << target_component_pointer->GetFullName() << direction << " pin "
+			<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
 		target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
 	}
 }

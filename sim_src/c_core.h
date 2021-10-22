@@ -236,7 +236,6 @@ class Simulation : public Device {
 		bool m_simulation_running;
 		int m_global_tick_index;
 		int m_next_new_CUID;
-		bool m_action_complete = false;
 };
 
 // Clock utility class.

@@ -844,7 +844,8 @@ void Device::PurgeOutboundConnections() {
 				} else if (target_pin_direction == 2) {
 					target_direction = "out";
 				}
-				std::cout << "Component " << target_component_pointer->GetFullName() << " " << target_direction << " pin " << target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+				std::cout << "Component " << target_component_pointer->GetFullName() << " " << target_direction << " pin "
+					<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
 				target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
 			}
 		}
