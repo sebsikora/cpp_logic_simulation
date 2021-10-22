@@ -12,6 +12,9 @@ int main () {
 	
 	// Add a 4-bit counter device.
 	sim.AddComponent(new Four_Bit_Counter(&sim, "test_counter", monitor_on, {{"run", true}}));
+
+	Component* component_pointer = sim.SearchForComponentPointer("test_sim:test_counter:jk_ff_2");
+	component_pointer->PurgeComponent();
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim.Stabilise();

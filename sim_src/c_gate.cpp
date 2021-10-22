@@ -307,3 +307,45 @@ void Gate::ReportUnConnectedPins() {
 		}
 	}
 }
+
+void Gate::PurgeComponent() {
+	// Ask parent device to purge all local references to this Gate...
+	m_parent_device_pointer->PurgeChildConnections(this);
+	
+}
+
+void Gate::PurgeInboundConnections(Component* target_component_pointer) {
+	// Loop over outbound connections and remove any that refer to target component.
+	std::vector<connection_descriptor> new_connections = {};
+	int connections_removed = 0;
+	for (const auto& this_connection_descriptor : m_connections) {
+		if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
+			// Preserve this connection descriptor.
+			new_connections.push_back(this_connection_descriptor);
+		} else {
+			connections_removed ++;
+			std::cout << "Gate " << m_full_name << " removing an output connection to " << this_connection_descriptor.target_component_pointer->GetFullName() << std::endl;
+		}
+	}
+	if ((new_connections.size() == 0) && (connections_removed > 0)) {
+		std::cout << "Gate " + m_full_name + " out pin drive out set to false." << std::endl;
+		SetPinDrivenFlag(m_out_pin_port_index, 1, false);
+	}
+	m_connections = new_connections;
+}
+
+void Gate::PurgeOutboundConnections() {
+	// Loop over onward connection from out pin and reset destination pins drive-in state.
+	for (const auto& this_connection_descriptor : m_connections) {
+		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
+		int pin_direction = target_component_pointer->GetPinDirection(this_connection_descriptor.target_pin_port_index);
+		std::string direction = "";
+		if (pin_direction == 1) {
+			direction = " in";
+		} else if (pin_direction == 2) {
+			direction = " out";
+		}
+		std::cout << "Component " << target_component_pointer->GetFullName() << direction << " pin " << target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+		target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
+	}
+}

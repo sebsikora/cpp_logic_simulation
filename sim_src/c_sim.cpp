@@ -351,3 +351,31 @@ std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vec
 	}
 	return probed_states;
 }
+
+				//~// Test message -------
+				//~std::cout << "*** Component to purge " << target_component_full_name << " found!" << std::endl;
+				//~actioned = true;
+				//~// --------------------
+				//~// If target Component to purge is a child of this Device, it can only be connected to this Device or
+				//~// it's own sibling Components.
+				//~// We don't need to search m_ports for this Device to find the target Component, as we know that
+				//~// it's inbound connections list from the parent Device in pins will be at m_ports[this_device_index].
+				//~// We need to search m_ports for all sibling Devices, and m_connections for all sibling Gates to see
+				//~// if any drive the target Component's in pins. Their connection descriptor will need to be removed,
+				//~// and their pin drive flags appropriately set.
+				
+				//~// Search parent Device's m_ports to search for in pins driving target Component.
+				//~for (int port_index = 0; port_index < this_device_pointer->m_ports.size(); port_index ++) {
+					//~std::vector<connection_descriptor> this_device_port = this_device_pointer->m_ports[port_index];
+					//~for (int connection_index = 0; connection_index < this_device_port.size(); connection_index ++) {
+						//~connection_descriptor this_connection = this_device_port[connection_index];
+						//~if (this_connection.target_component_pointer == target_component_pointer) {
+							//~// We have found a connection in a sibling Device.
+							//~std::cout << " Found connection from parent Device " << this_device_pointer->GetName() << std::endl;
+						//~}
+					//~}
+				//~}				
+				//~break;
+			//~}
+		//~}
+	//~}

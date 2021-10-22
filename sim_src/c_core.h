@@ -46,6 +46,9 @@ class Component {
 		virtual void MakeProbable(void) = 0;
 		virtual void PrintPinStates(int max_levels) = 0;
 		virtual void ReportUnConnectedPins(void) = 0;
+		virtual void PurgeComponent(void) = 0;
+		virtual void PurgeInboundConnections(Component* target_component_pointer) = 0;
+		virtual void PurgeOutboundConnections(void) = 0;
 
 		// Component class methods.
 		std::string GetName(void);
@@ -102,6 +105,9 @@ class Gate : public Component {
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
 		void ReportUnConnectedPins(void) override;
+		void PurgeComponent(void) override;
+		void PurgeInboundConnections(Component* target_component_pointer) override;
+		void PurgeOutboundConnections(void) override;
 		
 		// Gate class methods.
 		void Evaluate(void);
@@ -136,6 +142,9 @@ class Device : public Component {
 		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
 		void ReportUnConnectedPins(void) override;
+		void PurgeComponent(void) override;
+		void PurgeInboundConnections(Component* target_component_pointer) override;
+		void PurgeOutboundConnections(void) override;
 		
 		// Device class methods.
 		virtual void Build(void);
@@ -168,6 +177,8 @@ class Device : public Component {
 		std::vector<std::string> GetHiddenInPins(void);
 		void MarkInnerTerminalsDisconnected(void);
 		bool CheckAndClearSolutionFlag(void);
+		Component* SearchForComponentPointer(std::string const& target_component_full_name);
+		void PurgeChildConnections(Component* target_component_pointer);
 		
 		// Device class data.
 		int m_max_propagations;
@@ -225,6 +236,7 @@ class Simulation : public Device {
 		bool m_simulation_running;
 		int m_global_tick_index;
 		int m_next_new_CUID;
+		bool m_action_complete = false;
 };
 
 // Clock utility class.

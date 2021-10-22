@@ -159,7 +159,6 @@ void Device::Stabilise() {
 	// by Solve(). We don't need to do that here, as the parent Device will add *all* it's child
 	// Devices to it's m_propagate_next list, as we did here above.
 	Solve();
-	
 	if (mg_verbose_output_flag) {
 		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
 	}
@@ -528,8 +527,8 @@ bool Device::Solve() {
 				if ((this_device_pointer->m_monitor_on) && !(mg_verbose_output_flag)) {
 					std::cout << std::endl;
 				}
-				// If the child Device's Solve() returns true, it's out pins have changed and it needs to be
-				// added to the propagation list.
+				// If the child Device's Solve() returns true, one or more of it's out pins have
+				// changed and it needs to be added to the propagation list.
 				if (this_device_pointer->Solve()) {
 					m_propagate_next_tick.emplace_back(this_local_device_index);
 				}
@@ -578,8 +577,6 @@ void Device::SubTick(int index) {
 	//~}
 	for (int i = m_propagate_this_tick.size() - 1; i >= 0; i --) {
 		m_still_to_propagate.pop_back();
-		//~Component* component_pointer = m_components[m_propagate_this_tick[i]].component_pointer;
-		//~component_pointer->Propagate();
 		m_components[m_propagate_this_tick[i]].component_pointer->Propagate();
 	}
 	m_propagate_this_tick.clear();
@@ -762,5 +759,106 @@ void Device::MarkInnerTerminalsDisconnected(void) {
 		} else if (this_pin.direction == 2) {
 			this_pin.drive[0] = true;
 		}
+	}
+}
+
+Component* Device::SearchForComponentPointer(std::string const& target_component_full_name) {
+	Component* target_component_pointer = 0;
+	for (const auto& this_component_descriptor : m_components) {
+		if (this_component_descriptor.component_full_name == target_component_full_name) {
+			// Target Component is a child of this Device. Break and return it's pointer.
+			target_component_pointer = this_component_descriptor.component_pointer;
+			std::cout << "Component " << target_component_full_name << " found @ " << target_component_pointer << std::endl;
+			break;
+		}
+	}
+	if (target_component_pointer == 0) {
+		// Target Component is not a child of this Device.
+		// Call PurgeComponent() for each child Device to search deeper.
+		for (const auto& this_device_index : m_devices) {
+			Device* this_device_pointer = static_cast<Device*>(m_components[this_device_index].component_pointer);
+			target_component_pointer = this_device_pointer->SearchForComponentPointer(target_component_full_name);
+			// When PurgeComponent() returns with a non-zero pointer, break and return it.
+			// In this way eventually we will return the pointer to the original caller.
+			if (target_component_pointer != 0) {
+				break;
+			}
+		}
+	}
+	return target_component_pointer;
+}
+
+void Device::PurgeComponent() {
+	// Ask parent device to purge all local references to this Device...
+	m_parent_device_pointer->PurgeChildConnections(this);
+}
+
+void Device::PurgeInboundConnections(Component* target_component_pointer) {
+	// Purge m_ports of connections to or from target Component.
+	int port_index = 0;
+	std::vector<std::vector<connection_descriptor>> new_ports = {};
+	for (const auto& this_port : m_ports) {
+		std::vector<connection_descriptor> this_new_port = {};
+		int connections_removed = 0;
+		int pin_direction = GetPinDirection(port_index);
+		std::string direction = "";
+		if (pin_direction == 1) {
+			direction = "in";
+		} else if (pin_direction == 2) {
+			direction = "out";
+		}
+		for (const auto& this_connection_descriptor : this_port) {
+			if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
+				// This connection descriptor needs to be preserved.
+				this_new_port.push_back(this_connection_descriptor);
+			} else {
+				// This connection descriptor is to be omitted and any corresponding drive flags set to false.
+				connections_removed ++;
+				std::cout << "Device " << m_full_name << " removed an " << direction << " connection from " << GetPinName(port_index) << " to "
+					<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
+					<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
+			}
+		}
+		new_ports.push_back(this_new_port);
+		if ((this_new_port.size() == 0) && (connections_removed > 0)) {
+			std::cout << "Device " << m_full_name << " " << direction << " pin " << GetPinName(port_index) << " drive out set to false."  << std::endl;
+			SetPinDrivenFlag(port_index, 1, false);
+		}
+		port_index ++;
+	}
+	m_ports = new_ports;
+}
+
+void Device::PurgeOutboundConnections() {
+	int port_index = 0;
+	for (const auto& this_port : m_ports) {
+		int pin_direction = GetPinDirection(port_index);
+		if (pin_direction == 2) {
+			// This is an out pin so we set each target in pin drive in to false.
+			for (const auto& this_connection_descriptor : this_port) {
+				Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
+				int target_pin_direction = target_component_pointer->GetPinDirection(this_connection_descriptor.target_pin_port_index);
+				std::string target_direction = "";
+				if (target_pin_direction == 1) {
+					target_direction = "in";
+				} else if (target_pin_direction == 2) {
+					target_direction = "out";
+				}
+				std::cout << "Component " << target_component_pointer->GetFullName() << " " << target_direction << " pin " << target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+				target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
+			}
+		}
+		port_index ++;
+	}
+}
+
+void Device::PurgeChildConnections(Component* target_component_pointer) {
+	// Purge connections from target Device to sibling Component in pins or parent Device out pins.
+	target_component_pointer->PurgeOutboundConnections();
+	// Purge connections from parent Device's in pins to target Device in pins. 
+	PurgeInboundConnections(target_component_pointer);
+	// Purge connections from target component's siblings out pins to target Device in pins.
+	for (const auto& this_component_descriptor : m_components) {
+		this_component_descriptor.component_pointer->PurgeInboundConnections(target_component_pointer);
 	}
 }
