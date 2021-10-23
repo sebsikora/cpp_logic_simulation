@@ -335,7 +335,6 @@ void Simulation::PrintBuildErrors(void) {
 
 std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vector<std::string> const& probe_names) {
 	std::vector<std::vector<std::vector<bool>>> probed_states;
-	int name_index = 0;
 	if (probe_names[0] == "all") {
 		for (const auto& this_probe_descriptor : m_probes) {
 			probed_states.emplace_back(this_probe_descriptor.probe_pointer->GetSamples());	
@@ -352,30 +351,99 @@ std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vec
 	return probed_states;
 }
 
-				//~// Test message -------
-				//~std::cout << "*** Component to purge " << target_component_full_name << " found!" << std::endl;
-				//~actioned = true;
-				//~// --------------------
-				//~// If target Component to purge is a child of this Device, it can only be connected to this Device or
-				//~// it's own sibling Components.
-				//~// We don't need to search m_ports for this Device to find the target Component, as we know that
-				//~// it's inbound connections list from the parent Device in pins will be at m_ports[this_device_index].
-				//~// We need to search m_ports for all sibling Devices, and m_connections for all sibling Gates to see
-				//~// if any drive the target Component's in pins. Their connection descriptor will need to be removed,
-				//~// and their pin drive flags appropriately set.
-				
-				//~// Search parent Device's m_ports to search for in pins driving target Component.
-				//~for (int port_index = 0; port_index < this_device_pointer->m_ports.size(); port_index ++) {
-					//~std::vector<connection_descriptor> this_device_port = this_device_pointer->m_ports[port_index];
-					//~for (int connection_index = 0; connection_index < this_device_port.size(); connection_index ++) {
-						//~connection_descriptor this_connection = this_device_port[connection_index];
-						//~if (this_connection.target_component_pointer == target_component_pointer) {
-							//~// We have found a connection in a sibling Device.
-							//~std::cout << " Found connection from parent Device " << this_device_pointer->GetName() << std::endl;
-						//~}
-					//~}
-				//~}				
-				//~break;
-			//~}
-		//~}
-	//~}
+void Simulation::PurgeComponent() {
+	std::cout << "Purging SIMULATION : " << m_full_name << " @ " << this << "..." << std::endl;
+	// Need to Purge all child Components and delete.
+	// Can't blast away at our m_components as we iterate over it, so we will make a copy on the stack and iterate over that.
+	
+	{	// We will do it inside a control block, to make sure that m_components_copy (with it's pointers to nowhere once we
+		// nuke it's contents) goes out of scope asap.
+		std::vector<component_descriptor> m_components_copy;
+		for (const auto& this_component_descriptor : m_components) {
+			component_descriptor new_component_descriptor;
+			new_component_descriptor.component_name = this_component_descriptor.component_name;
+			new_component_descriptor.component_full_name = this_component_descriptor.component_full_name;
+			new_component_descriptor.component_pointer = this_component_descriptor.component_pointer;
+			m_components_copy.push_back(new_component_descriptor);
+		}
+		
+		// Now we can iterate over m_components_copy and blast away at m_components.
+		for (const auto& copied_component_descriptor : m_components_copy) {
+			copied_component_descriptor.component_pointer->PurgeComponent();
+			delete copied_component_descriptor.component_pointer;
+		}
+	}
+	//	Simulation has no external inputs or outputs to handle (as it is top-level).
+	
+	// 	Next we need to purge all Clocks, which will take with them all Probes.
+	for (const auto& this_clock_descriptor : m_clocks) {
+		this_clock_descriptor.clock_pointer->PurgeClock();
+		delete this_clock_descriptor.clock_pointer;
+	}
+	// - It should now be safe to delete this object -
+}
+
+void Simulation::PurgeComponentFromClocks(Component* target_component_pointer) {
+	for (const auto& this_clock_descriptor : m_clocks) {
+		Clock* this_clock_pointer = this_clock_descriptor.clock_pointer;
+		this_clock_pointer->PurgeTargetComponent(target_component_pointer);
+	}
+}
+
+void Simulation::PurgeComponentFromProbableComponents(Component* target_component_pointer) {
+	std::vector<Component*> new_probable_components = {};
+	for (const auto& this_probable_component_pointer : m_probable_components) {
+		if (this_probable_component_pointer != target_component_pointer) {
+			new_probable_components.push_back(this_probable_component_pointer);
+		} else {
+			std::cout << "Purging " << target_component_pointer->GetFullName() << " from Simulation m_probable_components." << std::endl;
+		}
+	}
+	m_probable_components = new_probable_components;
+}
+
+void Simulation::PurgeChildProbe(std::string const& target_probe_name) {
+	bool target_probe_found = false;
+	{
+		std::vector<probe_descriptor> new_probes = {};
+		for (const auto& this_probe_descriptor : m_probes) {
+			if (this_probe_descriptor.probe_name != target_probe_name) {
+				probe_descriptor new_probe_descriptor;
+				new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
+				new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
+				new_probes.push_back(new_probe_descriptor);
+			} else {
+				std::cout << "Purging PROBE " << target_probe_name << " from Simulation " << m_top_level_sim_pointer->GetFullName() << "..." << std::endl;
+				delete this_probe_descriptor.probe_pointer;
+				target_probe_found = true;
+			}
+		}
+		m_probes = new_probes;
+	}
+	if (!target_probe_found) {
+		std::cout << "Target PROBE " << target_probe_name << " not found." <<  std::endl;
+	}
+}
+
+void Simulation::PurgeChildClock(std::string const& target_clock_name) {
+	bool target_clock_found = false;
+	{
+		std::vector<clock_descriptor> new_clocks = {};
+		for (const auto& this_clock_descriptor : m_clocks) {
+			if (this_clock_descriptor.clock_name != target_clock_name) {
+				clock_descriptor new_clock_descriptor;
+				new_clock_descriptor.clock_name = this_clock_descriptor.clock_name;
+				new_clock_descriptor.clock_pointer = this_clock_descriptor.clock_pointer;
+				new_clocks.push_back(new_clock_descriptor);
+			} else {
+				std::cout << "Purging CLOCK " << target_clock_name << " from Simulation " << m_top_level_sim_pointer->GetFullName() << "..." << std::endl;
+				delete this_clock_descriptor.clock_pointer;
+				target_clock_found = true;
+			}
+		}
+		m_clocks = new_clocks;
+	}
+	if (!target_clock_found) {
+		std::cout << "Target CLOCK " << target_clock_name << " not found." <<  std::endl;
+	}
+}

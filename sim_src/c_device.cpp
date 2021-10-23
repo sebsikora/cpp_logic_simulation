@@ -209,7 +209,7 @@ void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<b
 	if (m_magic_device_flag == true) {
 		// Convert the human-writable  kind of magic event co-condition (strings for terminal identifiers) to the kind pin-indexed kind.
 		std::vector<magic_event_co_condition> co_conditions = {};
-		for (int i = 0; i  < hw_co_conditions.size(); i ++) {
+		for (size_t i = 0; i  < hw_co_conditions.size(); i ++) {
 			magic_event_co_condition this_co_condition;
 			this_co_condition.pin_port_index = GetPinPortIndex(hw_co_conditions[i].pin_name);
 			this_co_condition.pin_state = hw_co_conditions[i].pin_state;
@@ -718,6 +718,7 @@ void Device::PrintInternalPinStates(int max_levels) {
 }
 
 void Device::ReportUnConnectedPins() {
+	std::cout << "Checking pins for " << m_full_name << " local component index " << m_local_component_index << std::endl;
 	for (const auto& this_pin : m_pins) {
 		if (this_pin.direction == 1) {
 			// We don't halt on a build error for un-driven input pins of upper-most level Devices.
@@ -745,8 +746,11 @@ void Device::ReportUnConnectedPins() {
 			}
 		}
 	}
+	int compindex = 0;
 	for (const auto& this_component_descriptor : m_components) {
+		std::cout << "Checking pins for m_components index " << compindex << " ";
 		this_component_descriptor.component_pointer->ReportUnConnectedPins();
+		compindex ++;
 	}
 }
 
@@ -763,7 +767,11 @@ void Device::MarkInnerTerminalsDisconnected(void) {
 }
 
 Component* Device::SearchForComponentPointer(std::string const& target_component_full_name) {
+	// Recursively search through the Component tree depth-first (easiest to implement) and return the
+	// Component pointer to the named target.
+	// NOTE - Always call it from the top-level simulation to search the whole tree.
 	Component* target_component_pointer = 0;
+	// Search the children of this level Device.
 	for (const auto& this_component_descriptor : m_components) {
 		if (this_component_descriptor.component_full_name == target_component_full_name) {
 			// Target Component is a child of this Device. Break and return it's pointer.
@@ -774,12 +782,13 @@ Component* Device::SearchForComponentPointer(std::string const& target_component
 	}
 	if (target_component_pointer == 0) {
 		// Target Component is not a child of this Device.
-		// Call PurgeComponent() for each child Device to search deeper.
+		// Search deeper into each child Device in turn. 
 		for (const auto& this_device_index : m_devices) {
 			Device* this_device_pointer = static_cast<Device*>(m_components[this_device_index].component_pointer);
 			target_component_pointer = this_device_pointer->SearchForComponentPointer(target_component_full_name);
-			// When PurgeComponent() returns with a non-zero pointer, break and return it.
-			// In this way eventually we will return the pointer to the original caller.
+			// When SearchForComponentPointer() returns with a non-zero pointer, we've found the target and have it's
+			// pointer, so return it. We return to the line above one level back up. In this way eventually we will
+			// return the pointer to the original caller (or eventually zero, if the target does not exist).
 			if (target_component_pointer != 0) {
 				break;
 			}
@@ -789,67 +798,37 @@ Component* Device::SearchForComponentPointer(std::string const& target_component
 }
 
 void Device::PurgeComponent() {
-	// Ask parent device to purge all local references to this Device...
-	m_parent_device_pointer->PurgeChildConnections(this);
-}
-
-void Device::PurgeInboundConnections(Component* target_component_pointer) {
-	// Purge m_ports of connections to or from target Component.
-	int port_index = 0;
-	std::vector<std::vector<connection_descriptor>> new_ports = {};
-	for (const auto& this_port : m_ports) {
-		std::vector<connection_descriptor> this_new_port = {};
-		int connections_removed = 0;
-		int pin_direction = GetPinDirection(port_index);
-		std::string direction = "";
-		if (pin_direction == 1) {
-			direction = "in";
-		} else if (pin_direction == 2) {
-			direction = "out";
-		}
-		for (const auto& this_connection_descriptor : this_port) {
-			if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
-				// This connection descriptor needs to be preserved.
-				this_new_port.push_back(this_connection_descriptor);
-			} else {
-				// This connection descriptor is to be omitted and any corresponding drive flags set to false.
-				connections_removed ++;
-				std::cout << "Device " << m_full_name << " removed an " << direction << " connection from " << GetPinName(port_index) << " to "
-					<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
-					<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
+	if (this != m_top_level_sim_pointer) {
+		std::cout << "Purging DEVICE : " << m_full_name << " @ " << this << "..." << std::endl;
+		// First  - Need to Purge all child Components and delete.
+		// Can't blast away at our m_components as we iterate over it, so we will make a copy on the stack and iterate over that.
+		
+		{	// We will do it inside a control block, to make sure that m_components_copy (with it's pointers to nowhere once we
+			// nuke it's contents) goes out of scope asap.
+			std::vector<component_descriptor> m_components_copy;
+			for (const auto& this_component_descriptor : m_components) {
+				component_descriptor new_component_descriptor;
+				new_component_descriptor.component_name = this_component_descriptor.component_name;
+				new_component_descriptor.component_full_name = this_component_descriptor.component_full_name;
+				new_component_descriptor.component_pointer = this_component_descriptor.component_pointer;
+				m_components_copy.push_back(new_component_descriptor);
+			}
+			
+			// Now we can iterate over m_components_copy and blast away at m_components.
+			for (const auto& copied_component_descriptor : m_components_copy) {
+				copied_component_descriptor.component_pointer->PurgeComponent();
+				delete copied_component_descriptor.component_pointer;
 			}
 		}
-		new_ports.push_back(this_new_port);
-		if ((this_new_port.size() == 0) && (connections_removed > 0)) {
-			std::cout << "Device " << m_full_name << " " << direction << " pin " << GetPinName(port_index) << " drive out set to false."  << std::endl;
-			SetPinDrivenFlag(port_index, 1, false);
-		}
-		port_index ++;
-	}
-	m_ports = new_ports;
-}
-
-void Device::PurgeOutboundConnections() {
-	int port_index = 0;
-	for (const auto& this_port : m_ports) {
-		int pin_direction = GetPinDirection(port_index);
-		if (pin_direction == 2) {
-			// This is an out pin so we set each target in pin drive in to false.
-			for (const auto& this_connection_descriptor : this_port) {
-				Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
-				int target_pin_direction = target_component_pointer->GetPinDirection(this_connection_descriptor.target_pin_port_index);
-				std::string target_direction = "";
-				if (target_pin_direction == 1) {
-					target_direction = "in";
-				} else if (target_pin_direction == 2) {
-					target_direction = "out";
-				}
-				std::cout << "Component " << target_component_pointer->GetFullName() << " " << target_direction << " pin "
-					<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
-				target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
-			}
-		}
-		port_index ++;
+		// Second - Ask parent device to purge all local references to this Device...
+		m_parent_device_pointer->PurgeChildConnections(this);
+		// Third  - Purge component from Simulation Clocks, Probes and probable devices vectors.
+		m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
+		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
+		// Fourth - Clear component entry from parent device's m_components.
+		m_parent_device_pointer->PurgeChildComponent(this);
+		// - It should now be safe to delete this object -
+		std::cout << "...completed." << std::endl << std::endl;
 	}
 }
 
@@ -861,5 +840,114 @@ void Device::PurgeChildConnections(Component* target_component_pointer) {
 	// Purge connections from target component's siblings out pins to target Device in pins.
 	for (const auto& this_component_descriptor : m_components) {
 		this_component_descriptor.component_pointer->PurgeInboundConnections(target_component_pointer);
+	}
+	// That should be all of the external
+}
+
+void Device::PurgeOutboundConnections() {
+	// Purge the target's outbound connections.
+	// The Components at the end of those outbound connections do not actually hold pointers to the target Component,
+	// as only 'driving' pins or ports hold connection descriptors. However, the destination pins in drive flags need to be set to false.
+	int port_index = 0;
+	for (const auto& this_port : m_ports) {
+		int pin_direction = GetPinDirection(port_index);
+		if (pin_direction == 2) {		// Direction 4 hidden out pins can only be Set() from inside, so they never acquire any connection_descriptor(s) in m_ports.
+			// This is an out pin so we set each target in pin drive in to false.
+			for (const auto& this_connection_descriptor : this_port) {
+				Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
+				int target_pin_direction = target_component_pointer->GetPinDirection(this_connection_descriptor.target_pin_port_index);
+				std::string target_direction = "";
+				if (target_pin_direction == 1) {			// Direction 3 hidden in pins can only Set() child inputs, they cannot be Set().
+					target_direction = "in";
+				} else if ((target_pin_direction == 2) || (target_pin_direction == 4)) {		// We will clear hidden out pin drive in flags for completeness.
+					target_direction = "out";
+				}
+				std::cout << "Component " << target_component_pointer->GetFullName() << " " << target_direction << " pin "
+					<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+				target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
+			}
+		}
+		port_index ++;
+	}
+}
+
+void Device::PurgeInboundConnections(Component* target_component_pointer) {
+	// Purge m_ports (Parent *or* sibling Devices of target Component).
+	// Parent Device in pins may drive out into target Component's in pins.
+	// Sibling Device out pins may drive out into target Component's in pins. 
+	int port_index = 0;
+	std::vector<std::vector<connection_descriptor>> new_ports = {};
+	for (const auto& this_port : m_ports) {
+		std::vector<connection_descriptor> this_new_port = {};
+		int connections_removed = 0;
+		int pin_direction = GetPinDirection(port_index);
+		std::string direction = "";
+		// Need to catch connections to hidden pins as well, even though they do not set-off the connection checker.
+		if ((pin_direction == 1) || (pin_direction == 3)) {
+			direction = "in";
+		} else if ((pin_direction == 2) || (pin_direction == 4)) {
+			direction = "out";
+		}
+		for (const auto& this_connection_descriptor : this_port) {
+			if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
+				// This connection descriptor needs to be preserved.
+				this_new_port.push_back(this_connection_descriptor);
+			} else {
+				// This connection descriptor is to be omitted as it contains a reference to the target Component.
+				connections_removed ++;
+				std::cout << "Device " << m_full_name << " removed an " << direction << " connection from " << GetPinName(port_index) << " to "
+					<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
+					<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
+			}
+		}
+		new_ports.push_back(this_new_port);
+		// If this port has had connection descriptors removed, and is now empty, set it's pin's drive out flag to false.
+		if ((this_new_port.size() == 0) && (connections_removed > 0)) {
+			std::cout << "Device " << m_full_name << " " << direction << " pin " << GetPinName(port_index) << " drive out set to false."  << std::endl;
+			SetPinDrivenFlag(port_index, 1, false);
+		}
+		port_index ++;
+	}
+	m_ports = new_ports;
+}
+
+void Device::PurgeChildComponent(Component* target_component_pointer) {
+	// if the Component is a child Device, parent's m_devices needs to have this Device's local component id removed.
+	if (target_component_pointer->GetDeviceFlag()) {
+		size_t current_local_component_index = target_component_pointer->GetLocalComponentIndex();
+		std::vector<int> new_m_devices = {};
+		for (size_t i = 0; i < m_devices.size(); i ++) {
+			if (i != current_local_component_index) {
+				new_m_devices.push_back(m_devices[i]);
+			} else {
+				std::cout << "Omitting Device local component id from m_devices for parent Device " << m_full_name << std::endl;
+			}
+		}
+		m_devices = new_m_devices;
+	}
+	// Create a new m_components vector, omitting the Component to purge. 
+	size_t index = 0;
+	size_t removal_index = 0;
+	std::vector<component_descriptor> new_m_components = {};
+	for (const auto& this_component_descriptor : m_components) {
+		if (this_component_descriptor.component_pointer != target_component_pointer) {
+			component_descriptor new_component_descriptor;
+			new_component_descriptor.component_name = this_component_descriptor.component_name;
+			new_component_descriptor.component_full_name = this_component_descriptor.component_full_name;
+			new_component_descriptor.component_pointer = this_component_descriptor.component_pointer;
+			new_m_components.push_back(new_component_descriptor);
+		} else {
+			// Note the index of the purged component. 
+			removal_index = index;
+		}
+		index ++;
+	}
+	m_components = new_m_components;
+	// Once we have finished the new m_components list, we need to decrement m_local_component_id
+	// for the components at this index and above as their position in the new m_components has shifted down one.
+	for (size_t i = removal_index; i < m_components.size(); i ++) {
+		component_descriptor this_component_descriptor = m_components[i];
+		Component* this_component_pointer = this_component_descriptor.component_pointer;
+		this_component_pointer->SetLocalComponentIndex(i);
 	}
 }

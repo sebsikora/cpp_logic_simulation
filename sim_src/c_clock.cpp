@@ -142,3 +142,34 @@ void Clock::TriggerProbes() {
 	}
 	m_ticked_flag = false;
 }
+
+void Clock::PurgeTargetComponent(Component* target_component_pointer) {
+	std::vector<connection_descriptor> new_connections = {};
+	for (const auto& this_connection_descriptor : m_connections) {
+		if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
+			connection_descriptor new_connection_descriptor;
+			new_connection_descriptor.target_component_pointer = this_connection_descriptor.target_component_pointer;
+			new_connection_descriptor.target_pin_port_index = this_connection_descriptor.target_pin_port_index;
+			new_connections.push_back(new_connection_descriptor);
+		} else {
+			std::cout << "Purging " << target_component_pointer->GetFullName() << " from Clock " << m_name << " m_connections." << std::endl;
+		}
+	}
+	m_connections = new_connections;
+}
+
+void Clock::PurgeClock(void) {
+	std::cout << "Purging CLOCK " << m_name << " from Simulation " << m_top_level_sim_pointer->GetFullName() << "..." << std::endl;
+	// If the Clock has any connections, set their drive in flag to false.
+	for (const auto& this_connection_descriptor : m_connections) {
+		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
+		int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
+		target_component_pointer->SetPinDrivenFlag(target_pin_port_index, 0, false);
+		std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
+	}
+	// Need to purge any associated probes from parent Simulation's m_probes, then can delete the clock.
+	for (const auto& this_probe_descriptor : m_probes) {
+		m_top_level_sim_pointer->PurgeChildProbe(this_probe_descriptor.probe_name);
+	}
+	// - It should now be safe to delete this object -
+}

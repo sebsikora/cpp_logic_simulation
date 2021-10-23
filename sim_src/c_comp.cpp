@@ -46,6 +46,14 @@ std::string Component::GetComponentType() {
 	return m_component_type;
 }
 
+int Component::GetLocalComponentIndex() {
+	return m_local_component_index;
+}
+
+void Component::SetLocalComponentIndex(int new_local_component_index) {
+	m_local_component_index = new_local_component_index;
+}
+
 Simulation* Component::GetTopLevelSimPointer() {
 	return m_top_level_sim_pointer;
 }

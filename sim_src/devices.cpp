@@ -81,7 +81,7 @@ void JK_FF::Build() {
 	Connect("clk", "not_1");				// Not Gates created with only one in pin "input" so we can omit the target pin name parameter.
 	
 	// Add device to top-level probable list.
-	MakeProbable();
+	//MakeProbable();
 	//PrintInPinStates();
 }
 
@@ -163,6 +163,7 @@ void Four_Bit_Counter::Build() {
 	AddGate("and_1", "and", {"input_0", "input_1"}, false);
 	// As an example, we can make individual gates probable, but only via the parent devices' method...
 	ChildMakeProbable("and_0");
+	ChildMakeProbable("jk_ff_0");
 	
 	// Interconnect components.
 	ChildConnect("jk_ff_0", {"q", "parent", "q_0"});
@@ -200,9 +201,9 @@ void Four_Bit_Counter::Build() {
 	ChildMarkOutputNotConnected("jk_ff_3", "not_q");
 	
 	// Add device to top-level probable list.
-	MakeProbable();
-	PrintInPinStates();
-	PrintOutPinStates();
+	//MakeProbable();
+	//PrintInPinStates();
+	//PrintOutPinStates();
 }
 
 N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 

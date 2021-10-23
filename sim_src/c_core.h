@@ -36,8 +36,9 @@
 class Component {
 	public:
 		// Component class constructor.
-		Component() {}
-
+		Component() { }
+		virtual ~Component() { std::cout << "Component dtor for " << this << std::endl << std::endl; }
+		
 		// Component class virtual methods.
 		virtual void Initialise(void) = 0;
 		virtual void Connect(std::vector<std::string> connection_parameters) = 0;
@@ -49,12 +50,14 @@ class Component {
 		virtual void PurgeComponent(void) = 0;
 		virtual void PurgeInboundConnections(Component* target_component_pointer) = 0;
 		virtual void PurgeOutboundConnections(void) = 0;
-
+		
 		// Component class methods.
 		std::string GetName(void);
 		bool GetDeviceFlag(void);
 		std::string GetFullName(void);
 		std::string GetComponentType(void);
+		int GetLocalComponentIndex(void);
+		void SetLocalComponentIndex(int new_local_component_index);
 		Simulation* GetTopLevelSimPointer(void);
 		bool GetPinState(int pin_port_index);
 		std::string GetPinName(int pin_port_index);
@@ -96,6 +99,7 @@ class Gate : public Component {
 		Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
 		std::vector<std::string> in_pin_names = {}, bool monitor_on = false
 		);
+		~Gate() { std::cout << "Gate dtor for " << this << std::endl << std::endl; }
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
@@ -133,6 +137,7 @@ class Device : public Component {
 		std::vector<std::string> out_pin_names, bool monitor_on = false, std::unordered_map<std::string, bool> const& in_pin_default_states = {},
 		int max_propagations = 0
 		);
+		~Device() { std::cout << "Device dtor for " << this << std::endl << std::endl; }
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
@@ -146,8 +151,10 @@ class Device : public Component {
 		void PurgeInboundConnections(Component* target_component_pointer) override;
 		void PurgeOutboundConnections(void) override;
 		
-		// Device class methods.
+		// Device class virtual methods.
 		virtual void Build(void);
+
+		// Device class methods.
 		void CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
 		void AddComponent(Component* new_component_pointer);
@@ -179,6 +186,7 @@ class Device : public Component {
 		bool CheckAndClearSolutionFlag(void);
 		Component* SearchForComponentPointer(std::string const& target_component_full_name);
 		void PurgeChildConnections(Component* target_component_pointer);
+		void PurgeChildComponent(Component* target_component_pointer);
 		
 		// Device class data.
 		int m_max_propagations;
@@ -201,6 +209,10 @@ class Simulation : public Device {
 	public:
 		// Simulation class constructor.
 		Simulation(std::string const& simulation_name, int max_propagations = 10, bool verbose_output_flag = false);
+		~Simulation() { }
+		
+		// Override Component virtual methods.
+		void PurgeComponent(void) override;
 		
 		// Simulation class methods.
 		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false);
@@ -225,6 +237,10 @@ class Simulation : public Device {
 		void LogBuildError(std::string const& build_error);
 		void PrintBuildErrors(void);
 		std::vector<std::vector<std::vector<bool>>> GetProbedStates(std::vector<std::string> const& probe_names);
+		void PurgeComponentFromClocks(Component* target_component_pointer);
+		void PurgeComponentFromProbableComponents(Component* target_component_pointer);
+		void PurgeChildProbe(std::string const& target_probe_name);
+		void PurgeChildClock(std::string const& target_clock_name);
 		
 		// Simulation class data.
 		std::vector<Component*> m_probable_components;
@@ -253,6 +269,8 @@ class Clock {
 		void TriggerProbes(void);
 		bool GetTickedFlag(void);
 		std::string GetName(void);
+		void PurgeTargetComponent(Component* target_component_pointer);
+		void PurgeClock(void);
 		
 		// Clock class data.
 		Simulation* m_top_level_sim_pointer;
@@ -262,8 +280,8 @@ class Clock {
 		std::vector<connection_descriptor> m_connections;
 		bool m_out_pin_state;
 		std::vector<bool> m_state_history;
-		int m_index;
-		int m_sub_index;
+		size_t m_index;
+		size_t m_sub_index;
 		std::vector<probe_descriptor> m_probes;
 		bool m_ticked_flag;
 };

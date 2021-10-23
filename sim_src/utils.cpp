@@ -183,7 +183,7 @@ char BoolToChar(bool logical_state) {
 std::string GenerateHeader(std::string header_message) {
 	std::string header = "\x1B[1m";
 	int message_length = header_message.size();
-	bool is_odd;
+	//~bool is_odd;
 	if ((message_length % 2) != 0) {	// length is odd.
 		header_message += " ";
 		message_length += 1;

@@ -264,7 +264,7 @@ void SimpleTerminal_MagicEngine::Finish(pid_t client_pid, const char *fifo_dat_s
 	int status;
 	pid_t wait_result;
 	wait_result = waitpid(client_pid, &status, 0);  // Parent process waits here for child to terminate.
-	//~std::cout << "Process " << (unsigned long) wait_result << " returned result: " << status << std::endl;
+	std::cout << "Process " << (unsigned long) wait_result << " returned result: " << status << std::endl;
     std::cout << "Terminal client finished." << std::endl;
 	// Close and delete FIFO buffers.
 	close(*fifo_dat_slave_to_master);

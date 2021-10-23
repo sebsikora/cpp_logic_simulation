@@ -290,6 +290,7 @@ void Gate::PrintPinStates(int max_levels) {
 }
 
 void Gate::ReportUnConnectedPins() {
+	std::cout << "Checking pins for " << m_full_name << " m_local_component_index = " << m_local_component_index << std::endl;
 	for (const auto& this_pin : m_pins) {
 		if (this_pin.direction == 1) {
 			// We don't halt on a build error for un-driven input pins of upper-most level Gates.
@@ -309,9 +310,18 @@ void Gate::ReportUnConnectedPins() {
 }
 
 void Gate::PurgeComponent() {
-	// Ask parent device to purge all local references to this Gate...
+	std::cout << "Purging GATE : " << m_full_name << " @ " << this << "..." << std::endl;
+	// First  - Ask parent device to purge all local references to this Gate...
 	m_parent_device_pointer->PurgeChildConnections(this);
-	
+	// Second - Purge component from Simulation Clocks, Probes and probable devices vectors.
+	m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
+	// Third  - Clear component entry from parent device's m_components.
+	m_parent_device_pointer->PurgeChildComponent(this);
+	// - It should now be safe to delete this object -
+	std::cout << "...completed." << std::endl << std::endl;
+	//~std::cout << this << std::endl;
+	//~std::cout << m_parent_device_pointer << std::endl;
+	//~std::cout << m_top_level_sim_pointer << std::endl;
 }
 
 void Gate::PurgeInboundConnections(Component* target_component_pointer) {
@@ -326,7 +336,7 @@ void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 			connections_removed ++;
 			std::cout << "Gate " << m_full_name << " removed an out connection to "
 				<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
-					<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
+				<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
 		}
 	}
 	if ((new_connections.size() == 0) && (connections_removed > 0)) {
