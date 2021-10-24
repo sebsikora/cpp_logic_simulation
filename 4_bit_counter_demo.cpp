@@ -5,7 +5,7 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
+	bool verbose = true;
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
@@ -22,6 +22,9 @@ int main () {
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();
+	
+	//~sim->PurgeChildClock("clock_0");
+	
 	std::cout << " --- Probable Components --- " << std::endl;
 	for (const auto& this_pointer : sim->m_probable_components) {
 		std::cout << "Probable component : " << this_pointer->GetFullName() << std::endl;
@@ -29,7 +32,6 @@ int main () {
 	std::cout << " --------------------------- " << std::endl;
 	
 	//~Component* component_pointer = sim->SearchForComponentPointer("test_sim:test_counter:jk_ff_0");
-	//~component_pointer->PurgeComponent();
 	//~delete component_pointer;
 	
 	//~std::cout << " --- Probable Components --- " << std::endl;
@@ -38,13 +40,10 @@ int main () {
 	//~}
 	//~std::cout << " --------------------------- " << std::endl;
 	
-	//~sim->PurgeChildClock("clock_0");
-	
-	
 	// Add two Probes and connect them to the counter's outputs and clk input.
 	sim->AddProbe("clk_input", "test_sim:test_counter", {"clk"}, "clock_0");
 	sim->AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
-	sim->PurgeChildProbe("clk_input");
+	//~sim->PurgeChildProbe("clk_input");
 	
 	//~// Set the counter's run input to high (true).
 	//~//sim.ChildSet("test_counter", "run", true);
@@ -52,7 +51,9 @@ int main () {
 	//~// Run the simulation for 33 ticks.
 	sim->Run(33, true, verbose, print_probe_samples);
 	
-	sim->PurgeComponent();
+	//~sim->PurgeGlobalComponent("test_sim:test_counter:jk_ff_0");
+	sim->PurgeChildComponent("test_counter");
+	
 	delete sim;
 	
 	return 0;

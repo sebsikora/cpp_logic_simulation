@@ -70,6 +70,11 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 	CreateOutPins(out_pin_names);
 }
 
+Device::~Device() {
+	PurgeComponent();
+	std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl;
+}
+
 void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states) {
 	// Determine number of existing in and out pins.
 	int new_pin_port_index = m_pins.size();
@@ -808,7 +813,7 @@ void Device::PurgeComponent() {
 		std::string header;
 		if (mg_verbose_output_flag) {
 			header =  "Purging -> DEVICE :" + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
-			std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+			std::cout << GenerateHeader(header) << std::endl;
 		}
 		// First  - Need to Purge all child Components and delete.
 		// Can't blast away at our m_components as we iterate over it, so we will make a copy on the stack and iterate over that.
@@ -825,7 +830,6 @@ void Device::PurgeComponent() {
 			
 			// Now we can iterate over m_components_copy and blast away at m_components.
 			for (const auto& copied_component_descriptor : m_components_copy) {
-				copied_component_descriptor.component_pointer->PurgeComponent();
 				delete copied_component_descriptor.component_pointer;
 			}
 		}
@@ -838,10 +842,10 @@ void Device::PurgeComponent() {
 		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
 		m_top_level_sim_pointer->PurgeComponentFromProbes(this);
 		// Fourth - Clear component entry from parent device's m_components.
-		m_parent_device_pointer->PurgeChildComponent(this);
+		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
 		if (mg_verbose_output_flag) {
 			header =  "DEVICE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-			std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+			std::cout << GenerateHeader(header) << std::endl;
 		}
 		// - It should now be safe to delete this object -
 	}
@@ -932,7 +936,22 @@ void Device::PurgeInboundConnections(Component* target_component_pointer) {
 	m_ports = new_ports;
 }
 
-void Device::PurgeChildComponent(Component* target_component_pointer) {
+void Device::PurgeChildComponent(std::string const& target_component_name) {
+	Component* target_component_pointer = 0;
+	for (const auto& this_component_descriptor : m_components) {
+		if (this_component_descriptor.component_name == target_component_name) {
+			target_component_pointer = this_component_descriptor.component_pointer;
+			break;
+		}
+	}
+	if (target_component_pointer != 0) {
+		delete target_component_pointer;
+	} else {
+		std::cout << "Child Component " << target_component_name << " not found." << std::endl;
+	}
+}
+
+void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer) {
 	// if the Component is a child Device, parent's m_devices needs to have this Device's local component id removed.
 	if (target_component_pointer->GetDeviceFlag()) {
 		size_t current_local_component_index = target_component_pointer->GetLocalComponentIndex();
@@ -974,3 +993,4 @@ void Device::PurgeChildComponent(Component* target_component_pointer) {
 		this_component_pointer->SetLocalComponentIndex(i);
 	}
 }
+

@@ -100,7 +100,7 @@ class Gate : public Component {
 		Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
 		std::vector<std::string> in_pin_names = {}, bool monitor_on = false
 		);
-		~Gate() { std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
+		~Gate();
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
@@ -138,7 +138,7 @@ class Device : public Component {
 		std::vector<std::string> out_pin_names, bool monitor_on = false, std::unordered_map<std::string, bool> const& in_pin_default_states = {},
 		int max_propagations = 0
 		);
-		~Device() { std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
+		~Device();
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
@@ -187,7 +187,8 @@ class Device : public Component {
 		bool CheckAndClearSolutionFlag(void);
 		Component* SearchForComponentPointer(std::string const& target_component_full_name);
 		void PurgeChildConnections(Component* target_component_pointer);
-		void PurgeChildComponent(Component* target_component_pointer);
+		void PurgeChildComponent(std::string const& target_component_name);
+		void PurgeChildComponentIdentifiers(Component* target_component_pointer);
 		
 		// Device class data.
 		int m_max_propagations;
@@ -210,7 +211,7 @@ class Simulation : public Device {
 	public:
 		// Simulation class constructor.
 		Simulation(std::string const& simulation_name, int max_propagations = 10, bool verbose_output_flag = false);
-		~Simulation() { std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
+		~Simulation();
 		
 		// Override Component virtual methods.
 		void PurgeComponent(void) override;
@@ -245,6 +246,7 @@ class Simulation : public Device {
 		void PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer);
 		void PurgeChildClock(std::string const& target_clock_name);
 		void PurgeClockDescriptorFromSimulation(Clock* target_clock_name);
+		void PurgeGlobalComponent(std::string const& target_component_full_name);
 		
 		// Simulation class data.
 		std::vector<Component*> m_probable_components;
@@ -263,7 +265,7 @@ class Clock {
 	public:
 		// Clock class constructor.
 		Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on);
-		~Clock() { std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl; }
+		~Clock();
 		
 		// Clock class methods.
 		void Connect(std::string const& target_component_name, std::string const& target_pin_name);
@@ -274,7 +276,7 @@ class Clock {
 		void TriggerProbes(void);
 		bool GetTickedFlag(void);
 		std::string GetName(void);
-		void PurgeTargetComponent(Component* target_component_pointer);
+		void PurgeTargetComponentConnections(Component* target_component_pointer);
 		void PurgeClock(void);
 		void PurgeProbeDescriptorFromClock(Probe* target_probe_pointer);
 		
@@ -299,7 +301,7 @@ class Probe {
 		Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
 			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer
 		);
-		~Probe() { std::cout << "Probe dtor for " << m_name << " @ " << this << std::endl << std::endl; }
+		~Probe();
 		
 		// Probe class methods.
 		void Sample(int index);

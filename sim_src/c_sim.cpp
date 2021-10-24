@@ -48,6 +48,11 @@ Simulation::Simulation(std::string const& simulation_name, int max_propagations,
 	srand(time(0));
 }
 
+Simulation::~Simulation() {
+	PurgeComponent();
+	std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl;
+}
+
 int Simulation::GetNewCUID() {
 	int new_CUID = m_next_new_CUID;
 	m_next_new_CUID ++;
@@ -355,7 +360,7 @@ void Simulation::PurgeComponent() {
 	std::string header;
 	if (mg_verbose_output_flag) {
 		header =  "Purging -> SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
-		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// Need to Purge all child Components and delete.
 	// Can't blast away at our m_components as we iterate over it, so we will make a copy on the stack and iterate over that.
@@ -373,19 +378,17 @@ void Simulation::PurgeComponent() {
 		
 		// Now we can iterate over m_components_copy and blast away at m_components.
 		for (const auto& copied_component_descriptor : m_components_copy) {
-			copied_component_descriptor.component_pointer->PurgeComponent();
 			delete copied_component_descriptor.component_pointer;
 		}
 	}
 	//	Simulation has no external inputs or outputs to handle (as it is top-level).
 	// 	Next we need to purge all Clocks.
 	for (const auto& this_clock_descriptor : m_clocks) {
-		this_clock_descriptor.clock_pointer->PurgeClock();
 		delete this_clock_descriptor.clock_pointer;
 	}
 	if (mg_verbose_output_flag) {
 		header =  "SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// - It should now be safe to delete this object -
 }
@@ -393,7 +396,7 @@ void Simulation::PurgeComponent() {
 void Simulation::PurgeComponentFromClocks(Component* target_component_pointer) {
 	for (const auto& this_clock_descriptor : m_clocks) {
 		Clock* this_clock_pointer = this_clock_descriptor.clock_pointer;
-		this_clock_pointer->PurgeTargetComponent(target_component_pointer);
+		this_clock_pointer->PurgeTargetComponentConnections(target_component_pointer);
 	}
 }
 
@@ -406,7 +409,6 @@ void Simulation::PurgeComponentFromProbes(Component* target_component_pointer) {
 		}
 	}
 	for (const auto& this_probe_pointer : probe_pointers) {
-		this_probe_pointer->PurgeProbe();
 		delete this_probe_pointer;
 	}
 }
@@ -435,7 +437,6 @@ void Simulation::PurgeChildProbe(std::string const& target_probe_name) {
 		}
 	}
 	if (target_probe_pointer != 0) {
-		target_probe_pointer->PurgeProbe();
 		delete target_probe_pointer;
 	} else {
 		std::cout << "Probe " << target_probe_name << " not found." << std::endl;
@@ -470,7 +471,6 @@ void Simulation::PurgeChildClock(std::string const& target_clock_name) {
 		}
 	}
 	if (target_clock_pointer != 0) {
-		target_clock_pointer->PurgeClock();
 		delete target_clock_pointer;
 	} else {
 		std::cout << "Clock " << target_clock_name << " not found." << std::endl;
@@ -493,4 +493,14 @@ void Simulation::PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer)
 		}
 	}
 	m_clocks = new_clocks;
+}
+
+void Simulation::PurgeGlobalComponent(std::string const& target_component_full_name) {
+	Component* target_component_pointer = 0;
+	target_component_pointer = m_top_level_sim_pointer->SearchForComponentPointer(target_component_full_name);
+	if (target_component_pointer != 0) {
+		delete target_component_pointer;
+	} else {
+		std::cout << "Global Component " << target_component_full_name << " not found." << std::endl;
+	}
 }

@@ -69,6 +69,11 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 	m_pins.push_back(new_out_pin);
 }
 
+Gate::~Gate() {
+	PurgeComponent();
+	std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
+}
+
 void Gate::Initialise() {
 	// If this gate does not have an input connected to a parent device input, it will not have any inputs Set() during the
 	// parent device Stabilise() call, and won't necessarily be evaluated during the subsequent Solve() call. This can result in
@@ -315,7 +320,7 @@ void Gate::PurgeComponent() {
 	std::string header;
 	if (mg_verbose_output_flag) {
 		header =  "Purging -> GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
-		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// First  - Ask parent device to purge all local references to this Gate...
 	m_parent_device_pointer->PurgeChildConnections(this);
@@ -326,10 +331,10 @@ void Gate::PurgeComponent() {
 	m_top_level_sim_pointer->PurgeComponentFromClocks(this);
 	m_top_level_sim_pointer->PurgeComponentFromProbes(this);
 	// Third  - Clear component entry from parent device's m_components.
-	m_parent_device_pointer->PurgeChildComponent(this);
+	m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
 	if (mg_verbose_output_flag) {
 		header =  "GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// - It should now be safe to delete this object -
 }

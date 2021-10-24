@@ -38,6 +38,11 @@ Clock::Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, s
 	m_ticked_flag = false;
 }
 
+Clock::~Clock() {
+	PurgeClock();
+	std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl;
+}
+
 std::string Clock::GetName() {
 	return m_name;
 }
@@ -143,7 +148,7 @@ void Clock::TriggerProbes() {
 	m_ticked_flag = false;
 }
 
-void Clock::PurgeTargetComponent(Component* target_component_pointer) {
+void Clock::PurgeTargetComponentConnections(Component* target_component_pointer) {
 	std::vector<connection_descriptor> new_connections = {};
 	for (const auto& this_connection_descriptor : m_connections) {
 		if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
@@ -164,7 +169,7 @@ void Clock::PurgeClock(void) {
 	std::string header;
 	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
 		header =  "Purging -> CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this));
-		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// If the Clock has any connections, set their drive in flag to false.
 	for (const auto& this_connection_descriptor : m_connections) {
@@ -189,7 +194,6 @@ void Clock::PurgeClock(void) {
 		// PurgeProbe() will purge the relevant probe_descriptor from both this Clock's m_probes and the
 		// parent Simulation's m_probes.
 		for (const auto& this_probe_descriptor : m_probes_copy) {
-			this_probe_descriptor.probe_pointer->PurgeProbe();
 			delete this_probe_descriptor.probe_pointer;
 		}
 		m_probes = m_probes_copy;
@@ -198,7 +202,7 @@ void Clock::PurgeClock(void) {
 	m_top_level_sim_pointer->PurgeClockDescriptorFromSimulation(this);
 	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
 		header =  "CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// - It should now be safe to delete this object -
 }
