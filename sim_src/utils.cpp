@@ -205,3 +205,9 @@ std::string GenerateHeader(std::string header_message) {
 	header += "\x1B[0m";
 	return header; 
 }
+
+std::string PointerToString(void* pointer){
+	std::stringstream ss;
+	ss << pointer;
+	return ss.str();
+}

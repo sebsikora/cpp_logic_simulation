@@ -29,6 +29,7 @@
 #include <unordered_map>			// std::unordered_map
 #include <termios.h>				// terminal settings data structure
 
+// NOTE - c_structs.h must be included first after the library headers as it contains essential forward definitions.
 #include "c_structs.h"				// struct definitions and forward Class delarations for the below.
 
 // Class prototypes.
@@ -37,7 +38,7 @@ class Component {
 	public:
 		// Component class constructor.
 		Component() { }
-		virtual ~Component() { std::cout << "Component dtor for " << this << std::endl << std::endl; }
+		virtual ~Component() { std::cout << "Component dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
 		
 		// Component class virtual methods.
 		virtual void Initialise(void) = 0;
@@ -99,7 +100,7 @@ class Gate : public Component {
 		Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
 		std::vector<std::string> in_pin_names = {}, bool monitor_on = false
 		);
-		~Gate() { std::cout << "Gate dtor for " << this << std::endl << std::endl; }
+		~Gate() { std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
@@ -137,7 +138,7 @@ class Device : public Component {
 		std::vector<std::string> out_pin_names, bool monitor_on = false, std::unordered_map<std::string, bool> const& in_pin_default_states = {},
 		int max_propagations = 0
 		);
-		~Device() { std::cout << "Device dtor for " << this << std::endl << std::endl; }
+		~Device() { std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
@@ -209,7 +210,7 @@ class Simulation : public Device {
 	public:
 		// Simulation class constructor.
 		Simulation(std::string const& simulation_name, int max_propagations = 10, bool verbose_output_flag = false);
-		~Simulation() { }
+		~Simulation() { std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
 		
 		// Override Component virtual methods.
 		void PurgeComponent(void) override;
@@ -238,9 +239,12 @@ class Simulation : public Device {
 		void PrintBuildErrors(void);
 		std::vector<std::vector<std::vector<bool>>> GetProbedStates(std::vector<std::string> const& probe_names);
 		void PurgeComponentFromClocks(Component* target_component_pointer);
+		void PurgeComponentFromProbes(Component* target_component_pointer);
 		void PurgeComponentFromProbableComponents(Component* target_component_pointer);
 		void PurgeChildProbe(std::string const& target_probe_name);
+		void PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer);
 		void PurgeChildClock(std::string const& target_clock_name);
+		void PurgeClockDescriptorFromSimulation(Clock* target_clock_name);
 		
 		// Simulation class data.
 		std::vector<Component*> m_probable_components;
@@ -259,6 +263,7 @@ class Clock {
 	public:
 		// Clock class constructor.
 		Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on);
+		~Clock() { std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl; }
 		
 		// Clock class methods.
 		void Connect(std::string const& target_component_name, std::string const& target_pin_name);
@@ -271,6 +276,7 @@ class Clock {
 		std::string GetName(void);
 		void PurgeTargetComponent(Component* target_component_pointer);
 		void PurgeClock(void);
+		void PurgeProbeDescriptorFromClock(Probe* target_probe_pointer);
 		
 		// Clock class data.
 		Simulation* m_top_level_sim_pointer;
@@ -293,13 +299,16 @@ class Probe {
 		Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
 			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer
 		);
+		~Probe() { std::cout << "Probe dtor for " << m_name << " @ " << this << std::endl << std::endl; }
 		
 		// Probe class methods.
 		void Sample(int index);
 		void Reset(void);
 		void PreallocateSampleMemory(int number_of_ticks);
+		Component* GetTargetComponentPointer(void);
 		void PrintSamples(void);
 		std::vector<std::vector<bool>> GetSamples(void);
+		void PurgeProbe(void);
 		
 		// Probe class data.
 		Simulation* m_top_level_sim_pointer;
@@ -318,6 +327,8 @@ class MagicEngine {
 	public:
 		// Constructor.
 		MagicEngine(Device* parent_device_pointer);
+		~MagicEngine() { std::cout << "MagicEngine dtor for " << m_parent_device_pointer->GetFullName() << ":magic_engine @ " << this << std::endl << std::endl; }
+		
 		// Methods.
 		void AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event);
 		void CheckMagicEventTrap(int target_pin_port_index, bool new_state);

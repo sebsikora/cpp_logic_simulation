@@ -152,24 +152,69 @@ void Clock::PurgeTargetComponent(Component* target_component_pointer) {
 			new_connection_descriptor.target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 			new_connections.push_back(new_connection_descriptor);
 		} else {
-			std::cout << "Purging " << target_component_pointer->GetFullName() << " from Clock " << m_name << " m_connections." << std::endl;
+			if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+				std::cout << "Purging " << target_component_pointer->GetFullName() << " from Clock " << m_name << " m_connections." << std::endl;
+			}
 		}
 	}
 	m_connections = new_connections;
 }
 
 void Clock::PurgeClock(void) {
-	std::cout << "Purging CLOCK " << m_name << " from Simulation " << m_top_level_sim_pointer->GetFullName() << "..." << std::endl;
+	std::string header;
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		header =  "Purging -> CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this));
+		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+	}
 	// If the Clock has any connections, set their drive in flag to false.
 	for (const auto& this_connection_descriptor : m_connections) {
 		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
 		int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 		target_component_pointer->SetPinDrivenFlag(target_pin_port_index, 0, false);
-		std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
+		if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+			std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
+		}
 	}
-	// Need to purge any associated probes from parent Simulation's m_probes, then can delete the clock.
-	for (const auto& this_probe_descriptor : m_probes) {
-		m_top_level_sim_pointer->PurgeChildProbe(this_probe_descriptor.probe_name);
+	// Make a list of pointers for m_probes, then loop over *these* below. We can modify Probe.PurgeProbe() called by
+	// PurgeChildProbe() below to follow the trigger clock pointer and call PurgeProbeFromClock() below to rebuild
+	// this Clock's m_probes vector, omitting the target Probe.
+	{
+		std::vector<probe_descriptor> m_probes_copy = {};
+		for (const auto& this_probe_descriptor : m_probes) {
+			probe_descriptor new_probe_descriptor;
+			new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
+			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
+			m_probes_copy.push_back(new_probe_descriptor);
+		}
+		// PurgeProbe() will purge the relevant probe_descriptor from both this Clock's m_probes and the
+		// parent Simulation's m_probes.
+		for (const auto& this_probe_descriptor : m_probes_copy) {
+			this_probe_descriptor.probe_pointer->PurgeProbe();
+			delete this_probe_descriptor.probe_pointer;
+		}
+		m_probes = m_probes_copy;
+	}
+	// Finally we purge the Clock from the parent Simulation's m_clocks vector.
+	m_top_level_sim_pointer->PurgeClockDescriptorFromSimulation(this);
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		header =  "CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
+		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
 	}
 	// - It should now be safe to delete this object -
+}
+
+void Clock::PurgeProbeDescriptorFromClock(Probe* target_probe_pointer) {
+	// Purge target probe's probe_descriptor from Clock's m_probes here...
+	std::vector<probe_descriptor> new_probes = {};
+	for (const auto& this_probe_descriptor : m_probes) {
+		if (this_probe_descriptor.probe_pointer != target_probe_pointer) {
+			probe_descriptor new_probe_descriptor;
+			new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
+			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
+			new_probes.push_back(new_probe_descriptor);
+		} else {
+			std::cout << "Purging " << this_probe_descriptor.probe_name << " from Clock " << m_name << " m_probes." << std::endl;
+		}
+	}
+	m_probes = new_probes;
 }

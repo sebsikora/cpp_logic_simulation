@@ -162,8 +162,8 @@ void Four_Bit_Counter::Build() {
 	AddGate("and_0", "and", {"input_0", "input_1"}, false);
 	AddGate("and_1", "and", {"input_0", "input_1"}, false);
 	// As an example, we can make individual gates probable, but only via the parent devices' method...
-	ChildMakeProbable("and_0");
-	ChildMakeProbable("jk_ff_0");
+	//~ChildMakeProbable("and_0");
+	//~ChildMakeProbable("jk_ff_0");
 	
 	// Interconnect components.
 	ChildConnect("jk_ff_0", {"q", "parent", "q_0"});
@@ -201,7 +201,7 @@ void Four_Bit_Counter::Build() {
 	ChildMarkOutputNotConnected("jk_ff_3", "not_q");
 	
 	// Add device to top-level probable list.
-	//MakeProbable();
+	MakeProbable();
 	//PrintInPinStates();
 	//PrintOutPinStates();
 }

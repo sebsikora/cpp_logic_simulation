@@ -68,6 +68,10 @@ void Probe::PreallocateSampleMemory(int number_of_ticks) {
 	
 }
 
+Component* Probe::GetTargetComponentPointer() {
+	return m_target_component_pointer;
+}
+
 void Probe::PrintSamples() {
 	int index = 0;
 	std::cout << "Probe: " << m_name << " - " << m_target_component_full_name << std::endl;
@@ -87,4 +91,21 @@ void Probe::PrintSamples() {
 
 std::vector<std::vector<bool>> Probe::GetSamples(void) {
 	return m_samples;
+}
+
+void Probe::PurgeProbe() {
+	std::string header;
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		header =  "Purging -> PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) ;
+		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+	}
+	// PurgeProbe needs to follow the m_trigger_clock_pointer to first of all remove itself from the trigger Clock's m_probes vector...
+	m_trigger_clock_pointer->PurgeProbeDescriptorFromClock(this);
+	// ...then parent Simulation's m_probes vector.
+	m_top_level_sim_pointer->PurgeProbeDescriptorFromSimulation(this);
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		header =  "PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged." ;
+		std::cout << std::endl << GenerateHeader(header) << std::endl << std::endl;
+	}
+	// - It should now be safe to delete this object -
 }

@@ -38,20 +38,22 @@ int main () {
 	//~}
 	//~std::cout << " --------------------------- " << std::endl;
 	
-	sim->PurgeChildClock("clock_0");
+	//~sim->PurgeChildClock("clock_0");
 	
-	sim->PurgeComponent();
-	delete sim;
 	
-	//~// Add two Probes and connect them to the counter's outputs and clk input.
-	//~sim->AddProbe("clk_input", "test_sim:test_counter", {"clk"}, "clock_0");
-	//~sim->AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
+	// Add two Probes and connect them to the counter's outputs and clk input.
+	sim->AddProbe("clk_input", "test_sim:test_counter", {"clk"}, "clock_0");
+	sim->AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
+	sim->PurgeChildProbe("clk_input");
 	
 	//~// Set the counter's run input to high (true).
 	//~//sim.ChildSet("test_counter", "run", true);
 	
 	//~// Run the simulation for 33 ticks.
-	//~sim->Run(33, true, verbose, print_probe_samples);
+	sim->Run(33, true, verbose, print_probe_samples);
+	
+	sim->PurgeComponent();
+	delete sim;
 	
 	return 0;
 }

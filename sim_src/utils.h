@@ -22,7 +22,8 @@
 #ifndef LSIM_UTILS_H
 #define LSIM_UTILS_H
 
-#include <string>					// std::string.
+#include <sstream>					// std::stringstream
+#include <string>					// std::string
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
 
@@ -48,5 +49,7 @@ void StaggerPrint(int level, int width);
 void StaggerPrint(int width);
 std::string GenerateHeader(std::string header_message);
 char BoolToChar(bool logical_state);
+
+std::string PointerToString(void* pointer);
 
 #endif
