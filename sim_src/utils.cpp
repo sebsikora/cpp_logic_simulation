@@ -19,6 +19,7 @@
 
 */
 
+#include <sstream>					// std::stringstream
 #include <string>					// std::string.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
@@ -39,108 +40,9 @@ std::vector<bool> IntToStates(int value_to_convert, int pin_count) {
 	return converted_value;
 }
 
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, pin> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
 bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search) {
 	for (const auto& entry: vector_to_search) {
 		if (string_to_find == entry) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsHashInVector(std::size_t hash_to_find, std::vector<std::size_t> const& vector_to_search) {
-	for (const auto& entry: vector_to_search) {
-		if (hash_to_find == entry) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, bool> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, bool> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, connection_descriptor> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, Component*> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, connection_descriptor> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, Clock*> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, Clock*> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, Probe*> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
-
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, MagicEngine*> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
 			return true;
 		}
 	}

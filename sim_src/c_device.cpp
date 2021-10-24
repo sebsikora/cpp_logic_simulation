@@ -71,7 +71,9 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 
 Device::~Device() {
 	PurgeComponent();
-	std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl;
+	if (mg_verbose_output_flag) {
+		std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl;
+	}
 }
 
 void Device::CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states) {
@@ -127,12 +129,9 @@ void Device::Build() {
 
 void Device::Stabilise() {
 	// Ensures that internal device state settles correctly.
-	if (this == m_top_level_sim_pointer) {
-		ReportUnConnectedPins();
-	}
 	if (mg_verbose_output_flag) {
-		std::string msg = "Stabilising new level " + std::to_string(m_nesting_level) + " device " + m_full_name;
-		std::cout << GenerateHeader(msg) << std::endl << std::endl;
+		std::string msg = "Stabilising new level " + std::to_string(m_nesting_level) + " Device " + m_full_name;
+		std::cout << GenerateHeader(msg) << std::endl;
 	}
 	// First we Set() all child component inputs that are connected to the parent device inputs to deafult states.
 	for (const auto& this_pin : m_pins) {
@@ -152,7 +151,7 @@ void Device::Stabilise() {
 	// Next we call Initialise() for all Components.
 	for (const auto& this_component_descriptor : m_components) {
 			if (mg_verbose_output_flag) {
-				std::cout << "Initialising " << this_component_descriptor.component_full_name << std::endl;
+				std::cout << "Initialising " << this_component_descriptor.component_full_name << "..." << std::endl;
 			}
 			this_component_descriptor.component_pointer->Initialise();
 	}
@@ -166,6 +165,12 @@ void Device::Stabilise() {
 	Solve();
 	if (mg_verbose_output_flag) {
 		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
+	}
+	if (this == m_top_level_sim_pointer) {
+		ReportUnConnectedPins();
+	}
+	if (this == m_top_level_sim_pointer) {
+		std::cout << GenerateHeader("Simulation build completed.") << std::endl << std::endl;
 	}
 }
 
@@ -529,9 +534,6 @@ bool Device::Solve() {
 		for (const auto& this_local_device_index : m_devices) {
 			Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
 			if (this_device_pointer->CheckAndClearSolutionFlag()) {
-				if ((this_device_pointer->m_monitor_on) && !(mg_verbose_output_flag)) {
-					std::cout << std::endl;
-				}
 				// If the child Device's Solve() returns true, one or more of it's out pins have
 				// changed and it needs to be added to the propagation list.
 				if (this_device_pointer->Solve()) {
@@ -724,7 +726,7 @@ void Device::PrintInternalPinStates(int max_levels) {
 
 void Device::ReportUnConnectedPins() {
 	if (mg_verbose_output_flag) {
-		std::cout << "Checking pins for " << m_full_name << " local component index " << m_local_component_index << std::endl;
+		std::cout  << "Checking pins for Device " << m_full_name << " local component id = " << m_local_component_index << std::endl << std::endl;
 	}
 	for (const auto& this_pin : m_pins) {
 		if (this_pin.direction == 1) {
@@ -755,11 +757,11 @@ void Device::ReportUnConnectedPins() {
 	}
 	int compindex = 0;
 	for (const auto& this_component_descriptor : m_components) {
-		if (mg_verbose_output_flag) {
-			std::cout << "Checking pins for m_components index " << compindex << " ";
-		}
 		this_component_descriptor.component_pointer->ReportUnConnectedPins();
 		compindex ++;
+	}
+	if ((mg_verbose_output_flag) && (this != m_top_level_sim_pointer)) {
+		std::cout << std::endl;
 	}
 }
 

@@ -38,8 +38,8 @@ class Component {
 	public:
 		// Component class constructor.
 		Component() { }
-		virtual ~Component() { std::cout << "Component dtor for " << m_full_name << " @ " << this << std::endl << std::endl; }
-		
+		virtual ~Component();
+				
 		// Component class virtual methods.
 		virtual void Initialise(void) = 0;
 		virtual void Connect(std::vector<std::string> connection_parameters) = 0;

@@ -5,7 +5,7 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = true;
+	bool verbose = false;
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
@@ -25,11 +25,11 @@ int main () {
 	
 	//~sim->PurgeChildClock("clock_0");
 	
-	std::cout << " --- Probable Components --- " << std::endl;
-	for (const auto& this_pointer : sim->m_probable_components) {
-		std::cout << "Probable component : " << this_pointer->GetFullName() << std::endl;
-	}
-	std::cout << " --------------------------- " << std::endl;
+	//~std::cout << " --- Probable Components --- " << std::endl;
+	//~for (const auto& this_pointer : sim->m_probable_components) {
+		//~std::cout << "Probable component : " << this_pointer->GetFullName() << std::endl;
+	//~}
+	//~std::cout << " --------------------------- " << std::endl;
 	
 	//~Component* component_pointer = sim->SearchForComponentPointer("test_sim:test_counter:jk_ff_0");
 	//~delete component_pointer;

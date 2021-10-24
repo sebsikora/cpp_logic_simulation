@@ -44,7 +44,9 @@ Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, C
 
 Probe::~Probe() {
 	PurgeProbe();
-	std::cout << "Probe dtor for " << m_name << " @ " << this << std::endl << std::endl;
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "Probe dtor for " << m_name << " @ " << this << std::endl << std::endl;
+	}
 }
 
 void Probe::Sample(int index) {

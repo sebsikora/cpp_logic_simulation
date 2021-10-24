@@ -22,7 +22,6 @@
 #ifndef LSIM_UTILS_H
 #define LSIM_UTILS_H
 
-#include <sstream>					// std::stringstream
 #include <string>					// std::string
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
@@ -30,26 +29,12 @@
 #include "c_core.h"					// Core simulator functionality
 
 std::vector<bool> IntToStates(int value_to_convert, int pin_count);
-
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, pin> const& map_to_search);
 bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search);
-bool IsHashInVector(std::size_t hash_to_find, std::vector<std::size_t> const& vector_to_search);
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, bool> const& map_to_search);
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, bool> const& map_to_search);
-
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, Component*> const& map_to_search);
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, connection_descriptor> const& map_to_search);
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, connection_descriptor> const& map_to_search);
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, Clock*> const& map_to_search);
-bool IsHashInMapKeys(std::size_t key_to_find, std::unordered_map<std::size_t, Clock*> const& map_to_search);
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, Probe*> const& map_to_search);
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, MagicEngine*> const& map_to_search);
 bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, magic_event> const& map_to_search);
 void StaggerPrint(int level, int width);
 void StaggerPrint(int width);
 std::string GenerateHeader(std::string header_message);
 char BoolToChar(bool logical_state);
-
 std::string PointerToString(void* pointer);
 std::vector<bool> IsStringInStateDescriptorVector(std::string const& string_to_find, std::vector<state_descriptor> state_descriptor_vector_to_search);
 

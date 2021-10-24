@@ -71,7 +71,9 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 
 Gate::~Gate() {
 	PurgeComponent();
-	std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
+	if (mg_verbose_output_flag) {
+		std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
+	}
 }
 
 void Gate::Initialise() {
@@ -183,7 +185,7 @@ void Gate::Evaluate() {
 			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
 		}
 		// Print output pin changes if we are monitoring this gate.
-		if (m_monitor_on == true) {
+		if (m_monitor_on) {
 			std::cout << BOLD(FRED(" MONITOR: ")) << BOLD("" << m_full_name << ":" << m_component_type << "") << " output set to " << BoolToChar(new_state) << std::endl;
 		}
 	} else {

@@ -40,7 +40,9 @@ Clock::Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, s
 
 Clock::~Clock() {
 	PurgeClock();
-	std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl;
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl;
+	}
 }
 
 std::string Clock::GetName() {
@@ -59,10 +61,7 @@ void Clock::Tick(void) {
 	// Print output pin changes.
 	bool verbose_output_flag = m_top_level_sim_pointer->mg_verbose_output_flag;
 	if (m_monitor_on || (verbose_output_flag)) {
-		std::cout << "T: " << std::to_string(m_index) << " " << BOLD(FYEL("CLOCKSET: ")) << "On tick " << BOLD("" << m_index << "") << " " << m_name << ":clock output set to " << BoolToChar(new_logical_state) << std::endl;
-		if ((m_monitor_on) && !(verbose_output_flag)) {
-			std::cout << std::endl;
-		}
+		std::cout << std::endl << "T: " << std::to_string(m_index) << " " << BOLD(FYEL("CLOCKSET: ")) << "On tick " << BOLD("" << m_index << "") << " " << m_name << ":clock output set to " << BoolToChar(new_logical_state) << std::endl;
 	}
 	// Change output state and propagate.
 	m_out_pin_state = new_logical_state;
@@ -217,7 +216,9 @@ void Clock::PurgeProbeDescriptorFromClock(Probe* target_probe_pointer) {
 			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
 			new_probes.push_back(new_probe_descriptor);
 		} else {
-			std::cout << "Purging " << this_probe_descriptor.probe_name << " from Clock " << m_name << " m_probes." << std::endl;
+			if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+				std::cout << "Purging " << this_probe_descriptor.probe_name << " from Clock " << m_name << " m_probes." << std::endl;
+			}
 		}
 	}
 	m_probes = new_probes;

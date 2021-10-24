@@ -40,8 +40,9 @@ Simulation::Simulation(std::string const& simulation_name, int max_propagations,
 	m_simulation_running = false;
 	m_global_tick_index = 0;
 	mg_verbose_output_flag = verbose_output_flag;
+	std::cout << GenerateHeader("Simulation build started.") << std::endl << std::endl;
 	if (mg_verbose_output_flag == false) {
-		std::cout << std::endl << "(Simulation verbose output is off)" << std::endl << std::endl;
+		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
 	} else {
 		std::cout << std::endl;
 	}
@@ -50,7 +51,9 @@ Simulation::Simulation(std::string const& simulation_name, int max_propagations,
 
 Simulation::~Simulation() {
 	PurgeComponent();
-	std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl;
+	if (mg_verbose_output_flag) {
+		std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl;
+	}
 }
 
 int Simulation::GetNewCUID() {
@@ -108,7 +111,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			this_probe_descriptor.probe_pointer->PreallocateSampleMemory(number_of_ticks);
 		}
 		if (mg_verbose_output_flag == false) {
-			std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
+			std::cout << "(Simulation verbose output is off)" << std::endl;
 		}
 		// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
 		// ~~~ We need to manually set it back when we are done! ~~~
@@ -123,7 +126,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			}
 			if (mg_verbose_output_flag) {
 				std::string msg = std::string("Start of global tick ") + std::to_string(m_global_tick_index);
-				std::cout << GenerateHeader(msg) << std::endl << std::endl;
+				std::cout << GenerateHeader(msg) << std::endl;
 			}
 			// Advance all clocks.
 			for (const auto& this_clock_descriptor : m_clocks) {
@@ -161,7 +164,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		}
 		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
 		EnableTerminalRawIO(false);	
-		std::cout << GenerateHeader("Done.") << std::endl << std::endl;
+		std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
 		// Print probe samples.
 		if (print_probes_flag) {
 			std::cout << GenerateHeader("Probed values.") << std::endl << std::endl;
