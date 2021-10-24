@@ -30,25 +30,25 @@
 
 class JK_FF : public Device {
 	public:
-		JK_FF(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		JK_FF(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
 		void Build(void);
 };
 
 class JK_FF_ASPC : public Device {
 	public:
-		JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
 		void Build(void);
 };
 
 class Four_Bit_Counter : public Device {
 	public:
-		Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
 		void Build(void);
 };
 
 class N_Bit_Counter : public Device {
 	public:
-		N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
 		void ConfigureOutputs(void);
 		void Build(void);
 		int m_width;
@@ -56,7 +56,7 @@ class N_Bit_Counter : public Device {
 
 class N_Bit_Counter_ASC : public Device {
 	public:
-		N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
 		void ConfigureOutputs(void);
 		void Build(void);
 		int m_width;
@@ -64,22 +64,22 @@ class N_Bit_Counter_ASC : public Device {
 
 class One_Bit_Register : public Device {
 	public:
-		One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
+		One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
 		void Build(void);
 };
 
 class N_Bit_Register : public Device {
 	public:
-		N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
-		void ConfigureBusses(std::unordered_map<std::string, bool> input_default_states);
+		N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_bus_width;
 };
 
 class NxOne_Bit_Mux : public Device {
 	public:
-		NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
-		void ConfigureBusses(std::unordered_map<std::string, bool> input_default_states);
+		NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_input_count;
 		int m_sel_bus_width;
@@ -87,8 +87,8 @@ class NxOne_Bit_Mux : public Device {
 
 class N_Bit_Decoder : public Device {
 	public:
-		N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
-		void ConfigureBusses(std::unordered_map<std::string, bool> input_default_states);
+		N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_select_bus_width;
 		int m_output_bus_width;
@@ -96,8 +96,8 @@ class N_Bit_Decoder : public Device {
 
 class NxM_Bit_Mux : public Device {
 	public:
-		NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on = false, std::unordered_map<std::string, bool> input_default_states = {});
-		void ConfigureBusses(std::unordered_map<std::string, bool> input_default_states);
+		NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_d_bus_width;
 		int m_d_bus_count;

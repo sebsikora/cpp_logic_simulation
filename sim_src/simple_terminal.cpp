@@ -38,7 +38,7 @@
 #include "simple_terminal.h"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-SimpleTerminal::SimpleTerminal(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states) 
+SimpleTerminal::SimpleTerminal(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
  : Device(parent_device_pointer, device_name, "terminal", {"read", "write", "clk", "d_in_0", "d_in_1", "d_in_2", "d_in_3", "d_in_4", "d_in_5", "d_in_6", "d_in_7"},
 		  {"d_out_0", "d_out_1", "d_out_2", "d_out_3", "d_out_4", "d_out_5", "d_out_6", "d_out_7", "data_waiting"}, monitor_on, in_pin_default_states, 0) {
 	ConfigureMagic(this, device_name);

@@ -23,6 +23,10 @@
 #ifndef LSIM_STRUCTS_H
 #define LSIM_STRUCTS_H
 
+// Includes for this header.
+#include <string>					// std::string.
+#include <vector>					// std::vector
+
 // Forward declarations for struct definitions below.
 class Component;
 class Gate;
@@ -46,6 +50,11 @@ struct component_descriptor {
 	std::string component_name;
 	std::string component_full_name;
 	Component* component_pointer;
+};
+
+struct state_descriptor {
+	std::string identifier;
+	bool state;
 };
 
 struct connection_descriptor {

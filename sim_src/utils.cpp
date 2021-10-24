@@ -211,3 +211,16 @@ std::string PointerToString(void* pointer){
 	ss << pointer;
 	return ss.str();
 }
+
+std::vector<bool> IsStringInStateDescriptorVector(std::string const& string_to_find, std::vector<state_descriptor> state_descriptor_vector_to_search) {
+	bool found = false;
+	bool value = false;
+	for (const auto& this_state_descriptor : state_descriptor_vector_to_search) {
+		if (this_state_descriptor.identifier == string_to_find) {
+			found = true;
+			value = this_state_descriptor.state;
+			break;
+		}
+	}
+	return {found, value};
+}

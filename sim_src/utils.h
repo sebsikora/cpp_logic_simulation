@@ -51,5 +51,6 @@ std::string GenerateHeader(std::string header_message);
 char BoolToChar(bool logical_state);
 
 std::string PointerToString(void* pointer);
+std::vector<bool> IsStringInStateDescriptorVector(std::string const& string_to_find, std::vector<state_descriptor> state_descriptor_vector_to_search);
 
 #endif

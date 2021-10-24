@@ -22,7 +22,6 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 #include <cmath>					// pow()
 #include <fstream>					// std::ifstream
 
@@ -30,7 +29,7 @@
 #include "simple_ram.h"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-SimpleRam::SimpleRam(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states) 
+SimpleRam::SimpleRam(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
  : Device(parent_device_pointer, device_name, "ram", {"read", "write", "clk"}, {}, monitor_on, in_pin_default_states, 0) {
 	// Create all the address and data bus inputs and outputs and set their default states.
 	ConfigureBusses(address_bus_width, data_bus_width, in_pin_default_states);
@@ -57,7 +56,7 @@ void SimpleRam::ConfigureMagic(Device* parent_device_pointer, int address_bus_wi
 	AddMagicEventTrap("clk", {true, false}, {{"read", false}, {"write", true}}, "MEM_WRITE");
 }
 
-void SimpleRam::ConfigureBusses(int address_bus_width, int data_bus_width, std::unordered_map<std::string, bool> in_pin_default_states) {
+void SimpleRam::ConfigureBusses(int address_bus_width, int data_bus_width, std::vector<state_descriptor> in_pin_default_states) {
 	std::vector<std::string> inputs_to_create;
 	for (int index = 0; index < address_bus_width; index ++) {
 		std::string input_identifier = "a_" + std::to_string(index);

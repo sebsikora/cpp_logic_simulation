@@ -24,7 +24,6 @@
 
 #include <string>					// std::string.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 
 #include "c_core.h"					// Core simulator functionality
 
@@ -32,12 +31,12 @@
 class SimpleRam : public Device {
 	public:
 		// Constructor.
-		SimpleRam(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states = {});
+		SimpleRam(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
 		// Methods common to base Device class.
 		void Build(void) override;
 		// Methods.
 		void ConfigureMagic(Device* parent_device_pointer, int address_bus_width, int data_bus_width);
-		void ConfigureBusses(int address_bus_width, int data_bus_width, std::unordered_map<std::string, bool> in_pin_default_states);
+		void ConfigureBusses(int address_bus_width, int data_bus_width, std::vector<state_descriptor> in_pin_default_states);
 		// Data.
 };
 

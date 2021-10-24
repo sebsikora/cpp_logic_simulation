@@ -22,13 +22,12 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 #include <cmath>					// pow()
 
 #include "c_core.h"					// Core simulator functionality
 #include "devices.h"
 
-JK_FF::JK_FF(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+JK_FF::JK_FF(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "jk_ff", {"j", "k", "clk"}, {"q", "not_q"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -85,7 +84,7 @@ void JK_FF::Build() {
 	//PrintInPinStates();
 }
 
-JK_FF_ASPC::JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+JK_FF_ASPC::JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "jk_ff_aspc", {"j", "k", "not_p", "not_c", "clk"}, {"q", "not_q"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -145,7 +144,7 @@ void JK_FF_ASPC::Build() {
 	MakeProbable();
 }
 
-Four_Bit_Counter::Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+Four_Bit_Counter::Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "4_bit_counter", {"run", "clk"}, {"q_0", "q_1", "q_2", "q_3"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -206,7 +205,7 @@ void Four_Bit_Counter::Build() {
 	//PrintOutPinStates();
 }
 
-N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk"}, {}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -276,7 +275,7 @@ void N_Bit_Counter::Build() {
 	MakeProbable();
 }
 
-N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk", "not_clear"}, {}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -354,7 +353,7 @@ void N_Bit_Counter_ASC::Build() {
 	MakeProbable();
 }
 
-One_Bit_Register::One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+One_Bit_Register::One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "1_bit_register", {"d_in", "load", "clr", "clk"}, {"d_out"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -403,7 +402,7 @@ void One_Bit_Register::Build() {
 	MakeProbable();
 }
 
-N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "clk"}, {}, monitor_on, input_default_states) {
 	 m_bus_width = width;
 	 ConfigureBusses(input_default_states);
@@ -411,7 +410,7 @@ N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, 
 	 Stabilise();
  }
  
-void N_Bit_Register::ConfigureBusses(std::unordered_map<std::string, bool> input_default_states) {
+void N_Bit_Register::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
 	std::vector<std::string> inputs_to_create;
 	for (int index = 0; index < m_bus_width; index ++) {
 		std::string input_identifier = "d_in_" + std::to_string(index);
@@ -455,7 +454,7 @@ void N_Bit_Register::Build() {
 	//~PrintInPinStates();
 }
 
-NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "nx1_bit_mux", {}, {"d_out"}, monitor_on, input_default_states) {
 	 m_input_count = input_count;
 	 ConfigureBusses(input_default_states);
@@ -465,7 +464,7 @@ NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, in
 	 //~PrintOutPinStates();
 }
 
-void NxOne_Bit_Mux::ConfigureBusses(std::unordered_map<std::string, bool> input_default_states) {
+void NxOne_Bit_Mux::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
 	std::vector<std::string> inputs_to_create;
 	// Input data bus.
 	for (int index = 0; index < m_input_count; index ++) {
@@ -507,7 +506,7 @@ void NxOne_Bit_Mux::Build() {
 	MakeProbable();
 }
 
-N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_decoder", {}, {}, monitor_on, input_default_states) {
 	m_select_bus_width = select_bus_width;
 	if (m_select_bus_width < 1) {
@@ -520,7 +519,7 @@ N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, in
 	//~PrintOutPinStates();
  }
  
-void N_Bit_Decoder::ConfigureBusses(std::unordered_map<std::string, bool> input_default_states) {
+void N_Bit_Decoder::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
 	std::vector<std::string> inputs_to_create;
 	for (int index = 0; index < m_select_bus_width; index ++) {
 		std::string input_identifier = "sel_" + std::to_string(index);
@@ -585,7 +584,7 @@ void N_Bit_Decoder::Build() {
 	//~PrintOutPinStates();
 }
 
-NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on, std::unordered_map<std::string, bool> input_default_states) 
+NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "nxm_bit_mux", {}, {}, monitor_on, input_default_states) {
 	 m_d_bus_width = bus_width;
 	 m_d_bus_count = bus_count;
@@ -600,7 +599,7 @@ NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bu
 	 Stabilise();
  }
  
-void NxM_Bit_Mux::ConfigureBusses(std::unordered_map<std::string, bool> input_default_states) {
+void NxM_Bit_Mux::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
 	std::vector<std::string> inputs_to_create;
 	// Input data busses.
 	for (int i = 0; i < m_d_bus_count; i ++) {

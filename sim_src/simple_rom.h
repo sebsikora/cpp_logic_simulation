@@ -24,7 +24,6 @@
 
 #include <string>					// std::string.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 
 #include "c_core.h"					// Core simulator functionality
 
@@ -32,11 +31,11 @@
 class SimpleRom : public Device {
 	public:
 		// Constructor.
-		SimpleRom(Device* parent_device_pointer, std::string device_name, std::string data_filepath, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states = {});
+		SimpleRom(Device* parent_device_pointer, std::string device_name, std::string data_filepath, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
 		// Methods.
 		void Build(void);
 		void ConfigureMagic(Device* parent_device_pointer, std::string data_filepath);
-		void ConfigureBusses(std::unordered_map<std::string, bool> in_pin_default_states);
+		void ConfigureBusses(std::vector<state_descriptor> in_pin_default_states);
 		// Data.
 };
 

@@ -22,7 +22,6 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 #include <algorithm>				// std::sort
 
 #include "c_core.h"					// Core simulator functionality
@@ -35,7 +34,7 @@ bool backwards_comp (int i, int j) {
 }
 
 Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names,
-	std::vector<std::string> out_pin_names, bool monitor_on, std::unordered_map<std::string, bool> const& in_pin_default_states, int max_propagations
+	std::vector<std::string> out_pin_names, bool monitor_on, std::vector<state_descriptor> in_pin_default_states, int max_propagations
 	) {
 	m_device_flag = true;
 	m_name = device_name;
@@ -75,7 +74,7 @@ Device::~Device() {
 	std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl;
 }
 
-void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states) {
+void Device::CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states) {
 	// Determine number of existing in and out pins.
 	int new_pin_port_index = m_pins.size();
 	// Create new inputs.
@@ -83,9 +82,10 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::unorde
 		pin new_in_pin = {pin_name, 1, false, false, new_pin_port_index, {false, false}};
 		if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
 			// If this is a user-defined input, handle as normal.
-			if (IsStringInMapKeys(pin_name, pin_default_states)) {
+			std::vector<bool> result = IsStringInStateDescriptorVector(pin_name, pin_default_states);
+			if (result[0]) {
 				// If this input is in the defaults list set accordingly...
-				new_in_pin.state = pin_default_states[pin_name];
+				new_in_pin.state = result[1];
 			} else {
 				// ...otherwise set input state to false.
 				new_in_pin.state = false;

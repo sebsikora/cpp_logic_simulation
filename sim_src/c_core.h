@@ -135,7 +135,7 @@ class Device : public Component {
 	public:
 		// Device class constructor.
 		Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names,
-		std::vector<std::string> out_pin_names, bool monitor_on = false, std::unordered_map<std::string, bool> const& in_pin_default_states = {},
+		std::vector<std::string> out_pin_names, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {},
 		int max_propagations = 0
 		);
 		~Device();
@@ -156,7 +156,7 @@ class Device : public Component {
 		virtual void Build(void);
 
 		// Device class methods.
-		void CreateInPins(std::vector<std::string> const& pin_names, std::unordered_map<std::string, bool> pin_default_states);
+		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on);

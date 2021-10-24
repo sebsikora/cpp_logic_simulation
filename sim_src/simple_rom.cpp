@@ -22,7 +22,6 @@
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 #include <cmath>					// pow()
 #include <fstream>					// std::ifstream
 
@@ -30,7 +29,7 @@
 #include "simple_rom.h"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-SimpleRom::SimpleRom(Device* parent_device_pointer, std::string device_name, std::string data_filepath, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states) 
+SimpleRom::SimpleRom(Device* parent_device_pointer, std::string device_name, std::string data_filepath, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
  : Device(parent_device_pointer, device_name, "rom", {"read", "clk"}, {}, monitor_on, in_pin_default_states, 0) {
 	// We call ConfigureMagic() to create the MagicEngine.
 	ConfigureMagic(this, data_filepath);
@@ -57,7 +56,7 @@ void SimpleRom::ConfigureMagic(Device* parent_device_pointer, std::string data_f
 	AddMagicEventTrap("clk", {true, false}, {{"read", true}}, "MEM_READ");
 }
 
-void SimpleRom::ConfigureBusses(std::unordered_map<std::string, bool> in_pin_default_states) {
+void SimpleRom::ConfigureBusses(std::vector<state_descriptor> in_pin_default_states) {
 	std::vector<std::string> inputs = static_cast<SimpleRom_MagicEngine*>(m_magic_engine_pointer)->GenerateInputs();
 	std::vector<std::string> outputs = static_cast<SimpleRom_MagicEngine*>(m_magic_engine_pointer)->GenerateOutputs();
 	CreateInPins(inputs, in_pin_default_states);

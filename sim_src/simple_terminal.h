@@ -24,7 +24,6 @@
 
 #include <string>					// std::string.
 #include <vector>					// std::vector
-#include <unordered_map>			// std::unordered_map
 #include <deque>					// std::deque
 
 #include "c_core.h"					// Core simulator functionality
@@ -33,7 +32,7 @@
 class SimpleTerminal : public Device {
 	public:
 		// Constructor.
-		SimpleTerminal(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::unordered_map<std::string, bool> in_pin_default_states = {});
+		SimpleTerminal(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
 		// Methods common to base Device class.
 		void Build(void) override;
 		// Methods.
