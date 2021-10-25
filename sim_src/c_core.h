@@ -36,7 +36,6 @@
 // Base Component class.
 class Component {
 	public:
-		// Component class constructor.
 		Component() { }
 		virtual ~Component();
 				
@@ -45,14 +44,14 @@ class Component {
 		virtual void Connect(std::vector<std::string> connection_parameters) = 0;
 		virtual void Set(int pin_port_index, bool state_to_set) = 0;
 		virtual void Propagate(void) = 0;
-		virtual void MakeProbable(void) = 0;
 		virtual void PrintPinStates(int max_levels) = 0;
 		virtual void ReportUnConnectedPins(void) = 0;
+		virtual void Reset(void) = 0;
 		virtual void PurgeComponent(void) = 0;
 		virtual void PurgeInboundConnections(Component* target_component_pointer) = 0;
 		virtual void PurgeOutboundConnections(void) = 0;
 		
-		// Component class methods.
+		bool GetMonitorOnFlag(void);
 		std::string GetName(void);
 		bool GetDeviceFlag(void);
 		std::string GetFullName(void);
@@ -72,9 +71,11 @@ class Component {
 		void SetPinDrivenFlag(int pin_port_index, bool drive_mode, bool state_to_set);
 		void PrintInPinStates(void);
 		void PrintOutPinStates(void);
+		void MakeProbable(void);
 		
-		// Component class data.
 		static bool mg_verbose_output_flag;
+
+	protected:
 		bool m_monitor_on;
 		int m_nesting_level;
 		bool m_device_flag;
@@ -96,9 +97,8 @@ typedef bool (Gate::*operator_pointer)(std::vector<pin> const&);
 // Logic Gate Component sub-class.
 class Gate : public Component {
 	public:
-		// Gate class constructor.
 		Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
-		std::vector<std::string> in_pin_names = {}, bool monitor_on = false
+			std::vector<std::string> in_pin_names = {}, bool monitor_on = false
 		);
 		~Gate();
 		
@@ -107,16 +107,15 @@ class Gate : public Component {
 		void Connect(std::vector<std::string> connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
-		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
 		void ReportUnConnectedPins(void) override;
+		void Reset(void) override;
 		void PurgeComponent(void) override;
 		void PurgeInboundConnections(Component* target_component_pointer) override;
 		void PurgeOutboundConnections(void) override;
 		
-		// Gate class methods.
+	private:
 		void Evaluate(void);
-		Component* GetSiblingComponentPointer(std::string const& target_sibling_component_name);
 		operator_pointer GetOperatorPointer(std::string const& operator_name);
 		bool OperatorAnd(std::vector<pin> const& pins);
 		bool OperatorNand(std::vector<pin> const& pins);
@@ -124,7 +123,6 @@ class Gate : public Component {
 		bool OperatorNor(std::vector<pin> const& pins);
 		bool OperatorNot(std::vector<pin> const& pins);
 		
-		// Gate class data.
 		int m_out_pin_port_index;
 		operator_pointer m_operator_function_pointer;
 		std::vector<connection_descriptor> m_connections;
@@ -133,10 +131,9 @@ class Gate : public Component {
 // Compound-logic Device Component sub-class. 
 class Device : public Component {
 	public:
-		// Device class constructor.
 		Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names,
-		std::vector<std::string> out_pin_names, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {},
-		int max_propagations = 0
+			std::vector<std::string> out_pin_names, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {},
+			int max_propagations = 0
 		);
 		~Device();
 		
@@ -145,19 +142,19 @@ class Device : public Component {
 		void Connect(std::vector<std::string> connection_parameters) override;
 		void Set(int pin_port_index, bool state_to_set) override;
 		void Propagate(void) override;
-		void MakeProbable(void) override;
 		void PrintPinStates(int max_levels) override;
 		void ReportUnConnectedPins(void) override;
+		void Reset(void) override;
 		void PurgeComponent(void) override;
 		void PurgeInboundConnections(Component* target_component_pointer) override;
 		void PurgeOutboundConnections(void) override;
 		
 		// Device class virtual methods.
 		virtual void Build(void);
-
-		// Device class methods.
+		
 		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
+		void SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states);
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on);
 		void AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on);
@@ -175,23 +172,22 @@ class Device : public Component {
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name = "input");
 		void Stabilise(void);
 		bool Solve(void);
-		void SubTick(int index);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		int GetNestingLevel(void);
 		int GetNewLocalComponentIndex(void);
-		bool CheckIfQueuedToPropagateThisTick(int propagation_identifier);
-		void AddToPropagateNextTick(int propagation_identifier);
+		int GetLocalComponentCount(void);
+		void QueueToPropagate(int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
-		std::vector<std::string> GetHiddenInPins(void);
 		void MarkInnerTerminalsDisconnected(void);
-		bool CheckAndClearSolutionFlag(void);
 		Component* SearchForComponentPointer(std::string const& target_component_full_name);
 		void PurgeChildConnections(Component* target_component_pointer);
 		void PurgeChildComponent(std::string const& target_component_name);
+		void PurgeAllChildComponents(void);
 		void PurgeChildComponentIdentifiers(Component* target_component_pointer);
 		
-		// Device class data.
-		int m_max_propagations;
+	private:
+		void SubTick(int index);
+		
 		std::vector<component_descriptor> m_components;
 		std::vector<int> m_devices;
 		std::vector<int> m_propagate_next_tick;
@@ -200,23 +196,27 @@ class Device : public Component {
 		bool m_buffered_propagation = false;
 		bool m_solve_this_tick_flag = false;
 		std::vector<std::vector<connection_descriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.
-		bool m_magic_device_flag = false;
-		MagicEngine* m_magic_engine_pointer;
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
+		std::vector<state_descriptor> m_in_pin_default_states;
+		
+	protected:
+		bool CheckAndClearSolutionFlag(void);
+		
+		int m_max_propagations;
+		MagicEngine* m_magic_engine_pointer;
+		bool m_magic_device_flag = false;
 };
 
 // Top-level Simulation Device sub-class.
 class Simulation : public Device {
 	public:
-		// Simulation class constructor.
 		Simulation(std::string const& simulation_name, int max_propagations = 10, bool verbose_output_flag = false);
 		~Simulation();
 		
 		// Override Component virtual methods.
 		void PurgeComponent(void) override;
 		
-		// Simulation class methods.
 		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false);
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
 		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
@@ -230,11 +230,9 @@ class Simulation : public Device {
 		Clock* GetClockPointer(std::string const& target_clock_name);
 		Component* GetProbableComponentPointer(std::string const& target_component_full_name);
 		int GetTopLevelComponentCount(void);
-		void EnableTerminalRawIO(bool raw_flag);
-		char CheckForCharacter(void);
 		bool IsSimulationRunning(void);
 		void StopSimulation(void);
-		void ShutDown(void);
+		void ShutDownMagicEngines(void);
 		void CheckProbeTriggers(void);
 		void LogBuildError(std::string const& build_error);
 		void PrintBuildErrors(void);
@@ -247,8 +245,13 @@ class Simulation : public Device {
 		void PurgeChildClock(std::string const& target_clock_name);
 		void PurgeClockDescriptorFromSimulation(Clock* target_clock_name);
 		void PurgeGlobalComponent(std::string const& target_component_full_name);
+		bool GetSearchingFlag(void);
+		void SetSearchingFlag(bool value);
 		
-		// Simulation class data.
+	private:
+		void EnableTerminalRawIO(bool raw_flag);
+		char CheckForCharacter(void);
+		
 		std::vector<Component*> m_probable_components;
 		std::vector<probe_descriptor> m_probes;
 		std::vector<clock_descriptor> m_clocks;
@@ -258,16 +261,16 @@ class Simulation : public Device {
 		bool m_simulation_running;
 		int m_global_tick_index;
 		int m_next_new_CUID;
+		bool m_searching_flag = false;
 };
 
 // Clock utility class.
 class Clock {
 	public:
-		// Clock class constructor.
 		Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, std::vector<bool> toggle_pattern, bool monitor_on);
 		~Clock();
 		
-		// Clock class methods.
+		std::string GetName(void);
 		void Connect(std::string const& target_component_name, std::string const& target_pin_name);
 		void Propagate(void);
 		void Tick(void);
@@ -275,12 +278,11 @@ class Clock {
 		void AddToProbeList(std::string const& probe_identifier, Probe* probe_pointer);
 		void TriggerProbes(void);
 		bool GetTickedFlag(void);
-		std::string GetName(void);
 		void PurgeTargetComponentConnections(Component* target_component_pointer);
 		void PurgeClock(void);
 		void PurgeProbeDescriptorFromClock(Probe* target_probe_pointer);
-		
-		// Clock class data.
+
+	private:
 		Simulation* m_top_level_sim_pointer;
 		std::string m_name;
 		std::vector<bool> m_toggle_pattern;
@@ -297,22 +299,20 @@ class Clock {
 // Probe utility class.
 class Probe {
 	public:
-		// Probe class constructor.
 		Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
 			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer
 		);
 		~Probe();
 		
-		// Probe class methods.
+		void PreallocateSampleMemory(int number_of_ticks);
 		void Sample(int index);
 		void Reset(void);
-		void PreallocateSampleMemory(int number_of_ticks);
 		Component* GetTargetComponentPointer(void);
 		void PrintSamples(void);
 		std::vector<std::vector<bool>> GetSamples(void);
 		void PurgeProbe(void);
 		
-		// Probe class data.
+	private:
 		Simulation* m_top_level_sim_pointer;
 		std::string m_name;
 		std::string m_target_component_full_name;
@@ -327,21 +327,20 @@ class Probe {
 
 class MagicEngine {
 	public:
-		// Constructor.
 		MagicEngine(Device* parent_device_pointer);
 		~MagicEngine() { std::cout << "MagicEngine dtor for " << m_parent_device_pointer->GetFullName() << ":magic_engine @ " << this << std::endl << std::endl; }
 		
-		// Methods.
-		void AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event);
-		void CheckMagicEventTrap(int target_pin_port_index, bool new_state);
-		// Virtual methods.
 		virtual void InvokeMagic(std::string const& incantation);
 		virtual void UpdateMagic(void);
 		virtual void ShutDownMagic(void);
+
+		void AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event);
+		void CheckMagicEventTrap(int target_pin_port_index, bool new_state);
 		
-		// Data.
 		Device* m_parent_device_pointer;
 		Simulation* m_top_level_sim_pointer;
+
+	private:
 		std::unordered_map<std::string, magic_event> m_magic_events;
 };
 

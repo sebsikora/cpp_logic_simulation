@@ -65,6 +65,7 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 	// Further calls by Devices inheriting the base class won't include these.
 	in_pin_names.insert(in_pin_names.end(), m_hidden_in_pins.begin(), m_hidden_in_pins.end());
 	CreateInPins(in_pin_names, in_pin_default_states);
+	m_in_pin_default_states = in_pin_default_states;
 	out_pin_names.insert(out_pin_names.end(), m_hidden_out_pins.begin(), m_hidden_out_pins.end());
 	CreateOutPins(out_pin_names);
 }
@@ -82,26 +83,7 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::vector
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
 		pin new_in_pin = {pin_name, 1, false, false, new_pin_port_index, {false, false}};
-		if (!IsStringInVector(pin_name, m_hidden_in_pins)) {
-			// If this is a user-defined input, handle as normal.
-			std::vector<bool> result = IsStringInStateDescriptorVector(pin_name, pin_default_states);
-			if (result[0]) {
-				// If this input is in the defaults list set accordingly...
-				new_in_pin.state = result[1];
-			} else {
-				// ...otherwise set input state to false.
-				new_in_pin.state = false;
-			}
-		} else {
-			// Set hidden in pin default states.
-			new_in_pin.direction = 3;
-			if (pin_name == "true") {
-				new_in_pin.state = true;
-			} else if (pin_name == "false") {
-				new_in_pin.state = false;
-			}
-		}
-		new_in_pin.state_changed = false;
+		SetPin(new_in_pin, pin_default_states);
 		m_pins.push_back(new_in_pin);
 		m_ports.push_back({});
 		new_pin_port_index ++;
@@ -114,17 +96,79 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 	// Create new outputs.
 	for (const auto& pin_name : pin_names) {
 		pin new_out_pin = {pin_name, 2, false, false, new_pin_port_index, {false, false}};
-		if (IsStringInVector(pin_name, m_hidden_out_pins)) {
-			new_out_pin.direction = 4;
-		}
+		SetPin(new_out_pin, {});
 		m_pins.push_back(new_out_pin);
 		m_ports.push_back({});
 		new_pin_port_index ++;
 	}
 }
 
+void Device::SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states) {
+	// SetPin() only sets pin logical state & state_changed flag.
+	std::string pin_name = target_pin.name;
+	if (IsStringInVector(pin_name, m_hidden_in_pins)) {
+		// If hidden in pin, set direction and state accordingly...
+		target_pin.direction = 3;
+		if (pin_name == "true") {
+			target_pin.state = true;
+		} else if (pin_name == "false") {
+			target_pin.state = false;
+		}
+	} else if (IsStringInVector(pin_name, m_hidden_out_pins)) {
+		// ...likewise for hidden out pins.
+		target_pin.direction = 4;
+		target_pin.state = false;
+	} else {
+		// If this is a user-defined input, handle as normal.
+		std::vector<bool> result = IsStringInStateDescriptorVector(pin_name, pin_default_states);
+		if (result[0]) {
+			// If this input is in the defaults list set accordingly...
+			target_pin.state = result[1];
+		} else {
+			// ...otherwise set input state to false.
+			target_pin.state = false;
+		}
+	}
+	target_pin.state_changed = false;
+}
+
 void Device::Build() {
 	// Redefined for each specific device subclass...
+}
+
+void Device::Reset() {
+	// Recursively explore the whole Component tree resetting all pins to their starting states and then call Stabilise().
+	// First, ensure that we run the Reset() from the top-level of the Simulation, irrespective of the initial caller.
+	if ((!m_top_level_sim_pointer->GetSearchingFlag()) && (this != m_top_level_sim_pointer)) {
+		m_top_level_sim_pointer->SetSearchingFlag(true);
+		m_top_level_sim_pointer->Reset();
+	} else {
+		if ((!m_top_level_sim_pointer->GetSearchingFlag()) && (this == m_top_level_sim_pointer)) {
+			m_top_level_sim_pointer->SetSearchingFlag(true);
+		}
+		// We want to Reset() everything in reverse-depth order, starting from the very end of each branch,
+		// so first we Search deeper if we can.
+		for (const auto& this_device_local_id : m_devices) {
+			m_components[this_device_local_id].component_pointer->Reset();
+		}
+		// Once we bottom-out, we reset this Device's pins, and then reset all the sibling Gates.
+		// Set all Device in and out pins to their default starting states.
+		for (auto& this_pin : m_pins) {
+			SetPin(this_pin, m_in_pin_default_states);
+		}
+		// Loop over child Gates and reset their in and out pins.
+		for (const auto& this_component_descriptor : m_components) {
+			if (!this_component_descriptor.component_pointer->GetDeviceFlag()) {
+				this_component_descriptor.component_pointer->Reset();
+			}
+		}
+		// Finally, call Stabilise() for this Device. 
+		Stabilise();
+	}
+	// If we are 'coming back up for air' arriving at the top-level Simulation, reset the searching flag.
+	if ((m_top_level_sim_pointer->GetSearchingFlag()) && (this == m_top_level_sim_pointer)) {
+		m_top_level_sim_pointer->SetSearchingFlag(false);
+	}
 }
 
 void Device::Stabilise() {
@@ -185,7 +229,7 @@ void Device::Initialise() {
 			this_pin.state_changed = true;
 		}
 	}
-	m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
+	m_parent_device_pointer->QueueToPropagate(m_local_component_index);
 }
 
 void Device::AddComponent(Component* new_component_pointer) {
@@ -199,7 +243,7 @@ void Device::AddComponent(Component* new_component_pointer) {
 	// Keep an additional vector of the local component indices of Device Components so that we don't
 	// have to iterate over all Components to call Solve() on Devices, during the Solve() call.
 	if (new_component_pointer->GetDeviceFlag()) {
-		m_devices.push_back(new_component_pointer->m_local_component_index);
+		m_devices.push_back(new_component_pointer->GetLocalComponentIndex());
 	}
 }
 
@@ -256,7 +300,7 @@ void Device::ChildSet(std::string const& target_child_component_name, std::strin
 		m_top_level_sim_pointer->LogBuildError(build_error);
 	} else {
 		int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-		if (mg_verbose_output_flag || target_component_pointer->m_monitor_on) {
+		if (mg_verbose_output_flag || target_component_pointer->GetMonitorOnFlag()) {
 			std::cout << BOLD(FYEL("CHILDSET: ")) << "Component " << BOLD("" << target_component_pointer->GetFullName() << ":" << target_component_pointer->GetComponentType() << "") << " terminal " << BOLD("" << target_pin_name << "") << " set to " << BoolToChar(logical_state) << std::endl;
 		}
 		target_component_pointer->Set(target_pin_port_index, logical_state);
@@ -629,9 +673,7 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 			this_pin->state_changed = true;
 			// Add device to the parent Devices propagate_next list, UNLESS this device
 			// is already queued-up to propagate this SubTick.
-			if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
-				m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
-			}
+			m_parent_device_pointer->QueueToPropagate(m_local_component_index);
 			m_solve_this_tick_flag = true;
 		}
 	} else if (this_pin->direction == 2) {
@@ -677,18 +719,13 @@ int Device::GetNewLocalComponentIndex() {
 	return current_component_count;
 }
 
-bool Device::CheckIfQueuedToPropagateThisTick(int propagation_identifier) {
-	return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier, backwards_comp);
-	//~return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
+int Device::GetLocalComponentCount() {
+	return m_components.size();
 }
 
-void Device::AddToPropagateNextTick(int propagation_identifier) {
-	m_propagate_next_tick.emplace_back(propagation_identifier);
-}
-
-void Device::MakeProbable() {
-	if (this != m_top_level_sim_pointer) {
-		m_top_level_sim_pointer->AddToProbableComponents(this);
+void Device::QueueToPropagate(int propagation_identifier) {
+	if (!std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier, backwards_comp)) {
+		m_propagate_next_tick.emplace_back(propagation_identifier);
 	}
 }
 
@@ -778,34 +815,43 @@ void Device::MarkInnerTerminalsDisconnected(void) {
 }
 
 Component* Device::SearchForComponentPointer(std::string const& target_component_full_name) {
-	// Recursively search through the Component tree depth-first (easiest to implement) and return the
-	// Component pointer to the named target.
-	// NOTE - Always call it from the top-level simulation to search the whole tree.
 	Component* target_component_pointer = 0;
-	// Search the children of this level Device.
-	for (const auto& this_component_descriptor : m_components) {
-		if (this_component_descriptor.component_full_name == target_component_full_name) {
-			// Target Component is a child of this Device. Break and return it's pointer.
-			target_component_pointer = this_component_descriptor.component_pointer;
-			if (mg_verbose_output_flag) {
-				std::cout << "Component " << target_component_full_name << " found @ " << target_component_pointer << std::endl;
-			}
-			break;
+	// Ensures that the search is run from the top-level of the Simulation, irrespective of the initial caller.
+	if ((!(m_top_level_sim_pointer->GetSearchingFlag())) && (this != m_top_level_sim_pointer)) {
+		m_top_level_sim_pointer->SetSearchingFlag(true);
+		target_component_pointer = m_top_level_sim_pointer->SearchForComponentPointer(target_component_full_name);
+	} else {
+		if ((!(m_top_level_sim_pointer->GetSearchingFlag())) && (this == m_top_level_sim_pointer)) {
+			m_top_level_sim_pointer->SetSearchingFlag(true);
 		}
-	}
-	if (target_component_pointer == 0) {
-		// Target Component is not a child of this Device.
-		// Search deeper into each child Device in turn. 
-		for (const auto& this_device_index : m_devices) {
-			Device* this_device_pointer = static_cast<Device*>(m_components[this_device_index].component_pointer);
-			target_component_pointer = this_device_pointer->SearchForComponentPointer(target_component_full_name);
-			// When SearchForComponentPointer() returns with a non-zero pointer, we've found the target and have it's
-			// pointer, so return it. We return to the line above one level back up. In this way eventually we will
-			// return the pointer to the original caller (or eventually zero, if the target does not exist).
-			if (target_component_pointer != 0) {
+		// Search the children of this level Device.
+		for (const auto& this_component_descriptor : m_components) {
+			if (this_component_descriptor.component_full_name == target_component_full_name) {
+				// Target Component is a child of this Device. Break and return it's pointer.
+				target_component_pointer = this_component_descriptor.component_pointer;
+				if (mg_verbose_output_flag) {
+					std::cout << "Component " << target_component_full_name << " found @ " << target_component_pointer << std::endl;
+				}
 				break;
 			}
 		}
+		if (target_component_pointer == 0) {
+			// Target Component is not a child of this Device.
+			// Search deeper into each child Device in turn. 
+			for (const auto& this_device_index : m_devices) {
+				Device* this_device_pointer = static_cast<Device*>(m_components[this_device_index].component_pointer);
+				target_component_pointer = this_device_pointer->SearchForComponentPointer(target_component_full_name);
+				// When SearchForComponentPointer() returns with a non-zero pointer, we've found the target and have it's
+				// pointer, so return it. We return to the line above one level back up. In this way eventually we will
+				// return the pointer to the original caller (or eventually zero, if the target does not exist).
+				if (target_component_pointer != 0) {
+					break;
+				}
+			}
+		}
+	}
+	if ((m_top_level_sim_pointer->GetSearchingFlag()) && (this == m_top_level_sim_pointer)) {
+		m_top_level_sim_pointer->SetSearchingFlag(false);
 	}
 	return target_component_pointer;
 }
@@ -817,27 +863,11 @@ void Device::PurgeComponent() {
 			header =  "Purging -> DEVICE :" + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 			std::cout << GenerateHeader(header) << std::endl;
 		}
-		// First  - Need to Purge all child Components and delete.
-		// Can't blast away at our m_components as we iterate over it, so we will make a copy on the stack and iterate over that.
-		{	// We will do it inside a control block, to make sure that m_components_copy
-			// (with it's pointers to nowhere once we nuke it's contents) goes out of scope asap.
-			std::vector<component_descriptor> m_components_copy;
-			for (const auto& this_component_descriptor : m_components) {
-				component_descriptor new_component_descriptor;
-				new_component_descriptor.component_name = this_component_descriptor.component_name;
-				new_component_descriptor.component_full_name = this_component_descriptor.component_full_name;
-				new_component_descriptor.component_pointer = this_component_descriptor.component_pointer;
-				m_components_copy.push_back(new_component_descriptor);
-			}
-			
-			// Now we can iterate over m_components_copy and blast away at m_components.
-			for (const auto& copied_component_descriptor : m_components_copy) {
-				delete copied_component_descriptor.component_pointer;
-			}
-		}
+		// First  - Need to Purge and delete all child components.
+		PurgeAllChildComponents();
 		// Second - Ask parent Device to purge all local references to this Device...
 		m_parent_device_pointer->PurgeChildConnections(this);
-		// Second - Purge Device from Simulation Clocks, Probes and probable_components vector.
+		// Third  - Purge Device from Simulation Clocks, Probes and probable_components vector.
 		//			This will 'automatically' get rid of any Probes associated with the Device
 		//			(as otherwise they would target cleared memory).
 		m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
@@ -850,6 +880,23 @@ void Device::PurgeComponent() {
 			std::cout << GenerateHeader(header) << std::endl;
 		}
 		// - It should now be safe to delete this object -
+	}
+}
+
+void Device::PurgeAllChildComponents() {
+	// Can't blast away at our m_components as we iterate over it, so we will make a copy on the stack and iterate over that.
+	std::vector<component_descriptor> m_components_copy;
+	for (const auto& this_component_descriptor : m_components) {
+		component_descriptor new_component_descriptor;
+		new_component_descriptor.component_name = this_component_descriptor.component_name;
+		new_component_descriptor.component_full_name = this_component_descriptor.component_full_name;
+		new_component_descriptor.component_pointer = this_component_descriptor.component_pointer;
+		m_components_copy.push_back(new_component_descriptor);
+	}
+	
+	// Now we can iterate over m_components_copy and blast away at m_components.
+	for (const auto& copied_component_descriptor : m_components_copy) {
+		delete copied_component_descriptor.component_pointer;
 	}
 }
 
@@ -996,3 +1043,11 @@ void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer)
 	}
 }
 
+//~bool Device::CheckIfQueuedToPropagateThisTick(int propagation_identifier) {
+	//~return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier, backwards_comp);
+	//~//return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
+//~}
+
+//~void Device::AddToPropagateNextTick(int propagation_identifier) {
+	//~m_propagate_next_tick.emplace_back(propagation_identifier);
+//~}

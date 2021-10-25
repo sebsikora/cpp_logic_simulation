@@ -302,7 +302,7 @@ Component* Simulation::GetProbableComponentPointer(std::string const& target_com
 }
 
 int Simulation::GetTopLevelComponentCount() {
-	return m_components.size();
+	return GetLocalComponentCount();
 }
 
 bool Simulation::IsSimulationRunning() {
@@ -313,7 +313,7 @@ void Simulation::StopSimulation() {
 	m_simulation_running = false;
 }
 
-void Simulation::ShutDown() {
+void Simulation::ShutDownMagicEngines() {
 	for (const auto& this_magic_engine_descriptor : m_magic_engines) {
 		this_magic_engine_descriptor.magic_engine_pointer->ShutDownMagic();
 	}
@@ -366,24 +366,7 @@ void Simulation::PurgeComponent() {
 		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// Need to Purge all child Components and delete.
-	// Can't blast away at our m_components as we iterate over it, so we will make a copy on the stack and iterate over that.
-	
-	{	// We will do it inside a control block, to make sure that m_components_copy (with it's pointers to nowhere once we
-		// nuke it's contents) goes out of scope asap.
-		std::vector<component_descriptor> m_components_copy;
-		for (const auto& this_component_descriptor : m_components) {
-			component_descriptor new_component_descriptor;
-			new_component_descriptor.component_name = this_component_descriptor.component_name;
-			new_component_descriptor.component_full_name = this_component_descriptor.component_full_name;
-			new_component_descriptor.component_pointer = this_component_descriptor.component_pointer;
-			m_components_copy.push_back(new_component_descriptor);
-		}
-		
-		// Now we can iterate over m_components_copy and blast away at m_components.
-		for (const auto& copied_component_descriptor : m_components_copy) {
-			delete copied_component_descriptor.component_pointer;
-		}
-	}
+	PurgeAllChildComponents();
 	//	Simulation has no external inputs or outputs to handle (as it is top-level).
 	// 	Next we need to purge all Clocks.
 	for (const auto& this_clock_descriptor : m_clocks) {
@@ -506,4 +489,12 @@ void Simulation::PurgeGlobalComponent(std::string const& target_component_full_n
 	} else {
 		std::cout << "Global Component " << target_component_full_name << " not found." << std::endl;
 	}
+}
+
+bool Simulation::GetSearchingFlag() {
+	return m_searching_flag;
+}
+
+void Simulation::SetSearchingFlag(bool value) {
+	m_searching_flag = value;
 }

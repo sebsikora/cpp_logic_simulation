@@ -22,7 +22,6 @@ int main () {
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();
-	
 	//~sim->PurgeChildClock("clock_0");
 	
 	//~std::cout << " --- Probable Components --- " << std::endl;

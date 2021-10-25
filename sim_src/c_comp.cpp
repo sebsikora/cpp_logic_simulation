@@ -60,6 +60,10 @@ void Component::SetLocalComponentIndex(int new_local_component_index) {
 	m_local_component_index = new_local_component_index;
 }
 
+bool Component::GetMonitorOnFlag(void) {
+	return m_monitor_on;
+}
+
 Simulation* Component::GetTopLevelSimPointer() {
 	return m_top_level_sim_pointer;
 }
@@ -173,4 +177,10 @@ void Component::PrintOutPinStates() {
 		}
 	}
 	std::cout << "]" << std::endl << std::endl;
+}
+
+void Component::MakeProbable() {
+	if (this != m_top_level_sim_pointer) {
+		m_top_level_sim_pointer->AddToProbableComponents(this);
+	}
 }

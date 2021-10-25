@@ -34,27 +34,27 @@ int main () {
 	int number_of_runs = 50;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation sim("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", 10, verbose);
 	
 	// Add a 4-bit counter device.
-	sim.AddComponent(new Four_Bit_Counter(&sim, "test_counter", monitor_on, {{"run", true}}));
+	sim->AddComponent(new Four_Bit_Counter(sim, "test_counter", monitor_on, {{"run", true}}));
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
-	sim.Stabilise();
+	sim->Stabilise();
 	
 	// Add a Clock and connect it to the clk input on the counter.
 	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
-	sim.AddClock("clock_0", {false, true}, monitor_on);
-	sim.ClockConnect("clock_0", "test_counter", "clk");
+	sim->AddClock("clock_0", {false, true}, monitor_on);
+	sim->ClockConnect("clock_0", "test_counter", "clk");
 	
 	// Add two Probes and connect them to the counter's outputs and clk input.
-	sim.AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
+	sim->AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
 	//~sim.AddProbe("clk_input", "test_sim:test_counter", {"clk"}, "clock_0");
 	
 	// Set the counter's run input to high (true).
 	//sim.ChildSet("test_counter", "run", true);
 	std::vector<std::vector<std::vector<bool>>> data_container;
-	std::vector<int> run_times = RunTheTest(&sim, true, verbose, print_probe_samples, number_of_runs, data_container);
+	std::vector<int> run_times = RunTheTest(sim, true, verbose, print_probe_samples, number_of_runs, data_container);
 
 	int run_counter = 0;
 	for (const auto& data : data_container) {
@@ -68,6 +68,8 @@ int main () {
 		}
 		run_counter ++;
 	}
+	
+	delete sim;
 	
 	return 0;
 }

@@ -76,6 +76,24 @@ Gate::~Gate() {
 	}
 }
 
+void Gate::Reset() {
+	// If initially called on this Gate, call it from the top-level Simulation so everything is reset.
+	if (!m_top_level_sim_pointer->GetSearchingFlag()) {
+		m_top_level_sim_pointer->SetSearchingFlag(true);
+		m_top_level_sim_pointer->Reset();
+	} else {
+		for (auto& this_pin : m_pins) {
+			if (this_pin.direction == 1) {
+				bool temp_bool = rand() > (RAND_MAX / 2);
+				this_pin.state = temp_bool;
+			} else {
+				this_pin.state = false;
+			}
+			this_pin.state_changed = false;
+		}
+	}
+}
+
 void Gate::Initialise() {
 	// If this gate does not have an input connected to a parent device input, it will not have any inputs Set() during the
 	// parent device Stabilise() call, and won't necessarily be evaluated during the subsequent Solve() call. This can result in
@@ -86,7 +104,7 @@ void Gate::Initialise() {
 	bool new_state = (this->*m_operator_function_pointer)(m_pins);
 	m_pins[m_out_pin_port_index].state = new_state;
 	m_pins[m_out_pin_port_index].state_changed = true;
-	m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
+	m_parent_device_pointer->QueueToPropagate(m_local_component_index);
 }
 
 void Gate::Connect(std::vector<std::string> connection_parameters) {	
@@ -181,9 +199,7 @@ void Gate::Evaluate() {
 		// is already queued-up to propagate this tick.
 		out_pin->state = new_state;
 		out_pin->state_changed = true;
-		if (m_parent_device_pointer->CheckIfQueuedToPropagateThisTick(m_local_component_index) == false) {
-			m_parent_device_pointer->AddToPropagateNextTick(m_local_component_index);
-		}
+		m_parent_device_pointer->QueueToPropagate(m_local_component_index);
 		// Print output pin changes if we are monitoring this gate.
 		if (m_monitor_on) {
 			std::cout << BOLD(FRED(" MONITOR: ")) << BOLD("" << m_full_name << ":" << m_component_type << "") << " output set to " << BoolToChar(new_state) << std::endl;
@@ -208,15 +224,6 @@ void Gate::Propagate() {
 			this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, out_pin->state);
 		}
 	}
-}
-
-void Gate::MakeProbable() {
-	m_top_level_sim_pointer->AddToProbableComponents(this);
-}
-
-Component* Gate::GetSiblingComponentPointer (std::string const& target_sibling_component_name) {
-	Component* target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_sibling_component_name);
-	return target_component_pointer;
 }
 
 operator_pointer Gate::GetOperatorPointer(std::string const& operator_name) {
