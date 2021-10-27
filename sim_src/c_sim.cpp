@@ -43,8 +43,6 @@ Simulation::Simulation(std::string const& simulation_name, int max_propagations,
 	std::cout << GenerateHeader("Simulation build started.") << std::endl << std::endl;
 	if (mg_verbose_output_flag == false) {
 		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
-	} else {
-		std::cout << std::endl;
 	}
 	srand(time(0));
 }
@@ -299,10 +297,6 @@ Component* Simulation::GetProbableComponentPointer(std::string const& target_com
 		}
 	}
 	return target_component_pointer;
-}
-
-int Simulation::GetTopLevelComponentCount() {
-	return GetLocalComponentCount();
 }
 
 bool Simulation::IsSimulationRunning() {

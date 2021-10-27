@@ -171,7 +171,7 @@ class Device : public Component {
 		void ChildMarkOutputNotConnected(std::string const& target_child_component_name, std::string const& target_out_pin_name);
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name = "input");
 		void Stabilise(void);
-		bool Solve(void);
+		void Solve(void);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		int GetNestingLevel(void);
 		int GetNewLocalComponentIndex(void);
@@ -184,24 +184,31 @@ class Device : public Component {
 		void PurgeChildComponent(std::string const& target_component_name);
 		void PurgeAllChildComponents(void);
 		void PurgeChildComponentIdentifiers(Component* target_component_pointer);
+		void CreateChildFlags(void);
 		
 	private:
 		void SubTick(int index);
 		
 		std::vector<component_descriptor> m_components;
 		std::vector<int> m_devices;
-		std::vector<int> m_propagate_next_tick;
-		std::vector<int> m_propagate_this_tick;
-		std::vector<int> m_still_to_propagate;
+		std::vector<int> m_propagate_next_tick = {};
+		std::vector<bool> m_propagate_next_tick_flags = {};
+		std::vector<int> m_propagate_this_tick = {};
+		std::vector<bool> m_propagate_this_tick_flags = {};
 		bool m_buffered_propagation = false;
 		bool m_solve_this_tick_flag = false;
+		std::vector<int> m_solve_this_tick = {};
 		std::vector<std::vector<connection_descriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 		std::vector<state_descriptor> m_in_pin_default_states;
 		
 	protected:
-		bool CheckAndClearSolutionFlag(void);
+		void QueueToSolve(int local_component_identifier);
+		void PropagateInputs(void);
+		void SetChildPropagationFlag(int propagation_identifier);
+		bool GetChildPropagationFlag(int propagation_identifier);
+		void AppendChildPropagationIdentifier(int propagation_identifier);
 		
 		int m_max_propagations;
 		MagicEngine* m_magic_engine_pointer;
@@ -229,7 +236,6 @@ class Simulation : public Device {
 		int GetNewCUID(void);
 		Clock* GetClockPointer(std::string const& target_clock_name);
 		Component* GetProbableComponentPointer(std::string const& target_component_full_name);
-		int GetTopLevelComponentCount(void);
 		bool IsSimulationRunning(void);
 		void StopSimulation(void);
 		void ShutDownMagicEngines(void);

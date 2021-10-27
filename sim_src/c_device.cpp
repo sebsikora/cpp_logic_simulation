@@ -51,6 +51,7 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 		m_local_component_index = m_parent_device_pointer->GetNewLocalComponentIndex();
 		m_nesting_level = m_parent_device_pointer->GetNestingLevel() + 1;
 		m_full_name = m_parent_device_pointer->GetFullName() + ":" + m_name;
+		m_parent_device_pointer->CreateChildFlags();
 	}
 	m_component_type = device_type;
 	m_monitor_on = monitor_on;
@@ -75,6 +76,12 @@ Device::~Device() {
 	if (mg_verbose_output_flag) {
 		std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl;
 	}
+}
+
+void Device::CreateChildFlags() {
+	// Create un-set propagation flags for a new child Device.
+	m_propagate_next_tick_flags.push_back(false);
+	m_propagate_this_tick_flags.push_back(false);
 }
 
 void Device::CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states) {
@@ -104,11 +111,12 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 }
 
 void Device::SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states) {
-	// SetPin() only sets pin logical state & state_changed flag.
+	// SetPin() only sets pin logical state & state_changed flag for input and output (direction = 1 or 2) pins.
 	std::string pin_name = target_pin.name;
 	if (IsStringInVector(pin_name, m_hidden_in_pins)) {
 		// If hidden in pin, set direction and state accordingly...
 		target_pin.direction = 3;
+		target_pin.state_changed = true;
 		if (pin_name == "true") {
 			target_pin.state = true;
 		} else if (pin_name == "false") {
@@ -117,6 +125,7 @@ void Device::SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_s
 	} else if (IsStringInVector(pin_name, m_hidden_out_pins)) {
 		// ...likewise for hidden out pins.
 		target_pin.direction = 4;
+		target_pin.state_changed = false;
 		target_pin.state = false;
 	} else {
 		// If this is a user-defined input, handle as normal.
@@ -128,8 +137,8 @@ void Device::SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_s
 			// ...otherwise set input state to false.
 			target_pin.state = false;
 		}
+		target_pin.state_changed = true;
 	}
-	target_pin.state_changed = false;
 }
 
 void Device::Build() {
@@ -175,24 +184,10 @@ void Device::Stabilise() {
 	// Ensures that internal device state settles correctly.
 	if (mg_verbose_output_flag) {
 		std::string msg = "Stabilising new level " + std::to_string(m_nesting_level) + " Device " + m_full_name;
-		std::cout << GenerateHeader(msg) << std::endl;
+		std::cout << GenerateHeader(msg) << std::endl << std::endl;
 	}
-	// First we Set() all child component inputs that are connected to the parent device inputs to deafult states.
-	for (const auto& this_pin : m_pins) {
-		if ((this_pin.direction == 1) || (this_pin.direction == 3)) {
-			for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
-				// The same idiom is used to go from an entry in m_ports to setting the appropriate target pin, in the
-				// Propagate() method further down.
-				Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
-				int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
-				target_component_pointer->Set(target_pin_port_index, this_pin.state);
-			}
-		}
-	}
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
-	// Next we call Initialise() for all Components.
+	// First we call Initialise() for all Components to set their out pins state_changed flags to true and
+	// add their local ids to this Device's propagate next vector.
 	for (const auto& this_component_descriptor : m_components) {
 			if (mg_verbose_output_flag) {
 				std::cout << "Initialising " << this_component_descriptor.component_full_name << "..." << std::endl;
@@ -202,18 +197,20 @@ void Device::Stabilise() {
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
-	// Lastly we Solve() by iterating SubTick() until device internal state has stabilised.
-	// In the runtime Solve() loop, we need to handle the m_buffered_propagations flag returned
-	// by Solve(). We don't need to do that here, as the parent Device will add *all* it's child
-	// Devices to it's m_propagate_next list, as we did here above.
+	// Then we call Solve() for this Device and if it sets it's corresponding propagation flag within it's
+	// parent Device, we append it's local id to it's parent's propagate next vector. In the normal Solve loop
+	// this is handled. If we don't do this here, though the flag will have been set during the Solve() call,
+	// the local component id won't get appended to the propagate next vector, and subsequent calls to QueueToPropagate()
+	// will do nothing as when they check the flag it will be set (which usually means the id has been appended).
 	Solve();
+	if (m_parent_device_pointer->GetChildPropagationFlag(m_local_component_index)) {
+		m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
+	}
 	if (mg_verbose_output_flag) {
 		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
 	}
 	if (this == m_top_level_sim_pointer) {
 		ReportUnConnectedPins();
-	}
-	if (this == m_top_level_sim_pointer) {
 		std::cout << GenerateHeader("Simulation build completed.") << std::endl << std::endl;
 	}
 }
@@ -540,23 +537,27 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 	}
 }
 
-bool Device::CheckAndClearSolutionFlag() {
-	bool current_solution_flag = m_solve_this_tick_flag;
+void Device::Solve() {
+	// Clear the Solve() pending flag for starters.
 	m_solve_this_tick_flag = false;
-	return current_solution_flag;
-}
-
-bool Device::Solve() {
 	int sub_tick_count = 0;
 	int sub_tick_limit = m_max_propagations;
-	while (m_propagate_next_tick.size() > 0) {
+	if (mg_verbose_output_flag) {
+		std::cout << BOLD(FMAG("Level " << BOLD("" << m_nesting_level << "") << " Device " << BOLD("" << m_full_name << "") << " Propagating inputs...")) << std::endl << std::endl;
+	}
+	// Propagate Device inputs first.
+	PropagateInputs();
+	if (mg_verbose_output_flag) {
+		std::cout << std::endl;
+	}
+	while (true) {
 		if (mg_verbose_output_flag) {
 			std::cout << BOLD(FMAG("Level " << BOLD("" << m_nesting_level << "") << " Device " << BOLD("" << m_full_name << "") << " starting to Solve()...")) << std::endl << std::endl;
 		}
-		// Handle pending propagations for child Gates and child Device in pins.
-		// Loop terminates when there are no outstanding propagations.
+		// Handle pending propagations for child Gates and child Device out pins.
 		while (sub_tick_count <= sub_tick_limit) {
 			SubTick(sub_tick_count);
+			// Terminate loop when there are no pending propagations.
 			if (m_propagate_next_tick.size() > 0) {
 				sub_tick_count += 1;
 			} else {
@@ -575,82 +576,106 @@ bool Device::Solve() {
 			}
 		}
 		// Solve() for all pending child Devices.
-		for (const auto& this_local_device_index : m_devices) {
+		for (const auto& this_local_device_index : m_solve_this_tick) {
 			Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
-			if (this_device_pointer->CheckAndClearSolutionFlag()) {
-				// If the child Device's Solve() returns true, one or more of it's out pins have
-				// changed and it needs to be added to the propagation list.
-				if (this_device_pointer->Solve()) {
-					m_propagate_next_tick.emplace_back(this_local_device_index);
-				}
+			this_device_pointer->Solve();
+			if (m_propagate_next_tick_flags[this_local_device_index]) {
+				m_propagate_next_tick.emplace_back(this_local_device_index);
 			}
+		}
+		m_solve_this_tick.clear();
+		// If there are no pending propagations within this Device following the child Device solve loop
+		// above, we're all done here.
+		if (m_propagate_next_tick.size() == 0) {
+			break;
 		}
 	}
 	// If we're solving the top-level Simulation state, we need to check if the Clock has triggered any Probes.
 	if (this == m_top_level_sim_pointer) {
 		m_top_level_sim_pointer->CheckProbeTriggers();
+	} else {
+		// If anything has Set() this Device's out pins during the Solve() call, clear the buffered propagation
+		// flag and set this Device's propagation flag in the parent Device to true so those out pin changes are
+		// propagated during the parent Device's Solve() call.
+		if (m_buffered_propagation) {
+			m_buffered_propagation = false;
+			m_parent_device_pointer->SetChildPropagationFlag(m_local_component_index);
+		}
 	}
-	// Set m_buffered_propagation to false and return it's previous value.
-	bool buffered_propagation_to_return = m_buffered_propagation;
-	m_buffered_propagation = false;
-	return buffered_propagation_to_return;
 }
 
 void Device::SubTick(int index) {
 	if (mg_verbose_output_flag) {
 		std::cout << "Iteration: " << std::to_string(index) << std::endl;
 	}
-	// Propagation queue for the next subtick can be set up in one of two ways:
-	// If the component local IDs are sorted in ascending order, we need to delete the 0th entry each time in the
-	// propagation loop that follows. It's faster to pop_back() the last element instead, but to do that we need
-	// to inverse-sort the component local IDs and then work through them from last to first.
-	// This also requires that we modify std::binary_search in CheckIfQueuedToPropagateThisTick() for searching
-	// an inverse-sorted vector. We use the same custom < comparator function (backwards_comp() defined at the top)
-	// to modify the behaviour of both std::sort() and std::binary_search().
-	// To compare:
-	// Swap the commented and uncommented std::sort(s) below this, and then swap the commented and uncommented for-loops.
-	// Also swap the commented and uncommented std::binary_search(es) in CheckIfQueuedToPropagateThisTick().
-	//~std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end(), backwards_comp);
-	// 		NOTE - Confusingly the forward sort is uncommented here at the moment as the following for-loop copies
-	// 		m_propagate_next_tick *backwards* so it can clear it by popping elements off the end, as this seems yet-faster.
-	std::sort(m_propagate_next_tick.begin(), m_propagate_next_tick.end());
-	m_propagate_next_tick.erase(std::unique(m_propagate_next_tick.begin(), m_propagate_next_tick.end()), m_propagate_next_tick.end()); 
-	int copy_range = m_propagate_next_tick.size();
-	for (int i = copy_range - 1; i >= 0; i --) {
-		m_propagate_this_tick.emplace_back(m_propagate_next_tick[i]);
-		m_still_to_propagate.emplace_back(m_propagate_next_tick[i]);
-		m_propagate_next_tick.pop_back();
+	// ------------------------------------------
+	for (const auto& this_entry : m_propagate_next_tick) {
+		m_propagate_this_tick.emplace_back(this_entry);
+		m_propagate_this_tick_flags[this_entry] = true;
+		m_propagate_next_tick_flags[this_entry] = false;
 	}
-	//~for (const auto& this_component_local_index : m_propagate_this_tick) {
-		//~m_still_to_propagate.erase(m_still_to_propagate.begin());
-		//~Component* component_pointer = m_components[this_component_local_index].component_pointer;
-		//~component_pointer->Propagate();
-	//~}
-	for (int i = m_propagate_this_tick.size() - 1; i >= 0; i --) {
-		m_still_to_propagate.pop_back();
-		m_components[m_propagate_this_tick[i]].component_pointer->Propagate();
+	m_propagate_next_tick.clear();
+	for (const auto& this_entry : m_propagate_this_tick) {
+		m_propagate_this_tick_flags[this_entry] = false;
+		m_components[this_entry].component_pointer->Propagate();
 	}
 	m_propagate_this_tick.clear();
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
+	// ------------------------------------------
+}
+
+void Device::SetChildPropagationFlag(int propagation_identifier) {
+	m_propagate_next_tick_flags[propagation_identifier] = true;
+}
+
+bool Device::GetChildPropagationFlag(int propagation_identifier) {
+	return m_propagate_next_tick_flags[propagation_identifier];
+}
+
+void Device::AppendChildPropagationIdentifier(int propagation_identifier) {
+	m_propagate_next_tick.emplace_back(propagation_identifier);
+}
+
+void Device::QueueToSolve(int local_component_identifier) {
+	m_solve_this_tick.emplace_back(local_component_identifier);
+} 
+
+void Device::QueueToPropagate(int propagation_identifier) {
+	if ((!m_propagate_this_tick_flags[propagation_identifier]) && (!m_propagate_next_tick_flags[propagation_identifier])) {
+		m_propagate_next_tick.emplace_back(propagation_identifier);
+		m_propagate_next_tick_flags[propagation_identifier] = true;
+	}
+}
+
+void Device::PropagateInputs() {
+	for (auto& this_pin : m_pins) {
+		if ((this_pin.direction == 1) || (this_pin.direction == 3)) {
+			if (this_pin.state_changed) {
+				if (mg_verbose_output_flag) {
+					std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin.name << " = " << BoolToChar(this_pin.state) << std::endl;
+				}
+				this_pin.state_changed = false;
+				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
+					this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
+				}
+			}
+		}
+	}
 }
 
 void Device::Propagate() {
 	for (auto& this_pin : m_pins) {
-		if (this_pin.state_changed) {
-			if (mg_verbose_output_flag) {
-				std::string direction_string = "";
-				if (this_pin.direction == 1) {
-					direction_string = "input ";
-				} else {
-					direction_string = "output ";
+		if (this_pin.direction == 2) {
+			if (this_pin.state_changed) {
+				if (mg_verbose_output_flag) {
+					std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin.name << " = " << BoolToChar(this_pin.state) << std::endl;
 				}
-				std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating " << direction_string << this_pin.name << " = " << BoolToChar(this_pin.state) << std::endl;
-			}
-			this_pin.state_changed = false;
-			for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
-				this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
+				this_pin.state_changed = false;
+				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
+					this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
+				}
 			}
 		}
 	}
@@ -671,10 +696,10 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 			}
 			this_pin->state = state_to_set;
 			this_pin->state_changed = true;
-			// Add device to the parent Devices propagate_next list, UNLESS this device
-			// is already queued-up to propagate this SubTick.
-			m_parent_device_pointer->QueueToPropagate(m_local_component_index);
-			m_solve_this_tick_flag = true;
+			if (!m_solve_this_tick_flag) {
+				m_solve_this_tick_flag = true;
+				m_parent_device_pointer->QueueToSolve(m_local_component_index);
+			}
 		}
 	} else if (this_pin->direction == 2) {
 		if (state_to_set != this_pin->state) {
@@ -721,12 +746,6 @@ int Device::GetNewLocalComponentIndex() {
 
 int Device::GetLocalComponentCount() {
 	return m_components.size();
-}
-
-void Device::QueueToPropagate(int propagation_identifier) {
-	if (!std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier, backwards_comp)) {
-		m_propagate_next_tick.emplace_back(propagation_identifier);
-	}
 }
 
 void Device::PrintPinStates(int max_levels) {
@@ -866,6 +885,7 @@ void Device::PurgeComponent() {
 		// First  - Need to Purge and delete all child components.
 		PurgeAllChildComponents();
 		// Second - Ask parent Device to purge all local references to this Device...
+		// 			NOTE - Should elaborate on 'references here' really...
 		m_parent_device_pointer->PurgeChildConnections(this);
 		// Third  - Purge Device from Simulation Clocks, Probes and probable_components vector.
 		//			This will 'automatically' get rid of any Probes associated with the Device
@@ -909,6 +929,7 @@ void Device::PurgeChildConnections(Component* target_component_pointer) {
 	for (const auto& this_component_descriptor : m_components) {
 		this_component_descriptor.component_pointer->PurgeInboundConnections(target_component_pointer);
 	}
+	
 	// That should be all of the external
 }
 
@@ -1015,6 +1036,9 @@ void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer)
 			}
 		}
 		m_devices = new_m_devices;
+		// Parent removes an entry from each of it's propagation flag vectors.
+		m_propagate_this_tick_flags.pop_back();
+		m_propagate_next_tick_flags.pop_back();
 	}
 	// Create a new m_components vector, omitting the Component to purge. 
 	size_t index = 0;
@@ -1042,12 +1066,3 @@ void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer)
 		this_component_pointer->SetLocalComponentIndex(i);
 	}
 }
-
-//~bool Device::CheckIfQueuedToPropagateThisTick(int propagation_identifier) {
-	//~return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier, backwards_comp);
-	//~//return std::binary_search(m_still_to_propagate.begin(), m_still_to_propagate.end(), propagation_identifier);
-//~}
-
-//~void Device::AddToPropagateNextTick(int propagation_identifier) {
-	//~m_propagate_next_tick.emplace_back(propagation_identifier);
-//~}

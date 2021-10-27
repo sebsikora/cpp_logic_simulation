@@ -5,7 +5,7 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
+	bool verbose = true;
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
@@ -51,7 +51,7 @@ int main () {
 	sim->Run(33, true, verbose, print_probe_samples);
 	
 	//~sim->PurgeGlobalComponent("test_sim:test_counter:jk_ff_0");
-	sim->PurgeChildComponent("test_counter");
+	//~sim->PurgeChildComponent("test_counter");
 	
 	delete sim;
 	

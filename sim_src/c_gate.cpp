@@ -40,6 +40,7 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 	m_local_component_index = m_parent_device_pointer->GetNewLocalComponentIndex();
 	m_nesting_level = m_parent_device_pointer->GetNestingLevel() + 1;
 	m_full_name = m_parent_device_pointer->GetFullName() + ":" + m_name;
+	m_parent_device_pointer->CreateChildFlags();
 	m_component_type = gate_type;
 	m_operator_function_pointer = GetOperatorPointer(m_component_type);
 	m_monitor_on = monitor_on;
