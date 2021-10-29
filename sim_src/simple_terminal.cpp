@@ -46,6 +46,12 @@ SimpleTerminal::SimpleTerminal(Device* parent_device_pointer, std::string device
 	Stabilise();
 }
 
+SimpleTerminal::~SimpleTerminal() {
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "SimpleTerminal dtor for " << m_full_name << " @ " << this << std::endl;
+	}
+}
+
 void SimpleTerminal::Build() {
 	// This device does not contain any components!
 	// We still need to call MakeProbable() here during the Build() process if we want to attach logic probes later.
@@ -92,6 +98,14 @@ SimpleTerminal_MagicEngine::SimpleTerminal_MagicEngine(Device* parent_device_poi
 	SendMessage(welcome_message.c_str(), m_fifo_dat_master_to_slave);
 	m_end_code = "end";
 	m_match_buffer = "";
+}
+
+SimpleTerminal_MagicEngine::~SimpleTerminal_MagicEngine() {
+	// Shut down the MagicEngine (close any open files, etc...).
+	ShutDownMagic();
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "SimpleTerminal_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
+	}
 }
 
 void SimpleTerminal_MagicEngine::GetPinPortIndices(int data_bus_width) {
@@ -202,6 +216,7 @@ void SimpleTerminal_MagicEngine::ShutDownMagic() {
 	SendMessage(welcome_message.c_str(), m_fifo_cmd_master_to_slave);
 	Finish(m_client_pid, m_fifo_dat_s_m_ident_carray, m_fifo_dat_m_s_ident_carray, m_fifo_cmd_m_s_ident_carray, &m_fifo_dat_slave_to_master,
 			&m_fifo_dat_master_to_slave, &m_fifo_cmd_master_to_slave);
+	std::cout << "SimpleTerminal_MagicEngine is shut down." << std::endl;
 }
 
 void SimpleTerminal_MagicEngine::InvokeMagic(std::string const& incantation) {

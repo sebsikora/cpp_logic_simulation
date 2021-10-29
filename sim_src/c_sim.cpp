@@ -307,11 +307,11 @@ void Simulation::StopSimulation() {
 	m_simulation_running = false;
 }
 
-void Simulation::ShutDownMagicEngines() {
-	for (const auto& this_magic_engine_descriptor : m_magic_engines) {
-		this_magic_engine_descriptor.magic_engine_pointer->ShutDownMagic();
-	}
-}
+//~void Simulation::ShutDownMagicEngines() {
+	//~for (const auto& this_magic_engine_descriptor : m_magic_engines) {
+		//~this_magic_engine_descriptor.magic_engine_pointer->ShutDownMagic();
+	//~}
+//~}
 
 void Simulation::CheckProbeTriggers() {
 	for (const auto& this_clock_descriptor : m_clocks) {
@@ -473,6 +473,23 @@ void Simulation::PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer)
 		}
 	}
 	m_clocks = new_clocks;
+}
+
+void Simulation::PurgeMagicEngineDescriptorFromSimulation(magic_engine_descriptor target_descriptor) {
+	std::vector<magic_engine_descriptor> new_magic_engines = {};
+	for (const auto& this_magic_engine_descriptor : m_magic_engines) {
+		if (this_magic_engine_descriptor != target_descriptor) {
+			magic_engine_descriptor new_magic_engine_descriptor;
+			new_magic_engine_descriptor.magic_engine_identifier = this_magic_engine_descriptor.magic_engine_identifier;
+			new_magic_engine_descriptor.magic_engine_pointer = this_magic_engine_descriptor.magic_engine_pointer;
+			new_magic_engines.push_back(new_magic_engine_descriptor);
+		} else {
+			if (mg_verbose_output_flag) {
+				std::cout << "Purging " << this_magic_engine_descriptor.magic_engine_identifier << " from Simulation " << m_name << " m_magic_engines." << std::endl;
+			}
+		}
+	}
+	m_magic_engines = new_magic_engines;
 }
 
 void Simulation::PurgeGlobalComponent(std::string const& target_component_full_name) {

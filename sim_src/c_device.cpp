@@ -23,6 +23,8 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 #include <algorithm>				// std::sort
+#include <thread>
+#include <functional>
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
@@ -271,8 +273,7 @@ void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<b
 		new_magic_event.state_change = state_change;
 		new_magic_event.co_conditions = co_conditions;
 		new_magic_event.incantation = incantation;
-		std::string identifier = target_pin_name + ":" + incantation;
-		m_magic_engine_pointer->AddMagicEventTrap(identifier, new_magic_event);
+		m_magic_engine_pointer->AddMagicEventTrap(new_magic_event);
 	} else {
 		std::cout << "Device " + m_full_name + " is not magic! Cannot add magic event trap." << std::endl;
 	}
@@ -893,7 +894,11 @@ void Device::PurgeComponent() {
 		m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
 		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
 		m_top_level_sim_pointer->PurgeComponentFromProbes(this);
-		// Fourth - Clear component entry from parent device's m_components.
+		// Fourth - If this is a magic Device, purge it's magic Device engine.
+		if (m_magic_device_flag) {
+			delete m_magic_engine_pointer;
+		}
+		// Fifth  - Clear component entry from parent device's m_components.
 		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
 		if (mg_verbose_output_flag) {
 			header =  "DEVICE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
@@ -1066,3 +1071,26 @@ void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer)
 		this_component_pointer->SetLocalComponentIndex(i);
 	}
 }
+
+//~std::vector<std::thread> m_solution_threads;
+//~std::vector<int> m_thread_device_identifiers;
+//~if (this_device_pointer->GetNestingLevel() == 2) {
+		//~m_solution_threads.emplace_back(std::thread(&Device::Solve, this_device_pointer));
+		//~m_thread_device_identifiers.emplace_back(this_local_device_index);
+	//~} else {
+		//~this_device_pointer->Solve();
+		//~if (m_propagate_next_tick_flags[this_local_device_index]) {
+			//~m_propagate_next_tick.emplace_back(this_local_device_index);
+		//~}
+	//~}
+//~}
+//~int thread_index = 0;
+//~for (auto& this_thread : m_solution_threads) {
+	//~this_thread.join();
+	//~if (m_propagate_next_tick_flags[m_thread_device_identifiers[thread_index]]) {
+		//~m_propagate_next_tick.emplace_back(m_thread_device_identifiers[thread_index]);
+	//~}
+	//~thread_index ++;
+//~}
+//~m_thread_device_identifiers.clear();
+//~m_solution_threads.clear();

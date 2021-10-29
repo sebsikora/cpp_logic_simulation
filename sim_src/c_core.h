@@ -24,6 +24,7 @@
 #define LSIM_CORE_H
 
 // Includes for this header.
+#include <iostream>					// std::cout, std::endl.
 #include <string>					// std::string.
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
@@ -171,7 +172,6 @@ class Device : public Component {
 		void ChildMarkOutputNotConnected(std::string const& target_child_component_name, std::string const& target_out_pin_name);
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name = "input");
 		void Stabilise(void);
-		void Solve(void);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		int GetNestingLevel(void);
 		int GetNewLocalComponentIndex(void);
@@ -204,6 +204,7 @@ class Device : public Component {
 		std::vector<state_descriptor> m_in_pin_default_states;
 		
 	protected:
+		void Solve(void);
 		void QueueToSolve(int local_component_identifier);
 		void PropagateInputs(void);
 		void SetChildPropagationFlag(int propagation_identifier);
@@ -238,7 +239,7 @@ class Simulation : public Device {
 		Component* GetProbableComponentPointer(std::string const& target_component_full_name);
 		bool IsSimulationRunning(void);
 		void StopSimulation(void);
-		void ShutDownMagicEngines(void);
+		//~void ShutDownMagicEngines(void);
 		void CheckProbeTriggers(void);
 		void LogBuildError(std::string const& build_error);
 		void PrintBuildErrors(void);
@@ -249,7 +250,8 @@ class Simulation : public Device {
 		void PurgeChildProbe(std::string const& target_probe_name);
 		void PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer);
 		void PurgeChildClock(std::string const& target_clock_name);
-		void PurgeClockDescriptorFromSimulation(Clock* target_clock_name);
+		void PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer);
+		void PurgeMagicEngineDescriptorFromSimulation(magic_engine_descriptor target_descriptor);
 		void PurgeGlobalComponent(std::string const& target_component_full_name);
 		bool GetSearchingFlag(void);
 		void SetSearchingFlag(bool value);
@@ -334,20 +336,23 @@ class Probe {
 class MagicEngine {
 	public:
 		MagicEngine(Device* parent_device_pointer);
-		~MagicEngine() { std::cout << "MagicEngine dtor for " << m_parent_device_pointer->GetFullName() << ":magic_engine @ " << this << std::endl << std::endl; }
+		virtual ~MagicEngine();
 		
-		virtual void InvokeMagic(std::string const& incantation);
-		virtual void UpdateMagic(void);
-		virtual void ShutDownMagic(void);
+		virtual void InvokeMagic(std::string const& incantation) = 0;
+		virtual void UpdateMagic(void) = 0;
+		virtual void ShutDownMagic(void) = 0;
 
-		void AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event);
+		void AddMagicEventTrap(magic_event new_magic_event);
 		void CheckMagicEventTrap(int target_pin_port_index, bool new_state);
 		
 		Device* m_parent_device_pointer;
 		Simulation* m_top_level_sim_pointer;
-
+	
+	protected:
+		std::string m_identifier;
+	
 	private:
-		std::unordered_map<std::string, magic_event> m_magic_events;
+		std::vector<magic_event> m_magic_events;
 };
 
 #endif

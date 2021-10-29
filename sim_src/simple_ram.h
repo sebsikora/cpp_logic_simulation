@@ -32,6 +32,7 @@ class SimpleRam : public Device {
 	public:
 		// Constructor.
 		SimpleRam(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
+		~SimpleRam();
 		// Methods common to base Device class.
 		void Build(void) override;
 		// Methods.
@@ -45,6 +46,7 @@ class SimpleRam_MagicEngine : public MagicEngine {
 	public:
 		// Constructor.
 		SimpleRam_MagicEngine(Device* parent_device_pointer, int address_bus_width, int data_bus_width);
+		~SimpleRam_MagicEngine();
 		// Methods common to base MagicEngine class.
 		void InvokeMagic(std::string const& incantation) override;
 		void UpdateMagic(void) override;

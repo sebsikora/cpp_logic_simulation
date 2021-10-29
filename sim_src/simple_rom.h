@@ -32,6 +32,7 @@ class SimpleRom : public Device {
 	public:
 		// Constructor.
 		SimpleRom(Device* parent_device_pointer, std::string device_name, std::string data_filepath, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
+		~SimpleRom();
 		// Methods.
 		void Build(void);
 		void ConfigureMagic(Device* parent_device_pointer, std::string data_filepath);
@@ -44,8 +45,11 @@ class SimpleRom_MagicEngine : public MagicEngine {
 	public:
 		// Constructor.
 		SimpleRom_MagicEngine(Device* parent_device_pointer, std::string data_filepath);
+		~SimpleRom_MagicEngine();
 		// Methods common to base MagicEngine class.
 		virtual void InvokeMagic(std::string const& incantation) override;
+		virtual void UpdateMagic(void) override;
+		virtual void ShutDownMagic(void) override;
 		// Methods particular to SimpleRom_MagicEngine sub-class.
 		std::vector<std::vector<bool>> Configure(std::string file_path);
 		std::vector<std::string> GenerateInputs(void);

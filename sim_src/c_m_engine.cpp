@@ -30,31 +30,56 @@
 MagicEngine::MagicEngine(Device* parent_device_pointer) {
 	m_parent_device_pointer = parent_device_pointer;
 	m_top_level_sim_pointer = m_parent_device_pointer->GetTopLevelSimPointer();
-	std::string identifier = m_parent_device_pointer->GetFullName() + ":magic_engine";
-	m_top_level_sim_pointer->AddToMagicEngines(identifier, this);
+	m_identifier = m_parent_device_pointer->GetFullName() + ":magic_engine";
+	m_top_level_sim_pointer->AddToMagicEngines(m_identifier, this);
 }
 
-void MagicEngine::AddMagicEventTrap(std::string const& identifier, magic_event new_magic_event) {
-	if (IsStringInMapKeys(identifier, m_magic_events) == false) {
-		m_magic_events[identifier] = new_magic_event;
+MagicEngine::~MagicEngine() {
+	std::string header;
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		header =  "Purging -> MAGICENGINE : " + m_identifier + " @ " + PointerToString(static_cast<void*>(this));
+		std::cout << GenerateHeader(header) << std::endl;
+	}
+	// ----------------------------------------
+	// Then purge the magic_engine_descriptor held by the top-level Simulation.
+	m_top_level_sim_pointer->PurgeMagicEngineDescriptorFromSimulation({m_identifier, this});
+	// ----------------------------------------
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		header =  "MAGICENGINE : " + m_identifier + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
+		std::cout << GenerateHeader(header) << std::endl;
+		std::cout << "MagicEngine dtor for " << m_identifier << " @ " << this << std::endl << std::endl;
 	}
 }
 
-void MagicEngine::InvokeMagic(std::string const& incantation) {
-	// Redefined for each specific device subclass...
+void MagicEngine::AddMagicEventTrap(magic_event new_magic_event) {
+	bool found = false;
+	for (const auto& this_magic_event : m_magic_events) {
+		if (this_magic_event == new_magic_event) {
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		m_magic_events.push_back(new_magic_event);
+	} else {
+		std::cout << "MagicEngine " + m_identifier + " tried to add a magic event but an identical magic event already exists." << std::endl;
+	}
 }
 
-void MagicEngine::UpdateMagic() {
-	// Redefined for each specific device subclass...
-}
+//~void MagicEngine::InvokeMagic(std::string const& incantation) {
+	//~// Redefined for each specific device subclass...
+//~}
 
-void MagicEngine::ShutDownMagic() {
-	// Redefined for each specific device subclass...
-}
+//~void MagicEngine::UpdateMagic() {
+	//~// Redefined for each specific device subclass...
+//~}
+
+//~void MagicEngine::ShutDownMagic() {
+	//~// Redefined for each specific device subclass...
+//~}
 
 void MagicEngine::CheckMagicEventTrap(int target_pin_port_index, bool new_state) {
-	for (const auto& current_event_trap: m_magic_events) {
-		magic_event current_magic_event = current_event_trap.second;
+	for (const auto& current_magic_event: m_magic_events) {
 		if (target_pin_port_index == current_magic_event.target_pin_port_index) {
 			bool target_pin_existing_state = m_parent_device_pointer->GetPinState(target_pin_port_index);
 			std::vector<bool> current_state_change = {target_pin_existing_state, new_state};

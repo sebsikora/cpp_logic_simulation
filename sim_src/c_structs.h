@@ -73,21 +73,39 @@ struct probe_descriptor {
 };
 
 struct magic_engine_descriptor {
+	bool operator==(magic_engine_descriptor const& rhs) const {
+		return ((this->magic_engine_identifier == rhs.magic_engine_identifier) && (this->magic_engine_pointer == rhs.magic_engine_pointer));
+	}
+	bool operator!=(magic_engine_descriptor const& rhs) const {
+		return ((this->magic_engine_identifier != rhs.magic_engine_identifier) || (this->magic_engine_pointer != rhs.magic_engine_pointer));
+	}
 	std::string magic_engine_identifier;
 	MagicEngine* magic_engine_pointer;
 };
 
 struct magic_event_co_condition {
+	bool operator==(magic_event_co_condition const& rhs) const {
+		return ((this->pin_port_index == rhs.pin_port_index) && (this->pin_state == rhs.pin_state));
+	}
 	int pin_port_index; 
 	bool pin_state;
 };
 
 struct human_writable_magic_event_co_condition {
+	bool operator==(human_writable_magic_event_co_condition const& rhs) const {
+		return ((this->pin_name == rhs.pin_name) && (this->pin_state == rhs.pin_state));
+	}
 	std::string pin_name;
 	bool pin_state;
 };
 
 struct magic_event {
+	bool operator==(magic_event const& rhs) const {
+		return ((this->target_pin_port_index == rhs.target_pin_port_index) &&
+				(this->state_change == rhs.state_change) &&
+				(this->co_conditions == rhs.co_conditions) &&
+				(this->incantation == rhs.incantation));
+	}
 	int target_pin_port_index;
 	std::vector<bool> state_change;
 	std::vector<magic_event_co_condition> co_conditions;

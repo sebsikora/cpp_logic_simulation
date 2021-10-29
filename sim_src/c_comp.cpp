@@ -184,3 +184,4 @@ void Component::MakeProbable() {
 		m_top_level_sim_pointer->AddToProbableComponents(this);
 	}
 }
+

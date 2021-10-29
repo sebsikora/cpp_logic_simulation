@@ -141,7 +141,7 @@ void JK_FF_ASPC::Build() {
 	Connect("clk", "not_1");
 	
 	// Add device to top-level probable list.
-	MakeProbable();
+	//~MakeProbable();
 }
 
 Four_Bit_Counter::Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -399,7 +399,7 @@ void One_Bit_Register::Build() {
 	ChildMarkOutputNotConnected("jk_ff_0", "not_q");
 	
 	// Add device to top-level probable list.
-	MakeProbable();
+	//~MakeProbable();
 }
 
 N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -450,7 +450,7 @@ void N_Bit_Register::Build() {
 	}
 	
 	// Add device to top-level probable list.
-	MakeProbable();
+	//~MakeProbable();
 	//~PrintInPinStates();
 }
 
@@ -503,7 +503,7 @@ void NxOne_Bit_Mux::Build() {
 	}
 	
 	//~// Add device to top-level probable list.
-	MakeProbable();
+	//~MakeProbable();
 }
 
 N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -628,6 +628,17 @@ void NxM_Bit_Mux::Build() {
 	// First we will add an N_Bit_Decoder to decode the input selection.
 	AddComponent(new N_Bit_Decoder(this, "selection_decoder", m_s_bus_width, true));
 	
+	// We will have created a wide enough select bus to address m_data_bus_count input data busses,	but
+	// unless m_data_bus_count is a round power of 2, we will end up with some decoder output lines
+	// left unused. We need to determine how many, and mark them as connected or the connection checker
+	// will complain.
+	int spare_decoder_outputs = pow(m_s_bus_width, 2) - m_d_bus_count;
+	int first_unused_output_index = m_d_bus_count;
+	for (int i = first_unused_output_index; i < (first_unused_output_index + spare_decoder_outputs); i ++) {
+		std::string decoder_output_name = "out_" + std::to_string(i);
+		ChildMarkOutputNotConnected("selection_decoder", decoder_output_name);
+	}
+	
 	// Connect NxM_Bit_Mux selection inputs to decoder selection inputs.
 	for (int i = 0; i < m_s_bus_width; i ++) {
 		std::string selection_input_identifier = "sel_" + std::to_string(i);
@@ -666,8 +677,8 @@ void NxM_Bit_Mux::Build() {
 	}
 	
 	// Add device to top-level probable list.
-	MakeProbable();
-	PrintInPinStates();
-	PrintOutPinStates();
+	//~MakeProbable();
+	//~PrintInPinStates();
+	//~PrintOutPinStates();
 }
 

@@ -8,22 +8,21 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Set the desired bit-width of the counter here.
-	int counter_width = 4;
+	int counter_width = 3;
 	
 	// Instantiate the top-level Device (the Simulation).
-	std::string sim_name = "test_sim";
-	Simulation sim(sim_name, 10, verbose);
+	Simulation* sim = new Simulation("test_sim", 10, verbose);
 	
 	// Add the n-bit counter Device. Note the parameterised counter width.
-	sim.AddComponent(new N_Bit_Counter(&sim, "test_counter", counter_width, monitor_on, {{"run", true}}));
+	sim->AddComponent(new N_Bit_Counter(sim, "test_counter", counter_width, monitor_on, {{"run", true}}));
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
-	sim.Stabilise();
+	sim->Stabilise();
 	
 	// Add a Clock and connect it to the clk input on the counter.
 	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
-	sim.AddClock("clock_0", {false, true}, monitor_on);
-	sim.ClockConnect("clock_0", "test_counter", "clk");
+	sim->AddClock("clock_0", {false, true}, monitor_on);
+	sim->ClockConnect("clock_0", "test_counter", "clk");
 	
 	// Programmatically generate the required vector of counter output pin names.
 	std::vector<std::string> out_pins = {};
@@ -33,11 +32,12 @@ int main () {
 	}
 	
 	// Add a Probe on the counter's output pins.
-	sim.AddProbe("counter_out", "test_sim:test_counter", out_pins, "clock_0");
-	//~sim.AddProbe("counter_clk_in", "test_sim:test_counter", {"clk"}, "clock_0");
-	//~sim.AddProbe("counter_run_in", "test_sim:test_counter", {"run"}, "clock_0");
+	sim->AddProbe("counter_out", "test_sim:test_counter", out_pins, "clock_0");
+	//~sim->AddProbe("counter_clk_in", "test_sim:test_counter", {"clk"}, "clock_0");
 	
-	sim.Run(33, true, verbose, print_probe_samples);
+	sim->Run(33, true, verbose, print_probe_samples);
+	
+	delete sim;
 	
 	return 0;
 }

@@ -29,7 +29,7 @@
 #include "simple_rom.h"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-SimpleRom::SimpleRom(Device* parent_device_pointer, std::string device_name, std::string data_filepath, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+SimpleRom::SimpleRom(Device* parent_device_pointer, std::string device_name, std::string data_filepath, bool monitor_on,std::vector<state_descriptor> in_pin_default_states) 
  : Device(parent_device_pointer, device_name, "rom", {"read", "clk"}, {}, monitor_on, in_pin_default_states, 0) {
 	// We call ConfigureMagic() to create the MagicEngine.
 	ConfigureMagic(this, data_filepath);
@@ -39,10 +39,16 @@ SimpleRom::SimpleRom(Device* parent_device_pointer, std::string device_name, std
 	Stabilise();
 }
 
+SimpleRom::~SimpleRom() {
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "SimpleRom dtor for " << m_full_name << " @ " << this << std::endl;
+	}
+}
+
 void SimpleRom::Build() {
 	// This device does not contain any components!
 	// Still need to call MakeProbable() if we want to be able to attach logic probes!
-	MakeProbable();
+	//~MakeProbable();
 	// As there are no conventional Components inside the MagicDevice, if we don't mark all of the 'inner terminals' (pin.drive[1] for in pins
 	// and pin.drive[0] for out pins) as 'connected', the end-of-build connections check will get upset.
 	MarkInnerTerminalsDisconnected();
@@ -68,6 +74,14 @@ void SimpleRom::ConfigureBusses(std::vector<state_descriptor> in_pin_default_sta
 SimpleRom_MagicEngine::SimpleRom_MagicEngine(Device* parent_device_pointer, std::string data_filepath) : MagicEngine(parent_device_pointer) {
 	m_data_filepath = data_filepath;
 	m_data = Configure(data_filepath);		// Sets member variables m_address_bus_width and m_data_bus_width.
+}
+
+SimpleRom_MagicEngine::~SimpleRom_MagicEngine() {
+	// Shut down the MagicEngine (close any open files, etc...).
+	ShutDownMagic();
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "SimpleRom_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
+	}
 }
 
 std::vector<std::string> SimpleRom_MagicEngine::GenerateOutputs(void) {
@@ -142,6 +156,14 @@ std::vector<std::vector<bool>> SimpleRom_MagicEngine::Configure(std::string file
 		std::cout << "Unable to open file" << std::endl;
 	}
 	return padded_file_data;
+}
+
+void SimpleRom_MagicEngine::UpdateMagic(void) {
+	// SimpleRom_MagicEngine has nothing to update.
+}
+
+void SimpleRom_MagicEngine::ShutDownMagic(void) {
+	// SimpleRom_MagicEngine has nothing to shut down.
 }
 
 void SimpleRom_MagicEngine::InvokeMagic(std::string const& incantation) {

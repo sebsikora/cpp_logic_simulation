@@ -39,6 +39,12 @@ SimpleRam::SimpleRam(Device* parent_device_pointer, std::string device_name, int
 	Stabilise();
 }
 
+SimpleRam::~SimpleRam() {
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "SimpleRam dtor for " << m_full_name << " @ " << this << std::endl;
+	}
+}
+
 void SimpleRam::Build() {
 	// This device does not contain any components!
 	// We still need to call MakeProbable() here during Build() if we want to be able to attach logic probes.
@@ -90,6 +96,14 @@ SimpleRam_MagicEngine::SimpleRam_MagicEngine(Device* parent_device_pointer, int 
 	}
 	ZeroMemory(address_bus_width, data_bus_width);
 	GetPinPortIndices(address_bus_width, data_bus_width);
+}
+
+SimpleRam_MagicEngine::~SimpleRam_MagicEngine() {
+	// Shut down the MagicEngine (close any open files, etc...).
+	ShutDownMagic();
+	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		std::cout << "SimpleRam_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
+	}
 }
 
 void SimpleRam_MagicEngine::UpdateMagic() {

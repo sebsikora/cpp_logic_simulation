@@ -33,6 +33,7 @@ class SimpleTerminal : public Device {
 	public:
 		// Constructor.
 		SimpleTerminal(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
+		~SimpleTerminal();
 		// Methods common to base Device class.
 		void Build(void) override;
 		// Methods.
@@ -45,6 +46,7 @@ class SimpleTerminal_MagicEngine : public MagicEngine {
 	public:
 		// Constructor.
 		SimpleTerminal_MagicEngine(Device* parent_device_pointer, std::string name);
+		~SimpleTerminal_MagicEngine();
 		// Methods common to base MagicEngine class.
 		void InvokeMagic(std::string const& incantation) override;
 		void UpdateMagic(void) override;

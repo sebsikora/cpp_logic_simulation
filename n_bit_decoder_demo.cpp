@@ -9,21 +9,20 @@ int main () {
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
-	// Set the desired bit-width of the register here.
+	// Set the select bus width of the decoder here.
 	int select_bus_width = 3;
 	
 	// Instantiate the top-level Device (the Simulation).
-	std::string sim_name = "test_sim";
-	Simulation sim = Simulation(sim_name, 10, verbose);
+	Simulation* sim = new Simulation("test_sim", 10, verbose);
 	
-	// Add the n-bit register Device. Note the parameterised register width.
-	sim.AddComponent(new N_Bit_Decoder(&sim, "test_decoder", select_bus_width, monitor_on));
+	// Add the n-bit register Device. Note the parameterised decoder select bus width width.
+	sim->AddComponent(new N_Bit_Decoder(sim, "test_decoder", select_bus_width, monitor_on));
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
-	sim.Stabilise();
+	sim->Stabilise();
 	
 	// Clock to trigger probes.
-	sim.AddClock("clock_0", {false, true}, monitor_on);
+	sim->AddClock("clock_0", {false, true}, monitor_on);
 	
 	// Programmatically generate select input and output pins identifiers.
 	std::vector<std::string> out_pins = {};
@@ -38,8 +37,8 @@ int main () {
 	}
 	
 	// Add Probes connected to the clk, load and clear inputs of the register, to it's data input and output pins.
-	sim.AddProbe("decoder_outputs", "test_sim:test_decoder", out_pins, "clock_0");
-	sim.AddProbe("decoder_inputs", "test_sim:test_decoder", select_in_pins, "clock_0");
+	sim->AddProbe("decoder_outputs", "test_sim:test_decoder", out_pins, "clock_0");
+	sim->AddProbe("decoder_inputs", "test_sim:test_decoder", select_in_pins, "clock_0");
 	
 	// Cycle throught the select input combinations and trigger the Probes.
 	bool first_tick = true;
@@ -49,19 +48,19 @@ int main () {
 			std::string select_pin_identifier = "sel_" + std::to_string(select_pin_index);
 			// Does this position of the encoded selection value correspond to '1'?
 			if ((selection & (1 << select_pin_index)) == (1 << select_pin_index)) {
-				sim.ChildSet("test_decoder", select_pin_identifier, true);
+				sim->ChildSet("test_decoder", select_pin_identifier, true);
 			} else {
-				sim.ChildSet("test_decoder", select_pin_identifier, false);
+				sim->ChildSet("test_decoder", select_pin_identifier, false);
 			}
 		}
 		if (first_tick) {
-			sim.Run(1, true, verbose, false);
+			sim->Run(1, true, verbose, false);
 			first_tick = false;
 		} else {
-			sim.Run(1, false, verbose, false);
+			sim->Run(1, false, verbose, false);
 		}
 	}
-	sim.Run(1, false, verbose, print_probe_samples);
+	sim->Run(1, false, verbose, print_probe_samples);
 }
 
 
