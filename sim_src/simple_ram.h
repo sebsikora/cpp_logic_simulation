@@ -48,7 +48,7 @@ class SimpleRam_MagicEngine : public MagicEngine {
 		SimpleRam_MagicEngine(Device* parent_device_pointer, int address_bus_width, int data_bus_width);
 		~SimpleRam_MagicEngine();
 		// Methods common to base MagicEngine class.
-		void InvokeMagic(std::string const& incantation) override;
+		void InvokeMagic(int incantation) override;
 		void UpdateMagic(void) override;
 		void ShutDownMagic(void) override;
 		// Methods particular to SimpleRom_MagicEngine sub-class.
@@ -56,7 +56,7 @@ class SimpleRam_MagicEngine : public MagicEngine {
 		void GetPinPortIndices(int address_bus_width, int data_bus_width);
 		// Data particular to this sub-class.
 		std::vector<int> m_powers_of_two;
-		std::vector<std::vector<bool>> m_data;
+		std::vector<size_t> m_data;
 		int m_address_bus_width;
 		int m_data_bus_width;
 		std::vector<int> m_address_bus_pin_port_indices;

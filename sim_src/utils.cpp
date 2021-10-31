@@ -24,9 +24,40 @@
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
 #include <iostream>					// std::cout, std::endl.
+#include <cmath>
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
+
+Converter::Converter(int bit_width) {
+	m_bit_width = bit_width;
+	for (int i = 0; i < bit_width; i ++) {
+		m_powers_of_two.push_back(pow(2, i));
+	}
+	m_max_int = 2 * m_powers_of_two.back();
+}
+
+void Converter::IntToStates(int int_to_convert, std::vector<bool> &state_vector) {
+	for (int bit_position = 0; bit_position < m_bit_width; bit_position ++) {
+		// Single & is bitwise AND.
+		if ((int_to_convert >> bit_position) & 1U) {
+			state_vector[bit_position] = true;
+		} else {
+			state_vector[bit_position] = false;
+		}
+	}
+}
+
+int Converter::StatesToInt(std::vector<bool> &state_vector) {
+	// Will only convert places up to m_bit_width set in constructor.
+	int integer_value = 0;
+	for (int bit_position = 0; bit_position < m_bit_width; bit_position ++) {
+		if (state_vector[bit_position]) {
+			integer_value |= 1UL << bit_position;
+		}
+	}
+	return integer_value;
+}
 
 std::vector<bool> IntToStates(int value_to_convert, int pin_count) {
 	std::vector<bool> converted_value;

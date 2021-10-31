@@ -258,7 +258,7 @@ void Device::AddGate(std::string const& component_name, std::string const& compo
 	AddComponent(new Gate(this, component_name, component_type, {}, false));
 }
 
-void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, std::string const& incantation) {
+void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation) {
 	if (m_magic_device_flag == true) {
 		// Convert the human-writable  kind of magic event co-condition (strings for terminal identifiers) to the kind pin-indexed kind.
 		std::vector<magic_event_co_condition> co_conditions = {};
@@ -273,6 +273,23 @@ void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<b
 		new_magic_event.state_change = state_change;
 		new_magic_event.co_conditions = co_conditions;
 		new_magic_event.incantation = incantation;
+		// Ensure that m_magic_pin_flag is set for this pin.  ---------------------------------------------------------
+		// If this is the first time this has been done we need to initialise at-least enough entries for all in pins.
+		if (m_magic_pin_flag.size() == 0) {
+			int max_in_pin_port_index = 0;
+			for (const auto& this_pin : m_pins) {
+				if (this_pin.direction == 1) {
+					if (this_pin.port_index > max_in_pin_port_index) {
+						max_in_pin_port_index = this_pin.port_index;
+					}
+				}
+			}
+			for (int pin_index = 0; pin_index < max_in_pin_port_index + 1; pin_index ++) {
+				m_magic_pin_flag.push_back(false);
+			}
+		}
+		m_magic_pin_flag[new_magic_event.target_pin_port_index] = true;
+		// -----------------------------------------------------------------------------------------------------------
 		m_magic_engine_pointer->AddMagicEventTrap(new_magic_event);
 	} else {
 		std::cout << "Device " + m_full_name + " is not magic! Cannot add magic event trap." << std::endl;
@@ -423,7 +440,7 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 			
 			int origin_pin_port_index = GetPinPortIndex(origin_pin_name);
 			std::vector<int> required_target_directions;
-			Component* target_component_pointer;
+			Component* target_component_pointer = 0;
 			if ((origin_pin_direction == 1) || (origin_pin_direction == 3)) {
 				// If the device state is one of it's inputs, it can only be connected to an input terminal
 				// of an internal child device.
@@ -693,7 +710,9 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << "input terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
 			}
 			if (m_magic_device_flag == true) {
-				m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
+				if (m_magic_pin_flag[pin_port_index]) {
+					m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
+				}
 			}
 			this_pin->state = state_to_set;
 			this_pin->state_changed = true;
@@ -747,6 +766,17 @@ int Device::GetNewLocalComponentIndex() {
 
 int Device::GetLocalComponentCount() {
 	return m_components.size();
+}
+
+int Device::GetInPinCount() {
+	int acc = 0;
+	int pin_count = (int)m_pins.size();
+	for (int pin_index = 0; pin_index < pin_count; pin_index ++) {
+		if (m_pins[pin_index].direction == 1) {
+			acc ++;
+		}
+	}
+	return acc;
 }
 
 void Device::PrintPinStates(int max_levels) {

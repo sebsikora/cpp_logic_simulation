@@ -65,8 +65,8 @@ void SimpleTerminal::ConfigureMagic(Device* parent_device_pointer, std::string n
 	m_magic_device_flag = true;
 	m_magic_engine_pointer = new SimpleTerminal_MagicEngine(parent_device_pointer, name);
 	// Create the necessary magic event triggers.
-	AddMagicEventTrap("clk", {false, true}, {{"read", true}}, "READ");
-	AddMagicEventTrap("clk", {false, true}, {{"read", false}}, "WRITE");
+	AddMagicEventTrap("clk", {false, true}, {{"read", true}}, 0);
+	AddMagicEventTrap("clk", {false, true}, {{"read", false}}, 1);
 }
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -219,8 +219,8 @@ void SimpleTerminal_MagicEngine::ShutDownMagic() {
 	std::cout << "SimpleTerminal_MagicEngine is shut down." << std::endl;
 }
 
-void SimpleTerminal_MagicEngine::InvokeMagic(std::string const& incantation) {
-	if (incantation == "READ") {
+void SimpleTerminal_MagicEngine::InvokeMagic(int incantation) {
+	if (incantation == 0) {							// READ
 		if (m_data_in_waiting_flag == true) {
 			// Get and then remove least-recently received character.
 			int data = (int)m_data_in_char_buffer.back();
@@ -245,7 +245,7 @@ void SimpleTerminal_MagicEngine::InvokeMagic(std::string const& incantation) {
 				m_parent_device_pointer->Set(pin_port_index, false);
 			}
 		}
-	} else if (incantation == "WRITE") {
+	} else if (incantation == 1) {							// WRITE
 		// Generate data byte,
 		int data_byte = 0;
 		int pin_index = 0;

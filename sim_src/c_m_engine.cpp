@@ -66,18 +66,6 @@ void MagicEngine::AddMagicEventTrap(magic_event new_magic_event) {
 	}
 }
 
-//~void MagicEngine::InvokeMagic(std::string const& incantation) {
-	//~// Redefined for each specific device subclass...
-//~}
-
-//~void MagicEngine::UpdateMagic() {
-	//~// Redefined for each specific device subclass...
-//~}
-
-//~void MagicEngine::ShutDownMagic() {
-	//~// Redefined for each specific device subclass...
-//~}
-
 void MagicEngine::CheckMagicEventTrap(int target_pin_port_index, bool new_state) {
 	for (const auto& current_magic_event: m_magic_events) {
 		if (target_pin_port_index == current_magic_event.target_pin_port_index) {
@@ -92,6 +80,7 @@ void MagicEngine::CheckMagicEventTrap(int target_pin_port_index, bool new_state)
 				}
 				if (co_conditions_met_flag == true) {
 					this->InvokeMagic(current_magic_event.incantation);
+					break;
 				}
 			}
 		}

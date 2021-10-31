@@ -109,7 +109,7 @@ struct magic_event {
 	int target_pin_port_index;
 	std::vector<bool> state_change;
 	std::vector<magic_event_co_condition> co_conditions;
-	std::string incantation;
+	int incantation;
 };
 
 #endif

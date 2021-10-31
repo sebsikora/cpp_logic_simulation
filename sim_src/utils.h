@@ -38,4 +38,17 @@ char BoolToChar(bool logical_state);
 std::string PointerToString(void* pointer);
 std::vector<bool> IsStringInStateDescriptorVector(std::string const& string_to_find, std::vector<state_descriptor> state_descriptor_vector_to_search);
 
+class Converter {
+	public:
+		Converter(int bit_width);
+		~Converter() {}
+		
+		void IntToStates(int int_to_convert, std::vector<bool> &state_vector);
+		int StatesToInt(std::vector<bool> &state_vector);
+		
+		std::vector<int> m_powers_of_two;
+		int m_bit_width;
+		int m_max_int;
+};
+
 #endif

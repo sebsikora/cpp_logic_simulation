@@ -90,26 +90,32 @@ char Simulation::CheckForCharacter() {
 	return key_pressed;
 }
 
-void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output_flag, bool print_probes_flag) {
+void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output_flag, bool print_probes_flag, bool force_no_messages) {
 	if (m_build_errors.size() == 0) {
 		bool previous_verbose_output_flag = mg_verbose_output_flag;
 		mg_verbose_output_flag = verbose_output_flag;
 		m_simulation_running = true;
 		if (restart_flag) {
-			std::cout << GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
+			if (!force_no_messages) {
+				std::cout << GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
+			}
 			m_global_tick_index = 0;
 			for (const auto& this_clock_descriptor : m_clocks) {
 				this_clock_descriptor.clock_pointer->Reset();
 			}
 		} else {
-			std::cout << GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
+			if (!force_no_messages) {
+				std::cout << GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
+			}
 		}
 		// Preallocate vectors for storage of Probe samples.
 		for (const auto& this_probe_descriptor : m_probes) {
 			this_probe_descriptor.probe_pointer->PreallocateSampleMemory(number_of_ticks);
 		}
 		if (mg_verbose_output_flag == false) {
-			std::cout << "(Simulation verbose output is off)" << std::endl;
+			if (!force_no_messages) {
+				std::cout << "(Simulation verbose output is off)" << std::endl;
+			}
 		}
 		// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
 		// ~~~ We need to manually set it back when we are done! ~~~
@@ -122,7 +128,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			for (const auto& this_magic_engine_descriptor : m_magic_engines) {
 				this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
 			}
-			if (mg_verbose_output_flag) {
+			if ((mg_verbose_output_flag) && (!force_no_messages)){
 				std::string msg = std::string("Start of global tick ") + std::to_string(m_global_tick_index);
 				std::cout << GenerateHeader(msg) << std::endl;
 			}
@@ -162,7 +168,9 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		}
 		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
 		EnableTerminalRawIO(false);	
-		std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
+		if (!force_no_messages) {
+			std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
+		}
 		// Print probe samples.
 		if (print_probes_flag) {
 			std::cout << GenerateHeader("Probed values.") << std::endl << std::endl;
@@ -218,7 +226,7 @@ void Simulation::AddProbe(std::string const& probe_name, std::string const& targ
 			// If pins_exist ends up false, at least one of the pins does not exist.
 		}
 		if (pins_exist) {
-			Clock* trigger_clock_pointer;
+			Clock* trigger_clock_pointer = 0;
 			bool trigger_clock_exists = false;
 			for (const auto& this_clock_descriptor : m_clocks) {
 				if (this_clock_descriptor.clock_name == trigger_clock_name) {
@@ -306,12 +314,6 @@ bool Simulation::IsSimulationRunning() {
 void Simulation::StopSimulation() {
 	m_simulation_running = false;
 }
-
-//~void Simulation::ShutDownMagicEngines() {
-	//~for (const auto& this_magic_engine_descriptor : m_magic_engines) {
-		//~this_magic_engine_descriptor.magic_engine_pointer->ShutDownMagic();
-	//~}
-//~}
 
 void Simulation::CheckProbeTriggers() {
 	for (const auto& this_clock_descriptor : m_clocks) {

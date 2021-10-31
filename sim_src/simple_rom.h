@@ -47,7 +47,7 @@ class SimpleRom_MagicEngine : public MagicEngine {
 		SimpleRom_MagicEngine(Device* parent_device_pointer, std::string data_filepath);
 		~SimpleRom_MagicEngine();
 		// Methods common to base MagicEngine class.
-		virtual void InvokeMagic(std::string const& incantation) override;
+		virtual void InvokeMagic(int incantation) override;
 		virtual void UpdateMagic(void) override;
 		virtual void ShutDownMagic(void) override;
 		// Methods particular to SimpleRom_MagicEngine sub-class.

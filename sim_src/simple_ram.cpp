@@ -58,8 +58,8 @@ void SimpleRam::ConfigureMagic(Device* parent_device_pointer, int address_bus_wi
 	m_magic_device_flag = true;
 	m_magic_engine_pointer = new SimpleRam_MagicEngine(parent_device_pointer, address_bus_width, data_bus_width);
 	// Create the necessary magic event triggers.
-	AddMagicEventTrap("clk", {true, false}, {{"read", true}, {"write", false}}, "MEM_READ");
-	AddMagicEventTrap("clk", {true, false}, {{"read", false}, {"write", true}}, "MEM_WRITE");
+	AddMagicEventTrap("clk", {false, true}, {{"read", true}, {"write", false}}, 0);
+	AddMagicEventTrap("clk", {false, true}, {{"read", false}, {"write", true}}, 1);
 }
 
 void SimpleRam::ConfigureBusses(int address_bus_width, int data_bus_width, std::vector<state_descriptor> in_pin_default_states) {
@@ -115,12 +115,8 @@ void SimpleRam_MagicEngine::ShutDownMagic() {
 }
 
 void SimpleRam_MagicEngine::ZeroMemory(int address_bus_width, int data_bus_width) {
-	for (int i = 1; i <= (pow(2, address_bus_width)); i ++) {
-		std::vector<bool> this_address_contents;
-		for (int j = 0; j < data_bus_width; j ++) {
-			this_address_contents.push_back(false);
-		}
-		m_data.push_back(this_address_contents);
+	for (int i = 0; i <= (pow(2, address_bus_width)); i ++) {
+		m_data.push_back(0);
 	}
 }
 
@@ -139,45 +135,34 @@ void SimpleRam_MagicEngine::GetPinPortIndices(int address_bus_width, int data_bu
 	}
 }
 
-void SimpleRam_MagicEngine::InvokeMagic(std::string const& incantation) {
-	if (incantation == "MEM_READ") {
+void SimpleRam_MagicEngine::InvokeMagic(int incantation) {
+	if (incantation == 0) {						// READ
 		// Generate address,
-		int address = 0;
-		int address_pin_index = 0;
-		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
-			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
-			if (pin_state) {
-				address += m_powers_of_two[address_pin_index];
+		unsigned int address = 0;
+		for (int i = 0; i < m_address_bus_width; i ++) {
+			if (m_parent_device_pointer->GetPinState(m_address_bus_pin_port_indices[i])) {
+				address |= 1UL << i;
 			}
-			address_pin_index ++;
 		}
-		// Load data from member variable m_data.
-		std::vector<bool> data_at_address = m_data[address];
 		// Convert std::vector<bool> into states and set parent device outputs accordingly.
-		int data_out_pin_index = 0;
-		for (const auto& pin_port_index: m_data_out_bus_pin_port_indices) {
-			if (m_parent_device_pointer->GetPinState(pin_port_index) != data_at_address[data_out_pin_index]) {
-				m_parent_device_pointer->Set(pin_port_index, data_at_address[data_out_pin_index]);
-			}
-			data_out_pin_index ++;
+		size_t data = m_data[address];
+		for (int i = 0; i < m_data_bus_width; i ++) {
+			m_parent_device_pointer->Set(m_data_out_bus_pin_port_indices[i], ((data >> i) & 1U));
 		}
-	} else if (incantation == "MEM_WRITE") {
+	} else if (incantation == 1) {				// WRITE
 		// Generate address,
-		int address = 0;
-		int address_pin_index = 0;
-		for (const auto& pin_port_index: m_address_bus_pin_port_indices) {
-			bool pin_state = m_parent_device_pointer->GetPinState(pin_port_index);
-			if (pin_state) {
-				address += m_powers_of_two[address_pin_index];
+		unsigned int address = 0;
+		for (int i = 0; i < m_address_bus_width; i ++) {
+			if (m_parent_device_pointer->GetPinState(m_address_bus_pin_port_indices[i])) {
+				address |= 1UL << i;
 			}
 		}
 		// Get parent device data input pin states and set bits at address correspondingly.
-		int data_in_pin_index = 0;
-		for (const auto& pin_port_index: m_data_in_bus_pin_port_indices) {
-			bool in_state = m_parent_device_pointer->GetPinState(pin_port_index);
-			m_data[address][data_in_pin_index] = in_state;
-			data_in_pin_index ++;
+		size_t data = 0;
+		for (int i = 0; i < m_data_bus_width; i ++) {
+			data |= (m_parent_device_pointer->GetPinState(m_data_in_bus_pin_port_indices[i]) << i);
 		}
+		m_data[address] = data;
 	} else {
 		std::cout << "The incantation appears to do nothing...." << std::endl;
 	}

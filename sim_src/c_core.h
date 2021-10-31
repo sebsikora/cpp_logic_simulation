@@ -161,8 +161,7 @@ class Device : public Component {
 		void AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on);
 		void AddGate(std::string const& component_name, std::string const& component_type);
 		void AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change,
-			std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, std::string const& incantation
-		);
+			std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation);
 		void ChildConnect(std::string const& target_child_component_name, std::vector<std::string> const& connection_parameters);
 		void ChildSet(std::string const& target_child_component_name, std::string const& target_pin_name, bool logical_state);
 		void ChildPrintPinStates(std::string const& target_child_component_name, int max_levels);
@@ -176,6 +175,7 @@ class Device : public Component {
 		int GetNestingLevel(void);
 		int GetNewLocalComponentIndex(void);
 		int GetLocalComponentCount(void);
+		int GetInPinCount(void);
 		void QueueToPropagate(int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		void MarkInnerTerminalsDisconnected(void);
@@ -213,6 +213,7 @@ class Device : public Component {
 		
 		int m_max_propagations;
 		MagicEngine* m_magic_engine_pointer;
+		std::vector<bool> m_magic_pin_flag;
 		bool m_magic_device_flag = false;
 };
 
@@ -225,7 +226,7 @@ class Simulation : public Device {
 		// Override Component virtual methods.
 		void PurgeComponent(void) override;
 		
-		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false);
+		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false, bool force_no_messages = false);
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
 		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,
@@ -239,7 +240,6 @@ class Simulation : public Device {
 		Component* GetProbableComponentPointer(std::string const& target_component_full_name);
 		bool IsSimulationRunning(void);
 		void StopSimulation(void);
-		//~void ShutDownMagicEngines(void);
 		void CheckProbeTriggers(void);
 		void LogBuildError(std::string const& build_error);
 		void PrintBuildErrors(void);
@@ -338,7 +338,7 @@ class MagicEngine {
 		MagicEngine(Device* parent_device_pointer);
 		virtual ~MagicEngine();
 		
-		virtual void InvokeMagic(std::string const& incantation) = 0;
+		virtual void InvokeMagic(int incantation) = 0;
 		virtual void UpdateMagic(void) = 0;
 		virtual void ShutDownMagic(void) = 0;
 

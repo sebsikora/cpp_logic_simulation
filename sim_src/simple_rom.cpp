@@ -59,7 +59,7 @@ void SimpleRom::ConfigureMagic(Device* parent_device_pointer, std::string data_f
 	m_magic_engine_pointer = new SimpleRom_MagicEngine(parent_device_pointer, data_filepath);
 	// Create the necessary magic event trigger.
 	// ROM will read data on clk transition T -> F, like a flip-flop.
-	AddMagicEventTrap("clk", {true, false}, {{"read", true}}, "MEM_READ");
+	AddMagicEventTrap("clk", {true, false}, {{"read", true}}, 0);
 }
 
 void SimpleRom::ConfigureBusses(std::vector<state_descriptor> in_pin_default_states) {
@@ -118,7 +118,7 @@ std::vector<std::vector<bool>> SimpleRom_MagicEngine::Configure(std::string file
 	std::vector<std::vector<bool>> padded_file_data;
 	std::ifstream data_file (file_path);
 	std::string file_row;
-	int bus_width;
+	int bus_width = 0;
 	int row_index = 0;
 	if (data_file.is_open()) {
 		while (std::getline(data_file, file_row)) {
@@ -166,8 +166,8 @@ void SimpleRom_MagicEngine::ShutDownMagic(void) {
 	// SimpleRom_MagicEngine has nothing to shut down.
 }
 
-void SimpleRom_MagicEngine::InvokeMagic(std::string const& incantation) {
-	if (incantation == "MEM_READ") {
+void SimpleRom_MagicEngine::InvokeMagic(int incantation) {
+	if (incantation == 0) {							// READ
 		// Generate address,
 		int address = 0;
 		int address_pin_index = 0;

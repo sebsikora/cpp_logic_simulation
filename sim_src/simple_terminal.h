@@ -48,7 +48,7 @@ class SimpleTerminal_MagicEngine : public MagicEngine {
 		SimpleTerminal_MagicEngine(Device* parent_device_pointer, std::string name);
 		~SimpleTerminal_MagicEngine();
 		// Methods common to base MagicEngine class.
-		void InvokeMagic(std::string const& incantation) override;
+		void InvokeMagic(int incantation) override;
 		void UpdateMagic(void) override;
 		void ShutDownMagic(void) override;
 		// Methods particular to SimpleRom_MagicEngine sub-class.
