@@ -157,9 +157,9 @@ class Device : public Component {
 		void CreateOutPins(std::vector<std::string> const& pin_names);
 		void SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states);
 		void AddComponent(Component* new_component_pointer);
-		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on);
-		void AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on);
-		void AddGate(std::string const& component_name, std::string const& component_type);
+		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on = false);
+		void AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on = false);
+		//~void AddGate(std::string const& component_name, std::string const& component_type);
 		void AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change,
 			std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation);
 		void ChildConnect(std::string const& target_child_component_name, std::vector<std::string> const& connection_parameters);

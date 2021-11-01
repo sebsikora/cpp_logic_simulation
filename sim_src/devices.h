@@ -62,6 +62,14 @@ class N_Bit_Counter_ASC : public Device {
 		int m_width;
 };
 
+class N_Bit_Counter_C_ASC : public Device {
+	public:
+		N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void ConfigureOutputs(void);
+		void Build(void);
+		int m_width;
+};
+
 class One_Bit_Register : public Device {
 	public:
 		One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});

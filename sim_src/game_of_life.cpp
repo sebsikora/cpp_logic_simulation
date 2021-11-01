@@ -74,7 +74,7 @@ void GameOfLife_Cell_Decider::Build() {
 }
 
 GameOfLife_Cell_SiblingSelector::GameOfLife_Cell_SiblingSelector(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
- : Device(parent_device_pointer, cell_name, "g_o_l_cell_siblingselector", {"clk", "not_clear", "sibling_0", "sibling_1", "sibling_2", "sibling_3", "sibling_4", "sibling_5", "sibling_6", "sibling_7"}, {"selected_sibling"}, monitor_on, in_pin_default_states) {
+ : Device(parent_device_pointer, cell_name, "g_o_l_cell_siblingselector", {"clk", "not_clear", "sibling_0", "sibling_1", "sibling_2", "sibling_3", "sibling_4", "sibling_5", "sibling_6", "sibling_7"}, {"selected_sibling", "update_flag"}, monitor_on, in_pin_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
 	 Build();
@@ -82,9 +82,11 @@ GameOfLife_Cell_SiblingSelector::GameOfLife_Cell_SiblingSelector(Device* parent_
  }
 
 void GameOfLife_Cell_SiblingSelector::Build() {
-	AddComponent(new N_Bit_Counter_ASC(this, "sibling_counter", 3, false, {{"not_clear", true}}));
+	AddComponent(new N_Bit_Counter_C_ASC(this, "sibling_counter", 4, false, {{"not_clear", true}}));
 	AddComponent(new N_Bit_Decoder(this, "sibling_counter_decoder", 3, false));
 	AddComponent(new NxOne_Bit_Mux(this, "sibling_mux", 8, false));
+	ChildConnect("sibling_counter", {"q_3", "parent", "update_flag"});
+	ChildConnect("sibling_counter", {"q_3", "sibling_counter", "clear"});
 	Connect("not_clear", "sibling_counter", "not_clear");
 	Connect("true", "sibling_counter", "run");
 	Connect("clk", "sibling_counter", "clk");
@@ -96,7 +98,6 @@ void GameOfLife_Cell_SiblingSelector::Build() {
 	ChildConnect("sibling_counter", {"q_0", "sibling_counter_decoder", "sel_0"});
 	ChildConnect("sibling_counter", {"q_1", "sibling_counter_decoder", "sel_1"});
 	ChildConnect("sibling_counter", {"q_2", "sibling_counter_decoder", "sel_2"});
-	ChildMakeProbable("sibling_counter");
 	ChildConnect("sibling_counter_decoder", {"out_0", "sibling_mux", "sel_in_0"});
 	ChildConnect("sibling_counter_decoder", {"out_1", "sibling_mux", "sel_in_1"});
 	ChildConnect("sibling_counter_decoder", {"out_2", "sibling_mux", "sel_in_2"});
@@ -105,13 +106,12 @@ void GameOfLife_Cell_SiblingSelector::Build() {
 	ChildConnect("sibling_counter_decoder", {"out_5", "sibling_mux", "sel_in_5"});
 	ChildConnect("sibling_counter_decoder", {"out_6", "sibling_mux", "sel_in_6"});
 	ChildConnect("sibling_counter_decoder", {"out_7", "sibling_mux", "sel_in_7"});
-	ChildMakeProbable("sibling_counter_decoder");
 	ChildConnect("sibling_mux", {"d_out", "parent", "selected_sibling"});
 	MakeProbable();
 }
-
+//~"not_clear_state", "not_preset_state", "sibling_0_out", "sibling_1_out", "sibling_2_out", "sibling_3_out", "sibling_4_out", "sibling_5_out", "sibling_6_out", "sibling_7_out"
 GameOfLife_Cell::GameOfLife_Cell(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
- : Device(parent_device_pointer, cell_name, "g_o_l_cell", {"clk", "not_clear_cycle", "not_clear_state", "not_preset_state", "sibling_0_in", "sibling_1_in", "sibling_2_in", "sibling_3_in", "sibling_4_in", "sibling_5_in", "sibling_6_in", "sibling_7_in"}, {"sibling_0_out", "sibling_1_out", "sibling_2_out", "sibling_3_out", "sibling_4_out", "sibling_5_out", "sibling_6_out", "sibling_7_out"}, monitor_on, in_pin_default_states) {
+ : Device(parent_device_pointer, cell_name, "g_o_l_cell", {"clk", "not_clear_cycle", "sibling_0_in", "sibling_1_in", "sibling_2_in", "sibling_3_in", "sibling_4_in", "sibling_5_in", "sibling_6_in", "sibling_7_in"}, {}, monitor_on, in_pin_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
 	 Build();
@@ -120,43 +120,74 @@ GameOfLife_Cell::GameOfLife_Cell(Device* parent_device_pointer, std::string cell
 
 void GameOfLife_Cell::Build() {
 	// Instantiate components.
-	AddComponent(new GameOfLife_Cell_Decider(this, "decider", false));
 	AddComponent(new GameOfLife_Cell_SiblingSelector(this, "selector", false, {{"not_clear", true}}));
-	AddComponent(new N_Bit_Counter_ASC(this, "counter", 3, false, {{"not_clear", true}}));
-	AddGate("state_ff_not", "not");
-	AddComponent(new JK_FF_ASPC(this, "state_ff", false, {{"not_c", true}, {"not_p", true}}));
-
-	// "counter" connections.
-	Connect("clk", "counter", "clk");
-	Connect("not_clear_cycle", "counter", "not_clear");
-	ChildConnect("counter", {"q_0", "decider", "count_in_0"});
-	ChildConnect("counter", {"q_1", "decider", "count_in_1"});
-	ChildConnect("counter", {"q_2", "decider", "count_in_2"});
-	
-	// "decider" connections.
-	ChildConnect("decider", {"alive_out", "state_ff", "j"});
-	ChildConnect("decider", {"alive_out", "state_ff_not"});
-	ChildConnect("state_ff_not", {"state_ff", "k"});
-	
-	// "state_ff" connections.
-	Connect("not_clear_state", "state_ff", "not_c");
-	Connect("not_preset_state", "state_ff", "not_p");
-	Connect("clk", "state_ff", "clk");
-	ChildConnect("state_ff", {"q", "decider", "alive_in"});
-	for (int i = 0; i < 8; i ++) {
-		std::string cell_sibling_output_name = "sibling_" + std::to_string(i) + "_out";
-		ChildConnect("state_ff", {"q", "parent", cell_sibling_output_name});
-	}
-	
+	AddComponent(new N_Bit_Counter_C_ASC(this, "counter", 4, false, {{"not_clear", true}}));
+	AddGate("and_0", "and", {"input_0", "input_1"});
+	AddGate("not_0", "not");
+	ChildMarkOutputNotConnected("counter", "q_0");
+	ChildMarkOutputNotConnected("counter", "q_1");
+	ChildMarkOutputNotConnected("counter", "q_2");
+	ChildMarkOutputNotConnected("counter", "q_3");
 	// "selector" connections.
 	Connect("clk", "selector", "clk");
+	Connect("clk", "counter", "clk");
 	Connect("not_clear_cycle", "selector", "not_clear");
+	Connect("not_clear_cycle", "counter", "not_clear");
 	for (int i = 0; i < 8; i ++) {
 		std::string cell_sibling_input_name = "sibling_" + std::to_string(i) + "_in";
 		std::string selector_input_name = "sibling_" + std::to_string(i);
 		Connect(cell_sibling_input_name, "selector", selector_input_name);
 	}
-	ChildConnect("selector", {"selected_sibling", "counter", "run"});
+	ChildConnect("selector", {"selected_sibling", "and_0", "input_0"});
+	ChildConnect("selector", {"update_flag", "not_0"});
+	ChildConnect("selector", {"update_flag", "counter", "clear"});
+	ChildConnect("not_0", {"and_0", "input_1"});
+	ChildConnect("and_0", {"counter", "run"});
 	
+	//~AddGate("state_ff_not", "not");
+	//~AddComponent(new JK_FF_ASPC(this, "state_ff", false, {{"not_c", true}, {"not_p", true}}));
+	//~ChildMarkOutputNotConnected("state_ff", "not_q");
+	
+	//~AddGate("update_now_j", "and", {"input_0", "input_1"}, false);
+	//~AddGate("update_now_k", "and", {"input_0", "input_1"}, false);
+	
+	//~// "counter" connections.
+	//~Connect("clk", "counter", "clk");
+	//~Connect("not_clear_cycle", "counter", "not_clear");
+	//~ChildConnect("counter", {"q_0", "decider", "count_in_0"});
+	//~ChildConnect("counter", {"q_1", "decider", "count_in_1"});
+	//~ChildConnect("counter", {"q_2", "decider", "count_in_2"});
+	
+	//~// "decider" connections.
+	//~ChildConnect("decider", {"alive_out", "update_now_j", "input_1"});
+	//~ChildConnect("decider", {"alive_out", "state_ff_not"});
+	//~ChildConnect("state_ff_not", {"update_now_k", "input_1"});
+	
+	//~// "update" connections.
+	//~ChildConnect("update_now_j", {"state_ff", "j"});
+	//~ChildConnect("update_now_k", {"state_ff", "k"});
+	
+	//~// "state_ff" connections.
+	//~Connect("not_clear_state", "state_ff", "not_c");
+	//~Connect("not_preset_state", "state_ff", "not_p");
+	//~Connect("clk", "state_ff", "clk");
+	//~ChildConnect("state_ff", {"q", "decider", "alive_in"});
+	//~for (int i = 0; i < 8; i ++) {
+		//~std::string cell_sibling_output_name = "sibling_" + std::to_string(i) + "_out";
+		//~ChildConnect("state_ff", {"q", "parent", cell_sibling_output_name});
+	//~}
+	
+	
+	
+	
+	//~ChildConnect("selector", {"update_flag", "update_now_j", "input_0"});
+	//~ChildConnect("selector", {"update_flag", "update_now_k", "input_0"});
+	//~AddGate("sibling_sum_flag_and", "and", {"input_0", "input_1"});
+	//~AddGate("sibling_sum_flag_not", "not");
+	
+	//~ChildConnect("selector", {"update_flag", "sibling_sum_flag_not"});
+	//~ChildConnect("sibling_sum_flag_not", {"sibling_sum_flag_and", "input_0"});
+	//~ChildConnect("selector", {"selected_sibling", "sibling_sum_flag_and", "input_1"});
+	//~ChildConnect("sibling_sum_flag_and", {"counter", "run"});
 	MakeProbable();
 }

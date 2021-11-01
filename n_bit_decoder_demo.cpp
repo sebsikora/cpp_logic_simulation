@@ -17,6 +17,7 @@ int main () {
 	
 	// Add the n-bit register Device. Note the parameterised decoder select bus width width.
 	sim->AddComponent(new N_Bit_Decoder(sim, "test_decoder", select_bus_width, monitor_on));
+	sim->ChildMakeProbable("test_decoder");
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();

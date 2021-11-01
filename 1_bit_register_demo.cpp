@@ -24,10 +24,10 @@ int main () {
 	sim->ChildMakeProbable("test_reg");
 	
 	// Add Probes connected to the clk, load and clear inputs of the register and one to it's data output.
-	sim->AddProbe("reg_data_output", "test_sim:test_reg", {"d_out"}, "clock_0");
 	sim->AddProbe("reg_clk_input", "test_sim:test_reg", {"clk"}, "clock_0");
-	sim->AddProbe("reg_load_input", "test_sim:test_reg", {"load"}, "clock_0");
 	sim->AddProbe("reg_clr_input", "test_sim:test_reg", {"clr"}, "clock_0");
+	sim->AddProbe("reg_load_input", "test_sim:test_reg", {"load"}, "clock_0");
+	sim->AddProbe("reg_data_output", "test_sim:test_reg", {"d_out"}, "clock_0");
 	
 	//sim->ChildSet("test_reg", "d_in", false);
 	//sim->ChildSet("test_reg", "clr", true);

@@ -3,7 +3,7 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = true;
+	bool verbose = false;
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
@@ -26,20 +26,16 @@ int main () {
 	
 	//~// Add a Clock and connect it to the clk input on the jk flip-flop.
 	//~// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
-	//~sim->AddClock("clock_0", {false, true}, monitor_on);
-	//~sim->ClockConnect("clock_0", "test_ff", "clk");
+	sim->AddClock("clock_0", {false, true}, monitor_on);
+	sim->ClockConnect("clock_0", "test_ff", "clk");
 	
 	//~// Add two Probes and connect them to the jk flip-flop's outputs and clk input.
 	//~// Note - we need to use the target Component's 'full name' to connect a Probe.
-	//~sim->AddProbe("flip-flop outputs", "test_sim:test_ff", {"q", "not_q"}, "clock_0");
-	//~sim->AddProbe("flip-flop clk input", "test_sim:test_ff", {"clk"}, "clock_0");
+	sim->AddProbe("flip-flop outputs", "test_sim:test_ff", {"q", "not_q"}, "clock_0");
+	sim->AddProbe("flip-flop clk input", "test_sim:test_ff", {"clk"}, "clock_0");
 	
 	//~// Run the simulation for ten ticks.
-	//~sim->Run(8, true, verbose, false);
-
-	sim->Reset();
-
-	//~sim->Run(8, false, verbose, print_probe_samples);
+	sim->Run(8, true, verbose, print_probe_samples);
 	
 	delete sim;
 	

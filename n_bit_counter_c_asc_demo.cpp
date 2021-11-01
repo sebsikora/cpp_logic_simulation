@@ -8,13 +8,14 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Set the desired bit-width of the counter here.
-	int counter_width = 3;
+	int counter_width = 12;
 	
 	// Instantiate the top-level Device (the Simulation).
 	Simulation* sim = new Simulation("test_sim", 10, verbose);
 	
 	// Add the n-bit counter Device. Note the parameterised counter width.
-	sim->AddComponent(new N_Bit_Counter(sim, "test_counter", counter_width, monitor_on, {{"run", true}}));
+	sim->AddComponent(new N_Bit_Counter_C_ASC(sim, "test_counter", counter_width, monitor_on, {{"run", false}, {"not_clear", true}, {"clear", false}}));
+	sim->ChildMakeProbable("test_counter");
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();
@@ -30,19 +31,24 @@ int main () {
 		std::string this_out_pin = "q_" + std::to_string(i);
 		out_pins.push_back(this_out_pin);
 	}
-
-	sim->ChildMakeProbable("test_counter");
 	
 	// Add a Probe on the counter's output pins.
 	sim->AddProbe("counter_out", "test_sim:test_counter", out_pins, "clock_0");
-	//~sim->AddProbe("counter_clk_in", "test_sim:test_counter", {"clk"}, "clock_0");
+	//~sim->AddProbe("jk_ff_0_in", "test_sim:test_counter:jk_ff_0", {"j", "k"}, "clock_0");
+	//~sim->AddProbe("jk_ff_1_in", "test_sim:test_counter:jk_ff_1", {"j", "k"}, "clock_0");
+	//~sim->AddProbe("jk_ff_2_in", "test_sim:test_counter:jk_ff_2", {"j", "k"}, "clock_0");
+	//~sim->AddProbe("jk_ff_3_in", "test_sim:test_counter:jk_ff_3", {"j", "k"}, "clock_0");
 	
-	sim->Run(11, true, verbose, false);
-	sim->ChildSet("test_counter", "run", false);
-	sim->Run(6, false, verbose, false);
+	sim->Run(1, true, verbose, false);
+	
 	sim->ChildSet("test_counter", "run", true);
-	sim->Run(13, false, verbose, print_probe_samples);
-	
+	sim->Run(6, false, verbose, false);
+	sim->ChildSet("test_counter", "run", false);
+	sim->ChildSet("test_counter", "clear", true);
+	sim->Run(2, false, verbose, false);
+	sim->ChildSet("test_counter", "run", true);
+	sim->ChildSet("test_counter", "clear", false);
+	sim->Run(8, false, verbose, true);
 	delete sim;
 	
 	return 0;

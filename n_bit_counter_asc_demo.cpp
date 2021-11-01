@@ -14,7 +14,7 @@ int main () {
 	Simulation* sim = new Simulation("test_sim", 10, verbose);
 	
 	// Add the n-bit counter Device. Note the parameterised counter width.
-	sim->AddComponent(new N_Bit_Counter_ASC(sim, "test_counter", counter_width, monitor_on, {{"run", false}, {"not_clear", true}}));
+	sim->AddComponent(new N_Bit_Counter_ASC(sim, "test_counter", counter_width, monitor_on, {{"run", true}, {"not_clear", true}}));
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();
@@ -32,17 +32,19 @@ int main () {
 	}
 	
 	// Add a Probe on the counter's output pins.
+	sim->ChildMakeProbable("test_counter");
 	sim->AddProbe("counter_out", "test_sim:test_counter", out_pins, "clock_0");
 	//~sim->AddProbe("counter_clk_in", "test_sim:test_counter", {"clk"}, "clock_0");
 	//~sim->AddProbe("counter_run_in", "test_sim:test_counter", {"run"}, "clock_0");
 	
-	sim->Run(2, true, verbose, false);
 	// 'Manually' toggle the 'not_clear' pin false->true to clear the counter.
 	sim->ChildSet("test_counter", "not_clear", false);
 	sim->ChildSet("test_counter", "not_clear", true);
-	sim->Run(2, false, verbose, false);
+	sim->Run(11, true, verbose, false);
+	sim->ChildSet("test_counter", "run", false);
+	sim->Run(6, false, verbose, false);
 	sim->ChildSet("test_counter", "run", true);
-	sim->Run(34, false, verbose, print_probe_samples);
+	sim->Run(13, false, verbose, print_probe_samples);
 	
 	delete sim;
 	

@@ -254,9 +254,9 @@ void Device::AddGate(std::string const& component_name, std::string const& compo
 	AddComponent(new Gate(this, component_name, component_type, {}, monitor_on));
 }
 
-void Device::AddGate(std::string const& component_name, std::string const& component_type) {
-	AddComponent(new Gate(this, component_name, component_type, {}, false));
-}
+//~void Device::AddGate(std::string const& component_name, std::string const& component_type) {
+	//~AddComponent(new Gate(this, component_name, component_type, {}, false));
+//~}
 
 void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation) {
 	if (m_magic_device_flag == true) {
