@@ -4,7 +4,7 @@
 
 [seb.nf.sikora@protonmail.com](mailto:seb.nf.sikora@protonmail.com)
 
-Updated 19/10/2021.
+Updated 01/11/2021.
 
 What is it?
 -------------------------
@@ -53,10 +53,7 @@ then enter `./jk_ff_demo` to run the demo.
 Thoughts & limitations:
 -------------------------
 
-In no particular order:
 * Only logic circuits that are statically-stable state can be simulated.
-* I have not written any destructors for any of the classes. As the simulation is 'one-shot', all the objects are created at runtime, the simulation runs, and then the program finishes. For this reason, we don't leak memory. If we wanted to use the simulator as the 'engine' of a larger application in which we wanted to be able to create and destroy components, clocks and probes at will without terminating the program, destructors would be needed for each class to avoid memory leakage.
-* All methods & data are public. Although for the most part *Components* use Getters & Setters to access each-other's variables rather than accessing them directly, it would be better to take advantage of the enforced separation of public & private methods and data that C++ allows. 
 
 License:
 -------------------------
