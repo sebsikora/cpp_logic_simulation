@@ -138,11 +138,6 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			}
 			// Solve top-level simulation state.
 			Solve();
-			// If something has asserted the __ALL_STOP__ internal input somewhere, the m_sim_running flag will
-			// have been de-asserted and we should break here and finish.
-			if (m_simulation_running == false) {
-				break;
-			}
 			// Every input_check_count_limit ticks check if user has pressed a key and respond.
 			if (input_check_count >= input_check_count_limit) {
 				char key_pressed = CheckForCharacter();
@@ -164,6 +159,11 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 					m_simulation_running = false;
 					break;
 				}
+			}
+			// If something has asserted the __ALL_STOP__ internal input somewhere, the m_sim_running flag will
+			// have been de-asserted and we should break here and finish.
+			if (m_simulation_running == false) {
+				break;
 			}
 		}
 		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
@@ -217,7 +217,7 @@ void Simulation::ClockConnect(std::string const& target_clock_name, std::string 
 	}
 }
 
-void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name) {
+void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name, int samples_per_row) {
 	Component* target_component_pointer = GetProbableComponentPointer(target_component_full_name);
 	if (target_component_pointer != 0) {
 		bool pins_exist = true;
@@ -238,7 +238,7 @@ void Simulation::AddProbe(std::string const& probe_name, std::string const& targ
 			if (trigger_clock_exists) {
 				probe_descriptor new_probe;
 				new_probe.probe_name = probe_name;
-				new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_pointer, target_pin_names, trigger_clock_pointer);
+				new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_pointer, target_pin_names, trigger_clock_pointer, samples_per_row);
 				m_probes.push_back(new_probe);
 			} else {
 				// Log error - Trigger clock does not exist.

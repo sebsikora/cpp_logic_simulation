@@ -27,7 +27,7 @@
 #include "utils.h"
 
 Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
-	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer
+	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer, int samples_per_row
 	) {
 	// Probe constructor is called from within top-level Simulation, constructor arguments are all sanity-checked there.
 	m_top_level_sim_pointer = top_level_sim_pointer;
@@ -40,6 +40,7 @@ Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, C
 	for (const auto& pin_name : target_pin_names) {
 		m_target_pin_indices.push_back(m_target_component_pointer->GetPinPortIndex(pin_name));
 	}
+	m_samples_per_row = samples_per_row;
 }
 
 Probe::~Probe() {
@@ -83,12 +84,21 @@ void Probe::PrintSamples() {
 	int index = 0;
 	std::cout << "Probe: " << m_name << " - " << m_target_component_full_name << std::endl;
 	for (const auto& sample: m_samples) {
-		std::cout << "T: " << index << "  ";
+		std::string header = "T: " + std::to_string(index) + "  ";
+		std::cout << header;
+		int column_index = 1;
 		for (const auto& sub_sample: sample) {
 			if (sub_sample) {
 				std::cout << " T";
 			} else {
 				std::cout << " F";
+			}
+			if (column_index == m_samples_per_row) {
+				std::string indent(header.length(), ' ');
+				std::cout << std::endl << indent;
+				column_index = 1;
+			} else {
+				column_index ++;
 			}
 		}
 		std::cout << std::endl;

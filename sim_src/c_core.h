@@ -230,7 +230,7 @@ class Simulation : public Device {
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
 		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,
-			std::string const& trigger_clock_name
+			std::string const& trigger_clock_name, int samples_per_row = 0
 		);
 		void AddToProbableComponents(Component* target_component_pointer);
 		void AddToMagicEngines(std::string const& magic_engine_identifier, MagicEngine* magic_engine_pointer);
@@ -308,7 +308,7 @@ class Clock {
 class Probe {
 	public:
 		Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
-			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer
+			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer, int samples_per_row = 0
 		);
 		~Probe();
 		
@@ -328,6 +328,7 @@ class Probe {
 		std::vector<int> m_target_pin_indices;
 		std::string m_trigger_clock_name;
 		Clock* m_trigger_clock_pointer;
+		int m_samples_per_row;
 		std::vector<int> m_timestamps;
 		std::vector<std::vector<bool>> m_samples;
 		std::vector<bool> m_this_sample;
