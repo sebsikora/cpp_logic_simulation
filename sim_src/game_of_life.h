@@ -45,4 +45,13 @@ class GameOfLife_Cell : public Device {
 		void Build(void);
 };
 
+class GameOfLife : public Device {
+	public:
+		GameOfLife(Device* parent_device_pointer, std::string name, int x_dimension, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {});
+		void ConfigureBusses(std::vector<state_descriptor> in_pin_default_states);
+		void Build(void);
+		int m_x_dimension;
+		int m_cell_count;
+};
+
 #endif
