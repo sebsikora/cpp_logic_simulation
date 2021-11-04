@@ -58,7 +58,7 @@ int main () {
 	sim->ChildSet("game_of_life", not_preset_state_identifiers[40], true);
 	sim->ChildSet("game_of_life", not_preset_state_identifiers[49], false);
 	sim->ChildSet("game_of_life", not_preset_state_identifiers[49], true);
-	sim->Run(0, true, verbose, print_probe_samples, false);
+	sim->Run(19, true, verbose, print_probe_samples, false);
 	
 	delete sim;
 	
