@@ -218,7 +218,7 @@ void GameOfLife::Build() {
 	for (int row_index = 0; row_index < m_x_dimension; row_index ++) {
 		for (int column_index = 0; column_index < m_x_dimension; column_index ++) {
 			std::string cell_identifier = "cell_" + std::to_string(current_cell_id);
-			AddComponent(new GameOfLife_Cell(this, cell_identifier, false, {{"not_clear_cycle", true}, {"not_clear_state", true}, {"not_preset_cycle", true}}));
+			AddComponent(new GameOfLife_Cell(this, cell_identifier, false, {{"not_clear_cycle", true}, {"not_clear_state", true}, {"not_preset_state", true}}));
 			Connect("clk", cell_identifier, "clk");
 			Connect(cell_identifier + "_not_clear_state", cell_identifier, "not_clear_state");
 			Connect(cell_identifier + "_not_preset_state", cell_identifier, "not_preset_state");
@@ -242,22 +242,22 @@ void GameOfLife::Build() {
 			int target_cell_7 = current_cell_id - m_x_dimension - 1;
 			// Some of these change for cells on the periphery.
 			if ((column_index == 0) && ((row_index != 0) && (row_index != (m_x_dimension - 1)))) {
-				// Mid row, first column.
+				// First column, but not in a corner.
 				target_cell_5 = current_cell_id + (2 * m_x_dimension) - 1;
 				target_cell_6 = current_cell_id + m_x_dimension - 1;
 				target_cell_7 = current_cell_id - 1;
 			} else if ((column_index == (m_x_dimension - 1)) && ((row_index != 0) && (row_index != (m_x_dimension - 1)))) {
-				// Mid row, last column.
+				// Last column, but not in a corner.
 				target_cell_1 = current_cell_id - (2 * m_x_dimension) + 1;
 				target_cell_2 = current_cell_id - m_x_dimension + 1;
 				target_cell_3 = current_cell_id + 1;
 			} else if ((row_index == 0) && ((column_index != 0) && (column_index != (m_x_dimension - 1)))) {
-				// Mid column, first row.
+				// First row, but not in a corner.
 				target_cell_0 = current_cell_id + (m_x_dimension * (m_x_dimension - 1));
 				target_cell_1 = current_cell_id + (m_x_dimension * (m_x_dimension - 1)) + 1;
 				target_cell_7 = current_cell_id + (m_x_dimension * (m_x_dimension - 1)) - 1;
 			} else if ((row_index == (m_x_dimension - 1)) && ((column_index != 0) && (column_index != (m_x_dimension - 1)))) {
-				// Mid column, last row.
+				// Last row, but not in a corner.
 				target_cell_3 = current_cell_id - (m_x_dimension * (m_x_dimension - 1)) + 1;
 				target_cell_4 = current_cell_id - (m_x_dimension * (m_x_dimension - 1));
 				target_cell_5 = current_cell_id - (m_x_dimension * (m_x_dimension - 1)) - 1;

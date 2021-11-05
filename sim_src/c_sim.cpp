@@ -44,7 +44,7 @@ Simulation::Simulation(std::string const& simulation_name, int max_propagations,
 	if (mg_verbose_output_flag == false) {
 		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
 	}
-	srand(time(0));
+	//~srand(time(0));
 }
 
 Simulation::~Simulation() {
