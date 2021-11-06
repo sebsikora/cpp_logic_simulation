@@ -78,7 +78,8 @@ Worker threads will begin to execute jobs as soon as they are added to the queue
 To stop the thread pool, we call it's `Finish()` method, which will stop the worker threads once all currently queued jobs are completed. `delete`ing a VoidThreadPool via a pointer to call it's destructor will first call `Finish()`.  
 
 
-For a complete usage example [see](./demo.cpp) `demo.cpp`.
+For a complete usage example [see](https://github.com/sebsikora/void_thread_pool/blob/main/main.cpp) `demo.cpp`.
+
 
 To compile the example (for example, using gcc), enter `g++ -o main -g void_thread_pool.cpp demo.cpp` on the command line.
 
