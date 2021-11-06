@@ -47,7 +47,7 @@ SimpleTerminal::SimpleTerminal(Device* parent_device_pointer, std::string device
 }
 
 SimpleTerminal::~SimpleTerminal() {
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "SimpleTerminal dtor for " << m_full_name << " @ " << this << std::endl;
 	}
 }
@@ -103,7 +103,7 @@ SimpleTerminal_MagicEngine::SimpleTerminal_MagicEngine(Device* parent_device_poi
 SimpleTerminal_MagicEngine::~SimpleTerminal_MagicEngine() {
 	// Shut down the MagicEngine (close any open files, etc...).
 	ShutDownMagic();
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "SimpleTerminal_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
 	}
 }

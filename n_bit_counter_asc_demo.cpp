@@ -11,7 +11,7 @@ int main () {
 	int counter_width = 12;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add the n-bit counter Device. Note the parameterised counter width.
 	sim->AddComponent(new N_Bit_Counter_ASC(sim, "test_counter", counter_width, monitor_on, {{"run", true}, {"not_clear", true}}));
@@ -40,12 +40,12 @@ int main () {
 	// 'Manually' toggle the 'not_clear' pin false->true to clear the counter.
 	sim->ChildSet("test_counter", "not_clear", false);
 	sim->ChildSet("test_counter", "not_clear", true);
-	sim->Run(11, true, verbose, false);
-	sim->ChildSet("test_counter", "run", false);
-	sim->Run(6, false, verbose, false);
-	sim->ChildSet("test_counter", "run", true);
-	sim->Run(13, false, verbose, print_probe_samples);
-	
+	//~sim->Run(11, true, verbose, false);
+	//~sim->ChildSet("test_counter", "run", false);
+	//~sim->Run(6, false, verbose, false);
+	//~sim->ChildSet("test_counter", "run", true);
+	//~sim->Run(13, false, verbose, print_probe_samples);
+	sim->Run(33, true, verbose, print_probe_samples);
 	delete sim;
 	
 	return 0;

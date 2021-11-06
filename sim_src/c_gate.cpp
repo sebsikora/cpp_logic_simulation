@@ -72,7 +72,7 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 
 Gate::~Gate() {
 	PurgeComponent();
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
 	}
 }
@@ -105,7 +105,7 @@ void Gate::Initialise() {
 	bool new_state = (this->*m_operator_function_pointer)(m_pins);
 	m_pins[m_out_pin_port_index].state = new_state;
 	m_pins[m_out_pin_port_index].state_changed = true;
-	m_parent_device_pointer->QueueToPropagate(m_local_component_index);
+	m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
 }
 
 void Gate::Connect(std::vector<std::string> connection_parameters) {	
@@ -328,7 +328,7 @@ void Gate::ReportUnConnectedPins() {
 
 void Gate::PurgeComponent() {
 	std::string header;
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		header =  "Purging -> GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 		std::cout << GenerateHeader(header) << std::endl;
 	}
@@ -342,7 +342,7 @@ void Gate::PurgeComponent() {
 	m_top_level_sim_pointer->PurgeComponentFromProbes(this);
 	// Third  - Clear component entry from parent device's m_components.
 	m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		header =  "GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 		std::cout << GenerateHeader(header) << std::endl;
 	}
@@ -359,7 +359,7 @@ void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 			new_connections.push_back(this_connection_descriptor);
 		} else {
 			connections_removed ++;
-			if (mg_verbose_output_flag) {
+			if (mg_verbose_destructor_flag) {
 				std::cout << "Gate " << m_full_name << " removed an out connection to "
 					<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
 					<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
@@ -367,7 +367,7 @@ void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 		}
 	}
 	if ((new_connections.size() == 0) && (connections_removed > 0)) {
-		if (mg_verbose_output_flag) {
+		if (mg_verbose_destructor_flag) {
 			std::cout << "Gate " + m_full_name + " out pin drive out set to false." << std::endl;
 		}
 		SetPinDrivenFlag(m_out_pin_port_index, 1, false);
@@ -386,7 +386,7 @@ void Gate::PurgeOutboundConnections() {
 		} else if (pin_direction == 2) {
 			direction = " out";
 		}
-		if (mg_verbose_output_flag) {
+		if (mg_verbose_destructor_flag) {
 			std::cout << "Component " << target_component_pointer->GetFullName() << direction << " pin "
 				<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
 		}

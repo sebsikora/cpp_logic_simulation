@@ -7,7 +7,7 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add a clock to drive the circuit.
 	sim->AddClock("clock_0", {false, true}, monitor_on);

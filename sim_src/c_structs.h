@@ -57,6 +57,11 @@ struct state_descriptor {
 	bool state;
 };
 
+struct solver_configuration {
+	bool use_threaded_solver;
+	int threaded_solve_nesting_level;
+};
+
 struct connection_descriptor {
 	Component* target_component_pointer;
 	int target_pin_port_index;

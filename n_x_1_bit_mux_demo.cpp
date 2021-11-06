@@ -7,7 +7,7 @@ int main () {
 	bool verbose = false;
 	bool monitor_on = true;
 	
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	sim->AddComponent(new NxOne_Bit_Mux(sim, "test_mux", 3, monitor_on));
 	sim->Stabilise();

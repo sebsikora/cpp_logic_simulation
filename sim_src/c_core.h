@@ -32,6 +32,7 @@
 
 // NOTE - c_structs.h must be included first after the library headers as it contains essential forward definitions.
 #include "c_structs.h"				// struct definitions and forward Class delarations for the below.
+#include "void_thread_pool.hpp"
 
 // Class prototypes.
 // Base Component class.
@@ -75,6 +76,7 @@ class Component {
 		void MakeProbable(void);
 		
 		static bool mg_verbose_output_flag;
+		static bool mg_verbose_destructor_flag;
 
 	protected:
 		bool m_monitor_on;
@@ -152,14 +154,14 @@ class Device : public Component {
 		
 		// Device class virtual methods.
 		virtual void Build(void);
-		
+
+		// Device class public methods.
 		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
 		void SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states);
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on = false);
 		void AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on = false);
-		//~void AddGate(std::string const& component_name, std::string const& component_type);
 		void AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change,
 			std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation);
 		void ChildConnect(std::string const& target_child_component_name, std::vector<std::string> const& connection_parameters);
@@ -176,6 +178,7 @@ class Device : public Component {
 		int GetNewLocalComponentIndex(void);
 		int GetLocalComponentCount(void);
 		int GetInPinCount(void);
+		void AppendChildPropagationIdentifier(int propagation_identifier);
 		void QueueToPropagate(int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		void MarkInnerTerminalsDisconnected(void);
@@ -187,10 +190,12 @@ class Device : public Component {
 		void CreateChildFlags(void);
 		
 	private:
+		// Device class private methods.
 		void SubTick(int index);
 		
 		std::vector<component_descriptor> m_components;
 		std::vector<int> m_devices;
+		std::mutex m_propagation_lock;
 		std::vector<int> m_propagate_next_tick = {};
 		std::vector<bool> m_propagate_next_tick_flags = {};
 		std::vector<int> m_propagate_this_tick = {};
@@ -204,12 +209,10 @@ class Device : public Component {
 		std::vector<state_descriptor> m_in_pin_default_states;
 		
 	protected:
+		// Device class protected methods.
 		void Solve(void);
 		void QueueToSolve(int local_component_identifier);
 		void PropagateInputs(void);
-		void SetChildPropagationFlag(int propagation_identifier);
-		bool GetChildPropagationFlag(int propagation_identifier);
-		void AppendChildPropagationIdentifier(int propagation_identifier);
 		
 		int m_max_propagations;
 		MagicEngine* m_magic_engine_pointer;
@@ -220,7 +223,7 @@ class Device : public Component {
 // Top-level Simulation Device sub-class.
 class Simulation : public Device {
 	public:
-		Simulation(std::string const& simulation_name, int max_propagations = 10, bool verbose_output_flag = false);
+		Simulation(std::string const& simulation_name, bool verbose_output_flag = false, solver_configuration solver_conf = {false, 0}, int max_propagations = 10);
 		~Simulation();
 		
 		// Override Component virtual methods.
@@ -255,6 +258,10 @@ class Simulation : public Device {
 		void PurgeGlobalComponent(std::string const& target_component_full_name);
 		bool GetSearchingFlag(void);
 		void SetSearchingFlag(bool value);
+		
+		VoidThreadPool* m_thread_pool_pointer;
+		bool m_use_threaded_solver;
+		int m_threaded_solve_nesting_level;
 		
 	private:
 		void EnableTerminalRawIO(bool raw_flag);

@@ -40,7 +40,7 @@ SimpleRom::SimpleRom(Device* parent_device_pointer, std::string device_name, std
 }
 
 SimpleRom::~SimpleRom() {
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "SimpleRom dtor for " << m_full_name << " @ " << this << std::endl;
 	}
 }
@@ -79,7 +79,7 @@ SimpleRom_MagicEngine::SimpleRom_MagicEngine(Device* parent_device_pointer, std:
 SimpleRom_MagicEngine::~SimpleRom_MagicEngine() {
 	// Shut down the MagicEngine (close any open files, etc...).
 	ShutDownMagic();
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "SimpleRom_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
 	}
 }

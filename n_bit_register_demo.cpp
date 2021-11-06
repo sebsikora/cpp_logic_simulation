@@ -11,7 +11,7 @@ int main () {
 	int register_width = 4;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add the n-bit register Device. Note the parameterised register width.
 	sim->AddComponent(new N_Bit_Register(sim, "test_register", register_width, monitor_on, {{"clr", true}, {"load", false}}));

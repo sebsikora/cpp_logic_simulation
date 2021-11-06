@@ -45,7 +45,7 @@ Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, C
 
 Probe::~Probe() {
 	PurgeProbe();
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "Probe dtor for " << m_name << " @ " << this << std::endl << std::endl;
 	}
 }
@@ -112,7 +112,7 @@ std::vector<std::vector<bool>> Probe::GetSamples(void) {
 
 void Probe::PurgeProbe() {
 	std::string header;
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		header =  "Purging -> PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) ;
 		std::cout << GenerateHeader(header) << std::endl;
 	}
@@ -120,7 +120,7 @@ void Probe::PurgeProbe() {
 	m_trigger_clock_pointer->PurgeProbeDescriptorFromClock(this);
 	// ...then parent Simulation's m_probes vector.
 	m_top_level_sim_pointer->PurgeProbeDescriptorFromSimulation(this);
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		header =  "PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged." ;
 		std::cout << GenerateHeader(header) << std::endl;
 	}

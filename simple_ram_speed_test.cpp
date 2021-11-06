@@ -13,7 +13,7 @@ int main () {
 	//~bool print_probe_samples = false;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add the SimpleRam MagicDevice and call stabilise.
 	int data_bus_width = 16;

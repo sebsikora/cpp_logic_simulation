@@ -28,10 +28,11 @@
 #include "utils.h"
 #include "strnatcmp.h"
 
-bool Component::mg_verbose_output_flag;			// Global Component verbose_output_flag.;
+bool Component::mg_verbose_output_flag;
+bool Component::mg_verbose_destructor_flag;
 
 Component::~Component() {
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		std::cout << "Component dtor for " << m_full_name << " @ " << this << std::endl << std::endl;
 	}
 }

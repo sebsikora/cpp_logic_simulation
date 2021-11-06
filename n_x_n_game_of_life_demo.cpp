@@ -1,5 +1,6 @@
 #include <vector>
 #include <string>
+#include <chrono>
 
 #include "c_core.h"			// Core simulator functionality
 #include "devices.h"
@@ -17,7 +18,7 @@ int main () {
 	int cell_count = x_dimension * x_dimension;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 20, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose, {true, 1});
 	
 	std::vector<state_descriptor> in_pin_default_states = {{"not_clear_cycle", true}};
 	std::vector<std::string> output_identifiers = {};
@@ -58,8 +59,12 @@ int main () {
 	sim->ChildSet("game_of_life", not_preset_state_identifiers[40], true);
 	sim->ChildSet("game_of_life", not_preset_state_identifiers[49], false);
 	sim->ChildSet("game_of_life", not_preset_state_identifiers[49], true);
-	sim->Run(19, true, verbose, print_probe_samples, false);
-	
+	auto t1 = std::chrono::high_resolution_clock::now();
+	sim->Run(18, true, verbose, false, true);
+	auto t2 = std::chrono::high_resolution_clock::now();
+	sim->Run(1, false, verbose, print_probe_samples, false);
+	std::chrono::duration<double, std::milli> ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
+	std::cout << ms_int.count() << std::endl;
 	delete sim;
 	
 	return 0;

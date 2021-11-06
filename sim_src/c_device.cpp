@@ -24,7 +24,7 @@
 #include <vector>					// std::vector
 #include <algorithm>				// std::sort
 #include <thread>
-#include <functional>
+#include <functional>				// std::bind.
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
@@ -75,7 +75,7 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 
 Device::~Device() {
 	PurgeComponent();
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		std::cout << "Device dtor for " << m_full_name << " @ " << this << std::endl;
 	}
 }
@@ -199,15 +199,8 @@ void Device::Stabilise() {
 	if (mg_verbose_output_flag) {
 		std::cout << std::endl;
 	}
-	// Then we call Solve() for this Device and if it sets it's corresponding propagation flag within it's
-	// parent Device, we append it's local id to it's parent's propagate next vector. In the normal Solve loop
-	// this is handled. If we don't do this here, though the flag will have been set during the Solve() call,
-	// the local component id won't get appended to the propagate next vector, and subsequent calls to QueueToPropagate()
-	// will do nothing as when they check the flag it will be set (which usually means the id has been appended).
+	// Then we call Solve() for this Device.
 	Solve();
-	if (m_parent_device_pointer->GetChildPropagationFlag(m_local_component_index)) {
-		m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
-	}
 	if (mg_verbose_output_flag) {
 		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
 	}
@@ -228,7 +221,7 @@ void Device::Initialise() {
 			this_pin.state_changed = true;
 		}
 	}
-	m_parent_device_pointer->QueueToPropagate(m_local_component_index);
+	m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
 }
 
 void Device::AddComponent(Component* new_component_pointer) {
@@ -253,10 +246,6 @@ void Device::AddGate(std::string const& component_name, std::string const& compo
 void Device::AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on) {
 	AddComponent(new Gate(this, component_name, component_type, {}, monitor_on));
 }
-
-//~void Device::AddGate(std::string const& component_name, std::string const& component_type) {
-	//~AddComponent(new Gate(this, component_name, component_type, {}, false));
-//~}
 
 void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation) {
 	if (m_magic_device_flag == true) {
@@ -593,31 +582,42 @@ void Device::Solve() {
 				std::cout << "...Solve()d." << std::endl << std::endl;
 			}
 		}
-		// Solve() for all pending child Devices.
-		for (const auto& this_local_device_index : m_solve_this_tick) {
-			Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
-			this_device_pointer->Solve();
-			if (m_propagate_next_tick_flags[this_local_device_index]) {
-				m_propagate_next_tick.emplace_back(this_local_device_index);
+		// Experimental multi-threading support -----------------------------------------------------------------------------
+		if (m_top_level_sim_pointer->m_use_threaded_solver && (m_nesting_level == m_top_level_sim_pointer->m_threaded_solve_nesting_level)) {
+			// Threaded Solve() for all pending child Devices.
+			for (const auto& this_local_device_index : m_solve_this_tick) {
+				Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
+				m_top_level_sim_pointer->m_thread_pool_pointer->AddJob(std::bind(&Device::Solve, this_device_pointer));
 			}
-		}
-		m_solve_this_tick.clear();
-		// If there are no pending propagations within this Device following the child Device solve loop
-		// above, we're all done here.
-		if (m_propagate_next_tick.size() == 0) {
-			break;
+			// Wait until all Device Solve() threads finish.
+			m_top_level_sim_pointer->m_thread_pool_pointer->WaitForAllJobs();
+			m_solve_this_tick.clear();
+			// If there are no pending propagations within this Device following the child Device solve loop
+			// above, we're all done here.
+			if (m_propagate_next_tick.size() == 0) {
+				break;
+			}
+		} else {	// ------------------------------------------------------------------------------------------------------
+			// Regular Solve() for all pending child Devices.
+			for (const auto& this_local_device_index : m_solve_this_tick) {
+				Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
+				this_device_pointer->Solve();
+			}
+			m_solve_this_tick.clear();
+			// If there are no pending propagations within this Device following the child Device solve loop
+			// above, we're all done here.
+			if (m_propagate_next_tick.size() == 0) {
+				break;
+			}
 		}
 	}
 	// If we're solving the top-level Simulation state, we need to check if the Clock has triggered any Probes.
 	if (this == m_top_level_sim_pointer) {
 		m_top_level_sim_pointer->CheckProbeTriggers();
 	} else {
-		// If anything has Set() this Device's out pins during the Solve() call, clear the buffered propagation
-		// flag and set this Device's propagation flag in the parent Device to true so those out pin changes are
-		// propagated during the parent Device's Solve() call.
 		if (m_buffered_propagation) {
 			m_buffered_propagation = false;
-			m_parent_device_pointer->SetChildPropagationFlag(m_local_component_index);
+			m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
 		}
 	}
 }
@@ -644,15 +644,8 @@ void Device::SubTick(int index) {
 	// ------------------------------------------
 }
 
-void Device::SetChildPropagationFlag(int propagation_identifier) {
-	m_propagate_next_tick_flags[propagation_identifier] = true;
-}
-
-bool Device::GetChildPropagationFlag(int propagation_identifier) {
-	return m_propagate_next_tick_flags[propagation_identifier];
-}
-
 void Device::AppendChildPropagationIdentifier(int propagation_identifier) {
+	std::unique_lock<std::mutex> lock(m_propagation_lock);
 	m_propagate_next_tick.emplace_back(propagation_identifier);
 }
 
@@ -909,7 +902,7 @@ Component* Device::SearchForComponentPointer(std::string const& target_component
 void Device::PurgeComponent() {
 	if (this != m_top_level_sim_pointer) {
 		std::string header;
-		if (mg_verbose_output_flag) {
+		if (mg_verbose_destructor_flag) {
 			header =  "Purging -> DEVICE :" + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 			std::cout << GenerateHeader(header) << std::endl;
 		}
@@ -930,7 +923,7 @@ void Device::PurgeComponent() {
 		}
 		// Fifth  - Clear component entry from parent device's m_components.
 		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
-		if (mg_verbose_output_flag) {
+		if (mg_verbose_destructor_flag) {
 			header =  "DEVICE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 			std::cout << GenerateHeader(header) << std::endl;
 		}
@@ -986,7 +979,7 @@ void Device::PurgeOutboundConnections() {
 				} else if ((target_pin_direction == 2) || (target_pin_direction == 4)) {		// We will clear hidden out pin drive in flags for completeness.
 					target_direction = "out";
 				}
-				if (mg_verbose_output_flag) {
+				if (mg_verbose_destructor_flag) {
 					std::cout << "Component " << target_component_pointer->GetFullName() << " " << target_direction << " pin "
 						<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
 				}
@@ -1021,7 +1014,7 @@ void Device::PurgeInboundConnections(Component* target_component_pointer) {
 			} else {
 				// This connection descriptor is to be omitted as it contains a reference to the target Component.
 				connections_removed ++;
-				if (mg_verbose_output_flag) {
+				if (mg_verbose_destructor_flag) {
 					std::cout << "Device " << m_full_name << " removed an " << direction << " connection from " << GetPinName(port_index) << " to "
 						<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
 						<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
@@ -1031,7 +1024,7 @@ void Device::PurgeInboundConnections(Component* target_component_pointer) {
 		new_ports.push_back(this_new_port);
 		// If this port has had connection descriptors removed, and is now empty, set it's pin's drive out flag to false.
 		if ((this_new_port.size() == 0) && (connections_removed > 0)) {
-			if (mg_verbose_output_flag) {
+			if (mg_verbose_destructor_flag) {
 				std::cout << "Device " << m_full_name << " " << direction << " pin " << GetPinName(port_index) << " drive out set to false."  << std::endl;
 			}
 			SetPinDrivenFlag(port_index, 1, false);
@@ -1065,7 +1058,7 @@ void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer)
 			if (i != current_local_component_index) {
 				new_m_devices.push_back(m_devices[i]);
 			} else {
-				if (mg_verbose_output_flag) {
+				if (mg_verbose_destructor_flag) {
 					std::cout << "Omitting local component id " << i << " " << target_component_pointer->GetFullName() << " from m_devices for parent Device " << m_full_name << std::endl;
 				}
 			}
@@ -1101,26 +1094,3 @@ void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer)
 		this_component_pointer->SetLocalComponentIndex(i);
 	}
 }
-
-//~std::vector<std::thread> m_solution_threads;
-//~std::vector<int> m_thread_device_identifiers;
-//~if (this_device_pointer->GetNestingLevel() == 2) {
-		//~m_solution_threads.emplace_back(std::thread(&Device::Solve, this_device_pointer));
-		//~m_thread_device_identifiers.emplace_back(this_local_device_index);
-	//~} else {
-		//~this_device_pointer->Solve();
-		//~if (m_propagate_next_tick_flags[this_local_device_index]) {
-			//~m_propagate_next_tick.emplace_back(this_local_device_index);
-		//~}
-	//~}
-//~}
-//~int thread_index = 0;
-//~for (auto& this_thread : m_solution_threads) {
-	//~this_thread.join();
-	//~if (m_propagate_next_tick_flags[m_thread_device_identifiers[thread_index]]) {
-		//~m_propagate_next_tick.emplace_back(m_thread_device_identifiers[thread_index]);
-	//~}
-	//~thread_index ++;
-//~}
-//~m_thread_device_identifiers.clear();
-//~m_solution_threads.clear();

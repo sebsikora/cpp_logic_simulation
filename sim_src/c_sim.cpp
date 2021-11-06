@@ -30,26 +30,31 @@
 #include <sys/ioctl.h>				// ioctl()
 
 #include "c_core.h"					// Core simulator functionality
+#include "void_thread_pool.hpp"
 #include "utils.h"
 #include "colors.h"
 
-Simulation::Simulation(std::string const& simulation_name, int max_propagations, bool verbose_output_flag)
- : Device(this, simulation_name, "simulation", {}, {}, false, {}, max_propagations
-	) {
+Simulation::Simulation(std::string const& simulation_name, bool verbose_output_flag, solver_configuration solver_conf, int max_propagations)
+ : Device(this, simulation_name, "simulation", {}, {}, false, {}, max_propagations) {
 	m_next_new_CUID = 1;
 	m_simulation_running = false;
 	m_global_tick_index = 0;
 	mg_verbose_output_flag = verbose_output_flag;
+	mg_verbose_destructor_flag = false;
+	m_use_threaded_solver = solver_conf.use_threaded_solver;
+	m_threaded_solve_nesting_level = solver_conf.threaded_solve_nesting_level;
 	std::cout << GenerateHeader("Simulation build started.") << std::endl << std::endl;
 	if (mg_verbose_output_flag == false) {
 		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
 	}
-	//~srand(time(0));
+	m_thread_pool_pointer = new VoidThreadPool(false);
+	srand(time(0));
 }
 
 Simulation::~Simulation() {
+	delete m_thread_pool_pointer;
 	PurgeComponent();
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl;
 	}
 }
@@ -357,7 +362,7 @@ std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vec
 
 void Simulation::PurgeComponent() {
 	std::string header;
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		header =  "Purging -> SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 		std::cout << GenerateHeader(header) << std::endl;
 	}
@@ -368,7 +373,7 @@ void Simulation::PurgeComponent() {
 	for (const auto& this_clock_descriptor : m_clocks) {
 		delete this_clock_descriptor.clock_pointer;
 	}
-	if (mg_verbose_output_flag) {
+	if (mg_verbose_destructor_flag) {
 		header =  "SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 		std::cout << GenerateHeader(header) << std::endl;
 	}
@@ -401,7 +406,7 @@ void Simulation::PurgeComponentFromProbableComponents(Component* target_componen
 		if (this_probable_component_pointer != target_component_pointer) {
 			new_probable_components.push_back(this_probable_component_pointer);
 		} else {
-			if (mg_verbose_output_flag) {
+			if (mg_verbose_destructor_flag) {
 				std::cout << "Purging " << target_component_pointer->GetFullName() << " from Simulation m_probable_components." << std::endl;
 			}
 		}
@@ -435,7 +440,7 @@ void Simulation::PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer)
 			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
 			new_probes.push_back(new_probe_descriptor);
 		} else {
-			if (mg_verbose_output_flag) {
+			if (mg_verbose_destructor_flag) {
 				std::cout << "Purging " << this_probe_descriptor.probe_name << " from Simulation " << m_name << " m_probes." << std::endl;
 			}
 		}
@@ -469,7 +474,7 @@ void Simulation::PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer)
 			new_clock_descriptor.clock_pointer = this_clock_descriptor.clock_pointer;
 			new_clocks.push_back(new_clock_descriptor);
 		} else {
-			if (mg_verbose_output_flag) {
+			if (mg_verbose_destructor_flag) {
 				std::cout << "Purging " << this_clock_descriptor.clock_name << " from Simulation " << m_name << " m_clocks." << std::endl;
 			}
 		}
@@ -486,7 +491,7 @@ void Simulation::PurgeMagicEngineDescriptorFromSimulation(magic_engine_descripto
 			new_magic_engine_descriptor.magic_engine_pointer = this_magic_engine_descriptor.magic_engine_pointer;
 			new_magic_engines.push_back(new_magic_engine_descriptor);
 		} else {
-			if (mg_verbose_output_flag) {
+			if (mg_verbose_destructor_flag) {
 				std::cout << "Purging " << this_magic_engine_descriptor.magic_engine_identifier << " from Simulation " << m_name << " m_magic_engines." << std::endl;
 			}
 		}

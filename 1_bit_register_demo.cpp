@@ -8,7 +8,7 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add a 4-bit counter device.
 	sim->AddComponent(new One_Bit_Register(sim, "test_reg", monitor_on, {{"clr", true}, {"load", false}, {"d_in", false}}));

@@ -14,7 +14,7 @@ int main () {
 	
 	// Instantiate the top-level Device (the Simulation).
 	std::string sim_name = "test_sim";
-	Simulation* sim = new Simulation(sim_name, 10, verbose);
+	Simulation* sim = new Simulation(sim_name, verbose);
 	
 	// Generate some names we will need to programmatically interact with the Device.
 	std::string mux_name = "test_mux";

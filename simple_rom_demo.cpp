@@ -8,7 +8,7 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add the SimpleRom MagicDevice and call stabilise.
 	sim->AddComponent(new SimpleRom(sim, "test_rom", "data.txt", monitor_on, {{"read", true}}));

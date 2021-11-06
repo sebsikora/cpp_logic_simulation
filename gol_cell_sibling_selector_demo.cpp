@@ -10,7 +10,7 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 20, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	sim->AddComponent(new GameOfLife_Cell_SiblingSelector(sim, "test_selector", monitor_on, {{"not_clear", true}}));
 	

@@ -8,7 +8,7 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 20, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add a jk flip-flop Device.
 	sim->AddComponent(new JK_FF_ASPC(sim, "test_ff", monitor_on, {{"j", false}, {"k", false}, {"not_p", true}, {"not_c", true}}));

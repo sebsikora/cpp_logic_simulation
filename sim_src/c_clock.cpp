@@ -40,7 +40,7 @@ Clock::Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, s
 
 Clock::~Clock() {
 	PurgeClock();
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl;
 	}
 }
@@ -156,7 +156,7 @@ void Clock::PurgeTargetComponentConnections(Component* target_component_pointer)
 			new_connection_descriptor.target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 			new_connections.push_back(new_connection_descriptor);
 		} else {
-			if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+			if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 				std::cout << "Purging " << target_component_pointer->GetFullName() << " from Clock " << m_name << " m_connections." << std::endl;
 			}
 		}
@@ -166,7 +166,7 @@ void Clock::PurgeTargetComponentConnections(Component* target_component_pointer)
 
 void Clock::PurgeClock(void) {
 	std::string header;
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		header =  "Purging -> CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this));
 		std::cout << GenerateHeader(header) << std::endl;
 	}
@@ -175,7 +175,7 @@ void Clock::PurgeClock(void) {
 		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
 		int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 		target_component_pointer->SetPinDrivenFlag(target_pin_port_index, 0, false);
-		if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+		if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 			std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
 		}
 	}
@@ -199,7 +199,7 @@ void Clock::PurgeClock(void) {
 	}
 	// Finally we purge the Clock from the parent Simulation's m_clocks vector.
 	m_top_level_sim_pointer->PurgeClockDescriptorFromSimulation(this);
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		header =  "CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 		std::cout << GenerateHeader(header) << std::endl;
 	}
@@ -216,7 +216,7 @@ void Clock::PurgeProbeDescriptorFromClock(Probe* target_probe_pointer) {
 			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
 			new_probes.push_back(new_probe_descriptor);
 		} else {
-			if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+			if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 				std::cout << "Purging " << this_probe_descriptor.probe_name << " from Clock " << m_name << " m_probes." << std::endl;
 			}
 		}

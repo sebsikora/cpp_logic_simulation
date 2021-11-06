@@ -40,7 +40,7 @@ SimpleRam::SimpleRam(Device* parent_device_pointer, std::string device_name, int
 }
 
 SimpleRam::~SimpleRam() {
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "SimpleRam dtor for " << m_full_name << " @ " << this << std::endl;
 	}
 }
@@ -101,7 +101,7 @@ SimpleRam_MagicEngine::SimpleRam_MagicEngine(Device* parent_device_pointer, int 
 SimpleRam_MagicEngine::~SimpleRam_MagicEngine() {
 	// Shut down the MagicEngine (close any open files, etc...).
 	ShutDownMagic();
-	if (m_top_level_sim_pointer->mg_verbose_output_flag) {
+	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		std::cout << "SimpleRam_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
 	}
 }

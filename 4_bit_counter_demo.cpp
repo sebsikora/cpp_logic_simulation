@@ -8,14 +8,14 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add a 4-bit counter device.
 	sim->AddComponent(new Four_Bit_Counter(sim, "test_counter", monitor_on, {{"run", true}}));
 	
 	// Add a Clock and connect it to the clk input on the counter.
 	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
-	sim->AddClock("clock_0", {true, false}, monitor_on);
+	sim->AddClock("clock_0", {false, true}, monitor_on);
 	sim->ClockConnect("clock_0", "test_counter", "clk");
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
@@ -28,12 +28,12 @@ int main () {
 	sim->AddProbe("counter_outputs", "test_sim:test_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
 	
 	//~// Run the simulation for 33 ticks.
-	sim->Run(16, true, verbose, false);
-	sim->ChildSet("test_counter", "run", false);
-	sim->Run(4, false, verbose, false);
-	sim->ChildSet("test_counter", "run", true);
-	sim->Run(16, false, verbose, print_probe_samples);
-	
+	//~sim->Run(17, true, verbose, false);
+	//~sim->ChildSet("test_counter", "run", false);
+	//~sim->Run(2, false, verbose, false);
+	//~sim->ChildSet("test_counter", "run", true);
+	sim->Run(33, true, verbose, print_probe_samples);
+	//~std::cout << static_cast<Device*>(sim->SearchForComponentPointer("test_sim:test_counter"))->GetNestingLevel() << std::endl;
 	delete sim;
 	
 	return 0;

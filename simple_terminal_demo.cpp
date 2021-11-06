@@ -16,7 +16,7 @@ int main () {
 	int seconds_to_pause_simulation = 10;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add the SimpleTerminal MagicDevice and call stabilise.
 	sim->AddComponent(new SimpleTerminal(sim, "test_terminal", monitor_on, {{"read", false}, {"write", true}}));

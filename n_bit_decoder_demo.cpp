@@ -13,7 +13,7 @@ int main () {
 	int select_bus_width = 3;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add the n-bit register Device. Note the parameterised decoder select bus width width.
 	sim->AddComponent(new N_Bit_Decoder(sim, "test_decoder", select_bus_width, monitor_on));

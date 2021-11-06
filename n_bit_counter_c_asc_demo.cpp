@@ -11,7 +11,7 @@ int main () {
 	int counter_width = 12;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", 10, verbose);
+	Simulation* sim = new Simulation("test_sim", verbose);
 	
 	// Add the n-bit counter Device. Note the parameterised counter width.
 	sim->AddComponent(new N_Bit_Counter_C_ASC(sim, "test_counter", counter_width, monitor_on, {{"run", false}, {"not_clear", true}, {"clear", false}}));
