@@ -72,9 +72,15 @@ thread_pool.AddJob(std::bind(&Foo::Bar, &a_foo));
 // object. However, we are then taking responsibility for making sure the referenced object
 // still exists for the duration of the thread's execution.
 ```
-Worker threads will begin to execute jobs as soon as they are added to the queue. If we need to wait for all jobs added to the queue to be completed prior to doing something else, we call the thread pool's `WaitForAllJobs()` member function. This will return when the job queue is empty and all running jobs are completed.  
+Worker threads will begin to execute jobs as soon as they are added to the queue. If we need to wait for all jobs added to the queue to be completed prior to doing something else, we call the thread pool's `WaitForAllJobs()` member function. This will return when the job queue is empty and all running jobs are completed.
+
+
 To stop the thread pool, we call it's `Finish()` method, which will stop the worker threads once all currently queued jobs are completed. `delete`ing a VoidThreadPool via a pointer to call it's destructor will first call `Finish()`.  
+
+
 For a complete usage example see `main.cpp`.
+
+To compile the example (for example, using gcc), enter `g++ -o main -g void_thread_pool.cpp main.cpp`
 
 License:
 -------------------------
