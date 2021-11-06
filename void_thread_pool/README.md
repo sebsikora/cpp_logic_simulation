@@ -17,7 +17,7 @@ Explanation of the syntax `[this]() { ... }` for the predicate second argument t
 
 License:
 -------------------------
-![Mit License Logo](/220px-MIT_logo.png)
+![Mit License Logo](./220px-MIT_logo.png)
 <br/><br/>
 void_thread_pool.cpp is distributed under the terms of the MIT license.
 Learn about the MIT license [here](https://choosealicense.com/licenses/mit/)
