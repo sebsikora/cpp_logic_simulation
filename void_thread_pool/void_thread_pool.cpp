@@ -30,7 +30,6 @@
 
 #include <vector>						// std::vector.
 #include <iostream>						// std::cout, std::endl.
-#include <sstream>						// std::stringstream.
 #include <thread>						// std::thread.
 #include <mutex>						// std::mutex, std::unique_lock.
 #include <condition_variable>			// std::condition_variable.
@@ -39,9 +38,14 @@
 
 #include "void_thread_pool.hpp"
 
-VoidThreadPool::VoidThreadPool(bool display_messages) {
+VoidThreadPool::VoidThreadPool(bool display_messages, int number_of_workers) {
 	m_display_messages = display_messages;
-	int num_threads = std::thread::hardware_concurrency();
+	int num_threads;
+	if (number_of_workers == 0) {
+		num_threads = std::thread::hardware_concurrency();
+	} else {
+		num_threads = number_of_workers;
+	}
 	if (m_display_messages) {
 		std::cout << "Void ThreadPool starting " << num_threads << " worker threads..." << std::endl;
 	}
@@ -66,10 +70,10 @@ void VoidThreadPool::WorkerFunction(int worker_id) {
 	std::function<void()> job;
 	while (true) {
 		{
-			std::unique_lock<std::mutex> lock(m_pool_lock);
+			std::unique_lock<std::mutex> lock(m_queue_lock);
 			// See below for explanation of the syntax [this]() { ... } for the predicate second argument to condition_variable.wait().
 			// https://stackoverflow.com/questions/39565218/c-condition-variable-wait-for-predicate-in-my-class-stdthread-unresolved-o
-			m_condition.wait(lock, [this]() { return !m_job_queue.empty() || m_finish; });
+			m_queue_condition.wait(lock, [this]() { return !m_job_queue.empty() || m_finish; });
 			
 			if (m_finish && m_job_queue.empty()) {
 				if (m_display_messages) {
@@ -86,10 +90,10 @@ void VoidThreadPool::WorkerFunction(int worker_id) {
 		{
 			// Once the current job has finished, decrement the pending job counter.
 			// If there are no pending jobs and we are waiting, alert the waiting function via condition variable.
-			std::unique_lock<std::mutex> lock(m_job_counter_lock);
+			std::unique_lock<std::mutex> lock(m_counter_lock);
 			m_jobs_pending --;
 			if ((m_jobs_pending == 0) && (m_waiting_for_completion)) {
-				m_job_counter_condition.notify_one();
+				m_counter_condition.notify_one();
 			}
 		}
 	}
@@ -98,28 +102,28 @@ void VoidThreadPool::WorkerFunction(int worker_id) {
 void VoidThreadPool::AddJob(std::function<void()> new_job) {
 	// Increment the pending job counter and push the new job onto the queue.
 	{
-		std::unique_lock<std::mutex> lock(m_job_counter_lock);
+		std::unique_lock<std::mutex> lock(m_counter_lock);
 		m_jobs_pending ++;
 	}
 	{
-		std::unique_lock<std::mutex> lock(m_pool_lock);
+		std::unique_lock<std::mutex> lock(m_queue_lock);
 		m_job_queue.push(new_job);
 	}
 	// Notify one worker function that there is now a pending job.
-	m_condition.notify_one();
+	m_queue_condition.notify_one();
 }
 
 void VoidThreadPool::WaitForAllJobs(void) {
 	while (true) {		// Wrap the wait on m_job_counter_condition in a while loop in case the condition wakes up spuriously.
 		{
-			std::unique_lock<std::mutex> lock(m_job_counter_lock);
+			std::unique_lock<std::mutex> lock(m_counter_lock);
 			if (m_jobs_pending > 0) {
 				if (m_display_messages) {
 					std::string message = "*** Waiting for all jobs to complete...\n";
 					std::cout << message;
 				}
 				m_waiting_for_completion = true;
-				m_job_counter_condition.wait(lock, [this]() { return m_jobs_pending == 0; });
+				m_counter_condition.wait(lock, [this]() { return m_jobs_pending == 0; });
 				if (m_jobs_pending == 0) {
 					m_waiting_for_completion = false;
 					if (m_display_messages) {
@@ -145,10 +149,10 @@ void VoidThreadPool::Finish(void) {
 	}
 	// Set the stop flag and notify all processes.
 	{
-		std::unique_lock<std::mutex> lock(m_pool_lock);
+		std::unique_lock<std::mutex> lock(m_queue_lock);
 		m_finish = true;
 	}
-	m_condition.notify_all();
+	m_queue_condition.notify_all();
 	// Wait and join all threads.
 	for (std::thread& thread : m_threads) {
 		thread.join();

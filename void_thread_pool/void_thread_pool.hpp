@@ -32,8 +32,6 @@
 #define VOID_TPOOL_H
 
 #include <vector>						// std::vector.
-#include <iostream>						// std::cout, std::endl.
-#include <sstream>						// std::stringstream.
 #include <thread>						// std::thread.
 #include <mutex>						// std::mutex, std::unique_lock.
 #include <condition_variable>			// std::condition_variable.
@@ -46,18 +44,18 @@ class VoidThreadPool {
 		std::vector<std::thread> m_threads = {};
 		bool m_pool_stopped = false;
 		// Synchronisation of job queue and stop flag.
-		std::condition_variable m_condition;
-		std::mutex m_pool_lock;
+		std::condition_variable m_queue_condition;
+		std::mutex m_queue_lock;
 		std::queue<std::function<void()>> m_job_queue = {};
 		bool m_finish = false;
 		// Synchronisation of pending job counter and waiting flag.
-		std::condition_variable m_job_counter_condition;
-		std::mutex m_job_counter_lock;
+		std::condition_variable m_counter_condition;
+		std::mutex m_counter_lock;
 		int m_jobs_pending = 0;
 		bool m_waiting_for_completion = false;
 		
 	public:
-		VoidThreadPool(bool display_messages = false);
+		VoidThreadPool(bool display_messages = false, int number_of_workers = 0);
 		~VoidThreadPool();
 		void WorkerFunction(int worker_id);
 		void AddJob(std::function<void()> new_job);
