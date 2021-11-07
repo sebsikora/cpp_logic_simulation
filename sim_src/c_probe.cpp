@@ -27,8 +27,7 @@
 #include "utils.h"
 
 Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
-	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer, int samples_per_row
-	) {
+	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer, probe_configuration probe_conf) {
 	// Probe constructor is called from within top-level Simulation, constructor arguments are all sanity-checked there.
 	m_top_level_sim_pointer = top_level_sim_pointer;
 	m_target_component_pointer = target_component_pointer;
@@ -40,7 +39,9 @@ Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, C
 	for (const auto& pin_name : target_pin_names) {
 		m_target_pin_indices.push_back(m_target_component_pointer->GetPinPortIndex(pin_name));
 	}
-	m_samples_per_row = samples_per_row;
+	m_samples_per_row = probe_conf.samples_per_row;
+	m_output_characters = probe_conf.output_characters;
+	m_probe_every_n_ticks = probe_conf.probe_every_n_ticks;
 }
 
 Probe::~Probe() {
@@ -82,27 +83,32 @@ Component* Probe::GetTargetComponentPointer() {
 
 void Probe::PrintSamples() {
 	int index = 0;
+	int probe_index = m_probe_every_n_ticks;
 	std::cout << "Probe: " << m_name << " - " << m_target_component_full_name << std::endl;
 	for (const auto& sample: m_samples) {
-		std::string header = "T: " + std::to_string(index) + "  ";
-		std::cout << header;
-		int column_index = 1;
-		for (const auto& sub_sample: sample) {
-			if (sub_sample) {
-				std::cout << " T";
-			} else {
-				std::cout << " F";
+		if (probe_index == m_probe_every_n_ticks) {
+			probe_index = 0;
+			std::string header = "T: " + std::to_string(index) + "  ";
+			std::cout << header;
+			int column_index = 1;
+			for (const auto& sub_sample: sample) {
+				if (sub_sample) {
+					std::cout << " " << m_output_characters[1];
+				} else {
+					std::cout << " " << m_output_characters[0];
+				}
+				if (column_index == m_samples_per_row) {
+					std::string indent(header.length(), ' ');
+					std::cout << std::endl << indent;
+					column_index = 1;
+				} else {
+					column_index ++;
+				}
 			}
-			if (column_index == m_samples_per_row) {
-				std::string indent(header.length(), ' ');
-				std::cout << std::endl << indent;
-				column_index = 1;
-			} else {
-				column_index ++;
-			}
+			std::cout << std::endl;
 		}
-		std::cout << std::endl;
-		index = index + 1;
+		index ++;
+		probe_index ++;
 	}
 }
 

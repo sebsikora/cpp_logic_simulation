@@ -899,6 +899,10 @@ Component* Device::SearchForComponentPointer(std::string const& target_component
 	return target_component_pointer;
 }
 
+bool Device::GetDeletionFlag(void) {
+	return m_deletion_flag;
+}
+
 void Device::PurgeComponent() {
 	if (this != m_top_level_sim_pointer) {
 		std::string header;
@@ -906,23 +910,36 @@ void Device::PurgeComponent() {
 			header =  "Purging -> DEVICE :" + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 			std::cout << GenerateHeader(header) << std::endl;
 		}
+		m_deletion_flag = true;
 		// First  - Need to Purge and delete all child components.
 		PurgeAllChildComponents();
-		// Second - Ask parent Device to purge all local references to this Device...
-		// 			NOTE - Should elaborate on 'references here' really...
-		m_parent_device_pointer->PurgeChildConnections(this);
-		// Third  - Purge Device from Simulation Clocks, Probes and probable_components vector.
-		//			This will 'automatically' get rid of any Probes associated with the Device
-		//			(as otherwise they would target cleared memory).
-		m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
-		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
-		m_top_level_sim_pointer->PurgeComponentFromProbes(this);
+		if (!(m_parent_device_pointer->GetDeletionFlag())) {
+			// Second - Ask parent Device to purge all local references to this Device...
+			// 			NOTE - Should elaborate on 'references here' really...
+			//			If we are deleting this Component because we are in the process of deleting
+			//			it's parent, we do not need to do this.
+			m_parent_device_pointer->PurgeChildConnections(this);
+		}
+		if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
+			// Third  - Purge Device from Simulation Clocks, Probes and probable_components vector.
+			//			This will 'automatically' get rid of any Probes associated with the Device
+			//			(as otherwise they would target cleared memory).
+			//			If we are deleting this component because we are in the process of deleting
+			//			the top-level Simulation, we do not need to do this.
+			m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
+			m_top_level_sim_pointer->PurgeComponentFromClocks(this);
+			m_top_level_sim_pointer->PurgeComponentFromProbes(this);
+		}
 		// Fourth - If this is a magic Device, purge it's magic Device engine.
 		if (m_magic_device_flag) {
 			delete m_magic_engine_pointer;
 		}
-		// Fifth  - Clear component entry from parent device's m_components.
-		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
+		if (!(m_parent_device_pointer->GetDeletionFlag())) {
+			// Fifth  - Clear component entry from parent device's m_components.
+			//			If we are deleting this Component because we are in the process of deleting
+			//			it's parent, we do not need to do this.
+			m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
+		}
 		if (mg_verbose_destructor_flag) {
 			header =  "DEVICE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 			std::cout << GenerateHeader(header) << std::endl;

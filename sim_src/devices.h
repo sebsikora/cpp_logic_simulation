@@ -113,6 +113,18 @@ class NxM_Bit_Mux : public Device {
 		
 };
 
+class RLIC : public Device {
+	public:
+		RLIC(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void Build(void);
+};
+
+class MRLIC : public Device {
+	public:
+		MRLIC(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void Build(void);
+};
+
 //~// ---------------------------------------------------------------------------------------------------------------------------
 //~class TestMagicDevice : public Device {
 	//~public:

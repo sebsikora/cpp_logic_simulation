@@ -188,6 +188,7 @@ class Device : public Component {
 		void PurgeAllChildComponents(void);
 		void PurgeChildComponentIdentifiers(Component* target_component_pointer);
 		void CreateChildFlags(void);
+		bool GetDeletionFlag(void);
 		
 	private:
 		// Device class private methods.
@@ -215,9 +216,10 @@ class Device : public Component {
 		void PropagateInputs(void);
 		
 		int m_max_propagations;
+		bool m_deletion_flag = false;
+		bool m_magic_device_flag = false;
 		MagicEngine* m_magic_engine_pointer;
 		std::vector<bool> m_magic_pin_flag;
-		bool m_magic_device_flag = false;
 };
 
 // Top-level Simulation Device sub-class.
@@ -233,7 +235,7 @@ class Simulation : public Device {
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
 		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,
-			std::string const& trigger_clock_name, int samples_per_row = 0
+			std::string const& trigger_clock_name, probe_configuration probe_conf = {1, 0, {"F", "T"}}
 		);
 		void AddToProbableComponents(Component* target_component_pointer);
 		void AddToMagicEngines(std::string const& magic_engine_identifier, MagicEngine* magic_engine_pointer);
@@ -315,8 +317,8 @@ class Clock {
 class Probe {
 	public:
 		Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
-			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer, int samples_per_row = 0
-		);
+			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer,
+			probe_configuration probe_conf = {1, 0, {"F", "T"}});
 		~Probe();
 		
 		void PreallocateSampleMemory(int number_of_ticks);
@@ -336,9 +338,11 @@ class Probe {
 		std::string m_trigger_clock_name;
 		Clock* m_trigger_clock_pointer;
 		int m_samples_per_row;
+		int m_probe_every_n_ticks;
 		std::vector<int> m_timestamps;
 		std::vector<std::vector<bool>> m_samples;
 		std::vector<bool> m_this_sample;
+		std::vector<std::string> m_output_characters = {};
 };
 
 class MagicEngine {

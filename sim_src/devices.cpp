@@ -773,3 +773,61 @@ void NxM_Bit_Mux::Build() {
 	//~PrintOutPinStates();
 }
 
+RLIC::RLIC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+ : Device(parent_device_pointer, name, "really_long_inverter_chain", {"in"}, {"out"}, monitor_on, input_default_states) {
+	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
+	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	 Build();
+	 Stabilise();
+ }
+
+void RLIC::Build() {
+	int number_of_inverters = 5001;
+	AddGate("not_0", "not");
+	Connect("in", "not_0");
+	
+	for (int i = 1; i < number_of_inverters; i ++) {
+		std::string last_inverter_identifier = "not_" + std::to_string(i - 1);
+		std::string this_inverter_identifier = "not_" + std::to_string(i);
+		AddGate(this_inverter_identifier, "not");
+		ChildConnect(last_inverter_identifier, {this_inverter_identifier});
+		if (i == (number_of_inverters - 1)) {
+			ChildConnect(this_inverter_identifier, {"parent", "out"});
+		}
+	}
+}
+
+MRLIC::MRLIC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+ : Device(parent_device_pointer, name, "multi_really_long_inverter_chain", {"in"}, {"out_0", "out_1", "out_2", "out_3", "out_4", "out_5", "out_6", "out_7"}, monitor_on, input_default_states) {
+	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
+	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	 Build();
+	 Stabilise();
+ }
+
+void MRLIC::Build() {
+	AddComponent(new RLIC(this, "rlic_0"));
+	AddComponent(new RLIC(this, "rlic_1"));
+	AddComponent(new RLIC(this, "rlic_2"));
+	AddComponent(new RLIC(this, "rlic_3"));
+	AddComponent(new RLIC(this, "rlic_4"));
+	AddComponent(new RLIC(this, "rlic_5"));
+	AddComponent(new RLIC(this, "rlic_6"));
+	AddComponent(new RLIC(this, "rlic_7"));
+	Connect("in", "rlic_0", "in");
+	Connect("in", "rlic_1", "in");
+	Connect("in", "rlic_2", "in");
+	Connect("in", "rlic_3", "in");
+	Connect("in", "rlic_4", "in");
+	Connect("in", "rlic_5", "in");
+	Connect("in", "rlic_6", "in");
+	Connect("in", "rlic_7", "in");
+	ChildConnect("rlic_0", {"out", "parent", "out_0"});
+	ChildConnect("rlic_1", {"out", "parent", "out_1"});
+	ChildConnect("rlic_2", {"out", "parent", "out_2"});
+	ChildConnect("rlic_3", {"out", "parent", "out_3"});
+	ChildConnect("rlic_4", {"out", "parent", "out_4"});
+	ChildConnect("rlic_5", {"out", "parent", "out_5"});
+	ChildConnect("rlic_6", {"out", "parent", "out_6"});
+	ChildConnect("rlic_7", {"out", "parent", "out_7"});
+}

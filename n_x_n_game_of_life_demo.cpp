@@ -14,8 +14,12 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Square grid base dimension.
-	int x_dimension = 9;
+	int x_dimension = 31;
+	// Number of game iterations to simulate.
+	int iteration_count = 50;
+	
 	int cell_count = x_dimension * x_dimension;
+	int tick_count = 18 * iteration_count;
 	
 	// Instantiate the top-level Device (the Simulation).
 	Simulation* sim = new Simulation("test_sim", verbose, {true, 1});
@@ -46,25 +50,32 @@ int main () {
 	sim->AddClock("clock_0", {false, true}, monitor_on);
 	sim->ClockConnect("clock_0", "game_of_life", "clk");
 	
+	sim->AddProbe("cell_states", "test_sim:game_of_life", {output_identifiers}, "clock_0", {9, x_dimension, {" ", "■"}});
+	
 	sim->ChildSet("game_of_life", "not_clear_cycle", false);
 	sim->ChildSet("game_of_life", "not_clear_cycle", true);
-	for (int cell_index = 0; cell_index < cell_count; cell_index ++) {
-		sim->ChildSet("game_of_life", not_clear_state_identifiers[cell_index], false);
-		sim->ChildSet("game_of_life", not_clear_state_identifiers[cell_index], true);
-	}
-	sim->AddProbe("cell_states", "test_sim:game_of_life", {output_identifiers}, "clock_0", x_dimension);
-	sim->ChildSet("game_of_life", not_preset_state_identifiers[31], false);
-	sim->ChildSet("game_of_life", not_preset_state_identifiers[31], true);
-	sim->ChildSet("game_of_life", not_preset_state_identifiers[40], false);
-	sim->ChildSet("game_of_life", not_preset_state_identifiers[40], true);
-	sim->ChildSet("game_of_life", not_preset_state_identifiers[49], false);
-	sim->ChildSet("game_of_life", not_preset_state_identifiers[49], true);
+	
+	//~for (int cell_index = 0; cell_index < cell_count; cell_index ++) {
+		//~sim->ChildSet("game_of_life", not_clear_state_identifiers[cell_index], false);
+		//~sim->ChildSet("game_of_life", not_clear_state_identifiers[cell_index], true);
+	//~}
+	
+	//~int initial_offset = ((x_dimension * x_dimension) / (int)2) + (x_dimension / (int)2);
+	
+	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset - x_dimension], false);
+	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset - x_dimension], true);
+	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset], false);
+	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset], true);
+	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset + x_dimension], false);
+	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset + x_dimension], true);
+	
 	auto t1 = std::chrono::high_resolution_clock::now();
-	sim->Run(18, true, verbose, false, true);
+	sim->Run(tick_count, true, verbose, false, true);
 	auto t2 = std::chrono::high_resolution_clock::now();
 	sim->Run(1, false, verbose, print_probe_samples, false);
-	std::chrono::duration<double, std::milli> ms_int = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1);
-	std::cout << ms_int.count() << std::endl;
+	
+	long long us_int = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
+	std::cout << us_int << std::endl;
 	delete sim;
 	
 	return 0;

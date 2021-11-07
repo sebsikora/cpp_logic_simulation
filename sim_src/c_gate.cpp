@@ -332,16 +332,24 @@ void Gate::PurgeComponent() {
 		header =  "Purging -> GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 		std::cout << GenerateHeader(header) << std::endl;
 	}
-	// First  - Ask parent device to purge all local references to this Gate...
-	m_parent_device_pointer->PurgeChildConnections(this);
-	// Second - Purge component from Simulation Clocks, Probes and probable_components vector.
-	//			This will 'automatically' get rid of any Probes associated with the Component
-	//			(as otherwise they would target cleared memory).
-	m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
-	m_top_level_sim_pointer->PurgeComponentFromClocks(this);
-	m_top_level_sim_pointer->PurgeComponentFromProbes(this);
-	// Third  - Clear component entry from parent device's m_components.
-	m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
+	if (!(m_parent_device_pointer->GetDeletionFlag())) {
+		// First  - Ask parent device to purge all local references to this Gate...
+		//			If we are deleting this Component because we are in the process of deleting
+		//			it's parent, we do not need to do this.
+		m_parent_device_pointer->PurgeChildConnections(this);
+	}
+	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
+		// Second - Purge component from Simulation Clocks, Probes and probable_components vector.
+		//			This will 'automatically' get rid of any Probes associated with the Component
+		//			(as otherwise they would target cleared memory).
+		//			If we are deleting this component because we are in the process of deleting
+		//			the top-level Simulation, we do not need to do this.
+		m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
+		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
+		m_top_level_sim_pointer->PurgeComponentFromProbes(this);
+		// Third  - Clear component entry from parent device's m_components.
+		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
+	}
 	if (mg_verbose_destructor_flag) {
 		header =  "GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 		std::cout << GenerateHeader(header) << std::endl;

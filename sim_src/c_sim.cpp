@@ -48,7 +48,7 @@ Simulation::Simulation(std::string const& simulation_name, bool verbose_output_f
 		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
 	}
 	m_thread_pool_pointer = new VoidThreadPool(false);
-	srand(time(0));
+	//~srand(time(0));
 }
 
 Simulation::~Simulation() {
@@ -222,7 +222,7 @@ void Simulation::ClockConnect(std::string const& target_clock_name, std::string 
 	}
 }
 
-void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name, int samples_per_row) {
+void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name, probe_configuration probe_conf) {
 	Component* target_component_pointer = GetProbableComponentPointer(target_component_full_name);
 	if (target_component_pointer != 0) {
 		bool pins_exist = true;
@@ -243,7 +243,7 @@ void Simulation::AddProbe(std::string const& probe_name, std::string const& targ
 			if (trigger_clock_exists) {
 				probe_descriptor new_probe;
 				new_probe.probe_name = probe_name;
-				new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_pointer, target_pin_names, trigger_clock_pointer, samples_per_row);
+				new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_pointer, target_pin_names, trigger_clock_pointer, probe_conf);
 				m_probes.push_back(new_probe);
 			} else {
 				// Log error - Trigger clock does not exist.
@@ -366,6 +366,7 @@ void Simulation::PurgeComponent() {
 		header =  "Purging -> SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 		std::cout << GenerateHeader(header) << std::endl;
 	}
+	m_deletion_flag = true;
 	// Need to Purge all child Components and delete.
 	PurgeAllChildComponents();
 	//	Simulation has no external inputs or outputs to handle (as it is top-level).

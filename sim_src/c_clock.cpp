@@ -170,13 +170,17 @@ void Clock::PurgeClock(void) {
 		header =  "Purging -> CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this));
 		std::cout << GenerateHeader(header) << std::endl;
 	}
-	// If the Clock has any connections, set their drive in flag to false.
-	for (const auto& this_connection_descriptor : m_connections) {
-		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
-		int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
-		target_component_pointer->SetPinDrivenFlag(target_pin_port_index, 0, false);
-		if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-			std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
+	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
+		// If the Clock has any connections, set their drive in flag to false.
+		// If we are in the process of deleting the top-level Simulation, we do not need to do this as all connected
+		// components will be deleted in any case.
+		for (const auto& this_connection_descriptor : m_connections) {
+			Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
+			int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
+			target_component_pointer->SetPinDrivenFlag(target_pin_port_index, 0, false);
+			if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
+				std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
+			}
 		}
 	}
 	// Make a list of pointers for m_probes, then loop over *these* below. We can modify Probe.PurgeProbe() called by

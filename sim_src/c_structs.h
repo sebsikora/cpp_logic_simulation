@@ -62,6 +62,12 @@ struct solver_configuration {
 	int threaded_solve_nesting_level;
 };
 
+struct probe_configuration {
+	int probe_every_n_ticks;
+	int samples_per_row;
+	std::vector<std::string> output_characters;
+};
+
 struct connection_descriptor {
 	Component* target_component_pointer;
 	int target_pin_port_index;
