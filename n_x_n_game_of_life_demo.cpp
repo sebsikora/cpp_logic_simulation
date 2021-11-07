@@ -50,7 +50,7 @@ int main () {
 	sim->AddClock("clock_0", {false, true}, monitor_on);
 	sim->ClockConnect("clock_0", "game_of_life", "clk");
 	
-	sim->AddProbe("cell_states", "test_sim:game_of_life", {output_identifiers}, "clock_0", {9, x_dimension, {" ", "■"}});
+	sim->AddProbe("cell_states", "test_sim:game_of_life", {output_identifiers}, "clock_0", {18, x_dimension, {" ", "■"}});
 	
 	sim->ChildSet("game_of_life", "not_clear_cycle", false);
 	sim->ChildSet("game_of_life", "not_clear_cycle", true);
