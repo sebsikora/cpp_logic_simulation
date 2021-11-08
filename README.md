@@ -23,6 +23,7 @@ A number of demonstrations using the framework to simulate simple logic circuits
 * `n_x_1_bit_mux_demo.cpp` - An N by 1-bit multiplexor built programmatically
 * `n_bit_decoder_demo.cpp` - An N-bit decoder built programmatically
 * `n_x_m_bit_mux_demo.cpp` - An N by M-bit multiplexor built programmatically from N by 1-bit muxes and an N-bit decoder
+* `n_x_n_game_of_life_demo.cpp` - An N by N implementation of Conway's [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
 
 To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/magic_devices/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
 
@@ -46,6 +47,8 @@ user@home:~/cpp_logic_simulation$ ./jk_ff_demo
 ```
 
 then enter `./jk_ff_demo` to run the demo.
+
+If you would like to experiment with creating new *Devices* using the framework, when compiling make sure to include the `-pthread` compiler flag to add multi-threading support via the pthreads library.
 
 Files:
 -------------------------
