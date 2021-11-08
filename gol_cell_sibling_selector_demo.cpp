@@ -26,7 +26,6 @@ int main () {
 	sim->AddProbe("siblings_in", "test_sim:test_selector", {"sibling_0", "sibling_1", "sibling_2", "sibling_3", "sibling_4", "sibling_5", "sibling_6", "sibling_7"}, "clock_0");
 	sim->AddProbe("selected_sibling", "test_sim:test_selector", {"selected_sibling"}, "clock_0");
 	sim->AddProbe("update_flag", "test_sim:test_selector", {"update_flag"}, "clock_0");
-	sim->AddProbe("sibling_counter", "test_sim:test_selector:sibling_counter", {"q_0", "q_1", "q_2", "q_3"}, "clock_0");
 	
 	sim->ChildSet("test_selector", "sibling_0", true);
 	sim->ChildSet("test_selector", "sibling_1", false);

@@ -48,7 +48,7 @@ Simulation::Simulation(std::string const& simulation_name, bool verbose_output_f
 		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
 	}
 	m_thread_pool_pointer = new VoidThreadPool(false);
-	//~srand(time(0));
+	srand(time(0));
 }
 
 Simulation::~Simulation() {

@@ -4,16 +4,16 @@
 
 [seb.nf.sikora@protonmail.com](mailto:seb.nf.sikora@protonmail.com)
 
-Updated 07/11/2021.
+Updated 08/11/2021.
 
 What is it?
 -------------------------
 
-I created cpp_logic_simulation to explore C++ language features and development methodologies that I do not usually use in my C++ work, due to the resource-constrained nature of the typical target platforms (eg, 512 ~ 2K bytes RAM).
+I created cpp_logic_simulation to explore C++ language features and development methodologies that I do not usually use in my C++ work - due to the resource-constrained nature of the typical target platforms (eg, 512 ~ 2K bytes RAM) - and to scratch a personal itch, having felt inspired by the idea of creating some sort of logic simulator for a number of years.
 
-cpp_logic_simulation is a framework for constructing simulations of digital [logic circuits](https://learn.sparkfun.com/tutorials/digital-logic/all). The logic circuits are comprised of *Components*, sub-classed into *Gates* and *Devices*. *Gates* are n-input representations of the [logical operators](https://learn.sparkfun.com/tutorials/digital-logic/all#combinational-logic) NOT, AND, OR, NAND, NOR and XOR. *Gates* can be grouped-together and interconnected within *Devices*. These *Devices* can then be grouped-together and interconnected and nested-within further *Devices*, ad-nauseum. In this way, arbitrarily complex logic circuits can be assembled from the primary *Gate* building blocks. *Devices* can even be created from repeated arrays of simpler building-block *Devices* in a programmatic manner. [See](./sim_src/devices.cpp) `./sim_src/devices.cpp` for examples.
+cpp_logic_simulation is a framework for constructing simulations of digital [logic circuits](https://learn.sparkfun.com/tutorials/digital-logic/all). The logic circuits comprise instances of a *Component* class, sub-classed into *Gate* and *Device* classes. *Gates* are n-input representations of the [logical operators](https://learn.sparkfun.com/tutorials/digital-logic/all#combinational-logic) NOT, AND, OR, NAND, NOR and XOR. Arbitrary numbers of *Gates* can be interconnected within *Devices*. These *Devices* can then interconnected nested-within further *Devices*, ad-nauseum, and in this way arbitrarily complex logic circuits can be assembled from the primary *Gate* building blocks. [See](./sim_src/devices/devices.cpp) `./sim_src/devices/devices.cpp` for examples.
 
-A further sub-class of the *Device* is the *Simulation*, which must always be the top-level *Device*. The *Simulation* can also contain *Clocks* to drive the contained logic circuit, and *Probes*, which can sample and display the logical state of any inputs or outputs of connected *Gates* or *Devices* within the circuit (at any nesting-level). The state of the logic circuit is recalculated automatically in response to any 'live' state changes at it's inputs. However, sampling and displaying state using *Probes* can only occur while the simulation is 'running', with the circuit driven via one or more *Clocks*.
+A further sub-class of the *Device* class is the *Simulation* class, which lies at the top-level and contains the *Device* or *Devices* that comprise the logic circuit. The *Simulation* can also contain members of two additional utility classes, *Clocks* to drive the contained logic circuit, and *Probes*, which can sample and display the logical state of any inputs or outputs of *Gates* or *Devices* within the circuit. The state of the logic circuit is recalculated automatically in response to any state changes at it's inputs. However, sampling and displaying state using *Probes* can only occur while the simulation is 'running', with the circuit driven via one or more *Clocks*.
 
 A number of demonstrations using the framework to simulate simple logic circuits are provided here. To run the simulations with maximally verbose output, detailing all of state changes within the circuit at runtime, set the `verbose` and `monitor_on` flags towards the top of the demos to `true`.
 * `jk_ff_demo.cpp` - A master-slave JK flip-flop - [more](./sim_doc/jk_ff_demo.md)
@@ -24,31 +24,38 @@ A number of demonstrations using the framework to simulate simple logic circuits
 * `n_bit_decoder_demo.cpp` - An N-bit decoder built programmatically
 * `n_x_m_bit_mux_demo.cpp` - An N by M-bit multiplexor built programmatically from N by 1-bit muxes and an N-bit decoder
 
-To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
+To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/magic_devices/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
 
 Some *MagicDevice* demonstrations are provided here.
 * `simple_rom_demo.cpp` - A ROM IC that pulls data from a text file - [more](./sim_doc/simple_rom_demo.md)
 * `simple_ram_demo.cpp` - A RAM IC that stores data in an array - [more](./sim_doc/simple_ram_demo.md)
 * `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)
 
-Files:
--------------------------
-* `.cpp` & `.h` files beginning with `c_...` comprise the class prototypes and definitions that comprise the 'core engine'
-* `devices.cpp` & `.h` contain example *Devices* constructed using the framework
-* `.cpp` & `.h` files beginning with `simple_...` contain example *MagicDevices* constructed using the framework
-* `data.txt` is the data text file to accompany `simple_rom_demo.cpp`
-* `utils.cpp` & `.h`, `strnatcmp.cpp` & `.h` contain shared helper functions
-* `colors.h` contains macros for adding escape codes for colour terminal text
-* `terminal_client.c` contains the simple terminal client to accompany `simple_terminal_demo.cpp`
-
 Running the demos:
 -------------------------
 
-To run the demos, compile and link them against the contents of the `./sim_src/` sub-directory using a contemporary C++ compiler. For example, to compile and link the JK flip-flop demo using the GNU C++ compiler on a Linux system, enter the following on the command-line from the main project directory:
+cpp_logic_simulation currently requires POSIX support for console io, and as-such cannot be compiled and run natively on Windows. It is possible to compile and run cpp_logic_simulation on Windows using [Cygwin](https://www.cygwin.com/), 'a large collection of GNU and Open Source tools which provide functionality similar to a GNU/Linux distribution on Windows', but that is outside the scope of this README. 
 
-`g++ -o jk_ff_demo -I ./sim_src ./sim_src/*.cpp jk_ff_demo.cpp`
+An elementary makefile is provided for the demos, so to compile a particular demo on GNU/Linux navigate to the root project directory on the command line and enter `make [demo_name]`, where `demo_name` is the name of one of the demo .cpp files with the .cpp omitted.
+
+For example, to compile and run the jk flip-flop demo, enter:
+
+```
+user@home:~/cpp_logic_simulation$ make jk_ff_demo
+user@home:~/cpp_logic_simulation$ ./jk_ff_demo
+```
 
 then enter `./jk_ff_demo` to run the demo.
+
+Files:
+-------------------------
+* `./sim_src/core/` comprises the class prototypes and definitions that comprise the 'core engine'
+* `./sim_src/devices/devices.cpp` contains example *Devices* constructed using the framework
+* `./sim_src/devices/game_of_life/` contains a number of *Devices* that can together implement Conway's Game of Life.
+* `./sim_src/magic_devices/` contains example *MagicDevices* constructed using the framework
+* `./sim_src/simple_terminal_client/` contains the simple terminal client to accompany `simple_terminal_demo.cpp`
+* `./sim_src/utils/` contains shared helper functions & macros for adding escape codes for colour terminal text
+* `data.txt` is the data text file to accompany `simple_rom_demo.cpp`
 
 Thoughts & limitations:
 -------------------------
