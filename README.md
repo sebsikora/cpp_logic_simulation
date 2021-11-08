@@ -23,7 +23,9 @@ A number of demonstrations using the framework to simulate simple logic circuits
 * `n_x_1_bit_mux_demo.cpp` - An N by 1-bit multiplexor built programmatically
 * `n_bit_decoder_demo.cpp` - An N-bit decoder built programmatically
 * `n_x_m_bit_mux_demo.cpp` - An N by M-bit multiplexor built programmatically from N by 1-bit muxes and an N-bit decoder
-* `n_x_n_game_of_life_demo.cpp` - An N by N implementation of Conway's [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) with toroidal boundary conditions
+
+A significantly more complex demonstration is also provided here.
+* `n_x_n_game_of_life_demo.cpp` - An N by N implementation of Conway's [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) with a toroidal boundary condition at the edges.
 
 To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/magic_devices/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
 
@@ -35,18 +37,16 @@ Some *MagicDevice* demonstrations are provided here.
 Running the demos:
 -------------------------
 
-cpp_logic_simulation currently requires POSIX support for console io, and as-such cannot be compiled and run natively on Windows. It is possible to compile and run cpp_logic_simulation on Windows using [Cygwin](https://www.cygwin.com/), 'a large collection of GNU and Open Source tools which provide functionality similar to a GNU/Linux distribution on Windows', but that is outside the scope of this README. 
+cpp_logic_simulation currently requires POSIX support for console io, and as-such cannot be compiled and run natively on Windows. It is possible to compile and run cpp_logic_simulation [on Windows](https://www.staff.ncl.ac.uk/andrey.mokhov/EEE1008/first-c-program.html) using [Cygwin](https://www.cygwin.com/), 'a large collection of GNU and Open Source tools which provide functionality similar to a GNU/Linux distribution on Windows', but that is outside the scope of this README. 
 
-An elementary makefile is provided for the demos, so to compile a particular demo on GNU/Linux navigate to the root project directory on the command line and enter `make [demo_name]`, where `demo_name` is the name of one of the demo .cpp files with the .cpp omitted.
+An elementary makefile is provided for the demos, so to compile a particular demo on GNU/Linux navigate to the root project directory on the command line and enter `make demo_name`, where `demo_name` is the name of one of the demo .cpp files with the .cpp file extension omitted.
 
-For example, to compile and run the jk flip-flop demo, enter:
+For example, to compile and run the jk flip-flop demo ([jk_ff_demo.cpp](jk_ff_demo.cpp)), enter:
 
 ```
 user@home:~/cpp_logic_simulation$ make jk_ff_demo
 user@home:~/cpp_logic_simulation$ ./jk_ff_demo
 ```
-
-then enter `./jk_ff_demo` to run the demo.
 
 If you would like to experiment with creating new *Devices* using the framework, when compiling make sure to include the `-pthread` compiler flag to add multi-threading support via the pthreads library.
 
