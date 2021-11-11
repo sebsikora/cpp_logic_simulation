@@ -183,13 +183,13 @@ void SimpleTerminal_MagicEngine::UpdateMagic() {
 	char data_in_buffer;
 	bool chars_read_in_flag = false;
 	while (read(m_fifo_dat_slave_to_master, &data_in_buffer, 1) > 0) {
-		if (((m_parent_device_pointer->GetMonitorOnFlag()) || (m_parent_device_pointer->mg_verbose_output_flag)) && !chars_read_in_flag) {
+		if (((m_parent_device_pointer->GetMonitorOnFlag()) || (m_parent_device_pointer->mg_verbose_flag)) && !chars_read_in_flag) {
 			std::cout << std::endl;
 			std::cout << "Reading characters from terminal client fifo buffer into SimpleTerminal input buffer..." << std::endl << std::endl;
 		}
 		chars_read_in_flag = true;
 		m_data_in_char_buffer.insert(m_data_in_char_buffer.begin(), data_in_buffer);
-		if ((m_parent_device_pointer->GetMonitorOnFlag()) || (m_parent_device_pointer->mg_verbose_output_flag)) {
+		if ((m_parent_device_pointer->GetMonitorOnFlag()) || (m_parent_device_pointer->mg_verbose_flag)) {
 			std::string character_to_echo = "";
 			if (data_in_buffer == '\n') {
 				character_to_echo += "\\n";
@@ -199,7 +199,7 @@ void SimpleTerminal_MagicEngine::UpdateMagic() {
 			std::cout << "Received " << character_to_echo << " from terminal client." << std::endl;
 		}
 	}
-	if (((m_parent_device_pointer->GetMonitorOnFlag()) || (m_parent_device_pointer->mg_verbose_output_flag)) && chars_read_in_flag) {
+	if (((m_parent_device_pointer->GetMonitorOnFlag()) || (m_parent_device_pointer->mg_verbose_flag)) && chars_read_in_flag) {
 		std::cout << std::endl;
 		std::cout << "...Completed." << std::endl << std::endl;
 	}

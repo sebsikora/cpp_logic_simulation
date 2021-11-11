@@ -122,10 +122,12 @@ void Probe::PurgeProbe() {
 		header =  "Purging -> PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) ;
 		std::cout << GenerateHeader(header) << std::endl;
 	}
-	// PurgeProbe needs to follow the m_trigger_clock_pointer to first of all remove itself from the trigger Clock's m_probes vector...
-	m_trigger_clock_pointer->PurgeProbeDescriptorFromClock(this);
-	// ...then parent Simulation's m_probes vector.
-	m_top_level_sim_pointer->PurgeProbeDescriptorFromSimulation(this);
+	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
+		// PurgeProbe needs to follow the m_trigger_clock_pointer to first of all remove itself from the trigger Clock's m_probes vector...
+		m_trigger_clock_pointer->PurgeProbeDescriptorFromClock(this);
+		// ...then parent Simulation's m_probes vector.
+		m_top_level_sim_pointer->PurgeProbeDescriptorFromSimulation(this);
+	}
 	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		header =  "PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged." ;
 		std::cout << GenerateHeader(header) << std::endl;

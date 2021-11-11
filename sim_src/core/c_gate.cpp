@@ -52,7 +52,7 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 		if (number_of_in_pins < 2) {
 			// Log build error here.		-- Not enough pins defined for this Gate!
 			std::string build_error = "Gate " + m_full_name + "(" + m_component_type + ") added with only " + std::to_string(number_of_in_pins) + " in pins specified.";
-			m_top_level_sim_pointer->LogBuildError(build_error);
+			m_top_level_sim_pointer->LogError(build_error);
 		}
 	}
 	std::sort(in_pin_names.begin(), in_pin_names.end(), compareNat);
@@ -149,35 +149,36 @@ void Gate::Connect(std::vector<std::string> connection_parameters) {
 					} else {
 						// Log build error here.		-- This target pin is already driven by another pin.
 						std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
-						m_top_level_sim_pointer->LogBuildError(build_error);
+						m_top_level_sim_pointer->LogError(build_error);
 					}
 				} else {
 					// Log build error here.		-- This connection already exists.
 					std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but is already connected to it.";
-					m_top_level_sim_pointer->LogBuildError(build_error);
+					m_top_level_sim_pointer->LogError(build_error);
 				}
 			} else {
 				// Log build error here.		-- Target pin does not exist.
 				std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it does not exist.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 		} else {
 			// Log build error here.		-- Component does not exist.
 			std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " but it does not exist.";
-			m_top_level_sim_pointer->LogBuildError(build_error);
+			m_top_level_sim_pointer->LogError(build_error);
 		}
 	} else {
 		// Log build error here.		-- Wrong number of connection parameters.
 		std::string build_error = "Gate " + m_full_name + " tried to form a connection but the wrong number of connection parameters were provided.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	}
 }
 
 void Gate::Set(int pin_port_index, bool state_to_set) {
 	pin* this_pin = &m_pins[pin_port_index];
 	if (this_pin->state != state_to_set) {
-		if (mg_verbose_output_flag) {
-			std::cout << BOLD(FBLU("  ->")) << " Gate " << BOLD("" << m_full_name << "") << " terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set);
+		if (mg_verbose_flag) {
+			std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
+			m_top_level_sim_pointer->LogMessage(message);
 		}
 		this_pin->state = state_to_set;
 		Evaluate();
@@ -193,8 +194,9 @@ void Gate::Evaluate() {
 	bool new_state = (this->*m_operator_function_pointer)(m_pins);
 	pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state != new_state) {
-		if (mg_verbose_output_flag) {
-			std::cout << ". Output " << BOLD(FBLU("-> ")) << BoolToChar(new_state) << std::endl;
+		if (mg_verbose_flag) {
+			std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " output terminal set to " + BoolToChar(new_state);
+			m_top_level_sim_pointer->LogMessage(message);
 		}
 		// If the gate output has changed add it to the parent Devices propagate_next list, UNLESS this gate
 		// is already queued-up to propagate this tick.
@@ -202,14 +204,9 @@ void Gate::Evaluate() {
 		out_pin->state_changed = true;
 		m_parent_device_pointer->QueueToPropagate(m_local_component_index);
 		// Print output pin changes if we are monitoring this gate.
-		if (m_monitor_on) {
-			std::cout << BOLD(FRED(" MONITOR: ")) << BOLD("" << m_full_name << ":" << m_component_type << "") << " output set to " << BoolToChar(new_state) << std::endl;
-		}
-	} else {
-		// Other half of conditional, above, appends text followed by newline character to line printed in previous call
-		// *OR* we add the newline character here if no text needs to be appended.
-		if (mg_verbose_output_flag) {
-			std::cout << std::endl;
+		if (m_monitor_on || mg_verbose_flag) {
+			std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + KBLD + m_full_name + ":" + m_component_type + " output terminal set to " + BoolToChar(new_state);
+			m_top_level_sim_pointer->LogMessage(message);
 		}
 	}
 }
@@ -217,8 +214,9 @@ void Gate::Evaluate() {
 void Gate::Propagate() {
 	pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state_changed) {
-		if (mg_verbose_output_flag) {
-			std::cout << BOLD(FRED("->")) << "Gate " << BOLD("" << m_full_name << "") << " propagating output = " << BoolToChar(out_pin->state) << std::endl;
+		if (mg_verbose_flag) {
+			std::string message = std::string(KBLD) + KYEL + "->" + RST + " Gate " + KBLD + m_full_name + RST + " propagating output = " + BoolToChar(out_pin->state);
+			m_top_level_sim_pointer->LogMessage(message);
 		}
 		out_pin->state_changed = false;
 		for (const auto& this_connection_descriptor : m_connections) {
@@ -305,8 +303,9 @@ void Gate::PrintPinStates(int max_levels) {
 }
 
 void Gate::ReportUnConnectedPins() {
-	if (mg_verbose_output_flag) {
-		std::cout << "Checking pins for " << m_full_name << " m_local_component_index = " << m_local_component_index << std::endl;
+	if (mg_verbose_flag) {
+		std::string message = "Checking pins for " + m_full_name + " m_local_component_index = " + std::to_string(m_local_component_index);
+		m_top_level_sim_pointer->LogMessage(message);
 	}
 	for (const auto& this_pin : m_pins) {
 		if (this_pin.direction == 1) {
@@ -314,13 +313,13 @@ void Gate::ReportUnConnectedPins() {
 			if ((!this_pin.drive[0]) && (m_nesting_level > 1)) {
 				// Log undriven Gate in pin.
 				std::string build_error = "Gate " + m_full_name + " in pin " + this_pin.name + " is not driven by any Component.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 		} else if (this_pin.direction == 2) {
 			if (!this_pin.drive[1]) {
 				// Log undriving Gate out pin.
 				std::string build_error = "Gate " + m_full_name + " out pin " + this_pin.name + " drives no Component.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 		}
 	}

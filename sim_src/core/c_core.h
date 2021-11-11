@@ -75,7 +75,7 @@ class Component {
 		void PrintOutPinStates(void);
 		void MakeProbable(void);
 		
-		static bool mg_verbose_output_flag;
+		static bool mg_verbose_flag;
 		static bool mg_verbose_destructor_flag;
 
 	protected:
@@ -246,8 +246,8 @@ class Simulation : public Device {
 		bool IsSimulationRunning(void);
 		void StopSimulation(void);
 		void CheckProbeTriggers(void);
-		void LogBuildError(std::string const& build_error);
-		void PrintBuildErrors(void);
+		void LogError(std::string const& error_message);
+		void LogMessage(std::string const& message);
 		std::vector<std::vector<std::vector<bool>>> GetProbedStates(std::vector<std::string> const& probe_names);
 		void PurgeComponentFromClocks(Component* target_component_pointer);
 		void PurgeComponentFromProbes(Component* target_component_pointer);
@@ -264,21 +264,25 @@ class Simulation : public Device {
 		VoidThreadPool* m_thread_pool_pointer;
 		bool m_use_threaded_solver;
 		int m_threaded_solve_nesting_level;
-		
+		void PrintAndClearMessages(void);
+				
 	private:
 		void EnableTerminalRawIO(bool raw_flag);
 		char CheckForCharacter(void);
+		void PrintErrorMessages(void);
 		
 		std::vector<Component*> m_probable_components;
 		std::vector<probe_descriptor> m_probes;
 		std::vector<clock_descriptor> m_clocks;
 		std::vector<magic_engine_descriptor> m_magic_engines;
-		std::vector<std::string> m_build_errors;
+		std::vector<std::string> m_error_messages;
+		std::vector<std::string> m_messages;
 		termios m_old_term_io_settings;
 		bool m_simulation_running;
 		int m_global_tick_index;
 		int m_next_new_CUID;
 		bool m_searching_flag = false;
+		std::mutex m_sim_lock;
 };
 
 // Clock utility class.

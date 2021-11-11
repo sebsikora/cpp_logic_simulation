@@ -3,7 +3,7 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
+	bool verbose = true;
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
@@ -35,7 +35,7 @@ int main () {
 	sim->AddProbe("flip-flop clk input", "test_sim:test_ff", {"clk"}, "clock_0");
 	
 	//~// Run the simulation for ten ticks.
-	sim->Run(8, true, verbose, print_probe_samples);
+	sim->Run(3, true, verbose, print_probe_samples);
 	
 	delete sim;
 	

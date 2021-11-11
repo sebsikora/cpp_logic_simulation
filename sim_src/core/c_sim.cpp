@@ -21,13 +21,14 @@
 
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
-#include <vector>					// std::vector
-#include <ctime>					// time()
-#include <cstdlib>					// srand()
+#include <vector>					// std::v.ctor
+#include <ctime>					// time().
+#include <cstdlib>					// srand().
+#include <mutex>					// std::mutex, std::unique_lock.
 
-#include <termios.h>				// terminal settings
+#include <termios.h>				// terminal settings.
 #include <unistd.h>					// POSIX bits.
-#include <sys/ioctl.h>				// ioctl()
+#include <sys/ioctl.h>				// ioctl().
 
 #include "c_core.h"					// Core simulator functionality
 #include "void_thread_pool.hpp"
@@ -39,14 +40,17 @@ Simulation::Simulation(std::string const& simulation_name, bool verbose_output_f
 	m_next_new_CUID = 1;
 	m_simulation_running = false;
 	m_global_tick_index = 0;
-	mg_verbose_output_flag = verbose_output_flag;
-	mg_verbose_destructor_flag = false;
+	mg_verbose_flag = verbose_output_flag;
+	mg_verbose_destructor_flag = false;					// Set to true to check destructor messages.
 	m_use_threaded_solver = solver_conf.use_threaded_solver;
 	m_threaded_solve_nesting_level = solver_conf.threaded_solve_nesting_level;
-	std::cout << GenerateHeader("Simulation build started.") << std::endl << std::endl;
-	if (mg_verbose_output_flag == false) {
-		std::cout << "(Simulation verbose output is off)" << std::endl << std::endl;
+	std::string message = "\n" + GenerateHeader("Simulation build started.") + "\n";
+	LogMessage(message);
+	if (mg_verbose_flag == false) {
+		std::string message = "(Simulation verbose output is off)";
+		LogMessage(message);
 	}
+	// Start up the Simulation's solver threadpool.
 	m_thread_pool_pointer = new VoidThreadPool(false);
 	srand(time(0));
 }
@@ -96,13 +100,15 @@ char Simulation::CheckForCharacter() {
 }
 
 void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output_flag, bool print_probes_flag, bool force_no_messages) {
-	if (m_build_errors.size() == 0) {
-		bool previous_verbose_output_flag = mg_verbose_output_flag;
-		mg_verbose_output_flag = verbose_output_flag;
+	bool print_errors_flag = false;
+	if (m_error_messages.size() == 0) {
+		bool previous_verbose_output_flag = mg_verbose_flag;
+		mg_verbose_flag = verbose_output_flag;
 		m_simulation_running = true;
 		if (restart_flag) {
 			if (!force_no_messages) {
-				std::cout << GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
+				std::string message = GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").");
+				std::cout << message << std::endl;
 			}
 			m_global_tick_index = 0;
 			for (const auto& this_clock_descriptor : m_clocks) {
@@ -110,17 +116,17 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			}
 		} else {
 			if (!force_no_messages) {
-				std::cout << GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").") << std::endl << std::endl;
+				std::string message = GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").");
+				std::cout << message << std::endl;
 			}
 		}
 		// Preallocate vectors for storage of Probe samples.
 		for (const auto& this_probe_descriptor : m_probes) {
 			this_probe_descriptor.probe_pointer->PreallocateSampleMemory(number_of_ticks);
 		}
-		if (mg_verbose_output_flag == false) {
-			if (!force_no_messages) {
-				std::cout << "(Simulation verbose output is off)" << std::endl;
-			}
+		if ((!mg_verbose_flag) && (!force_no_messages)) {
+			std::string message = std::string("\n(Simulation verbose output is off)");
+			std::cout << message << std::endl;
 		}
 		// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
 		// ~~~ We need to manually set it back when we are done! ~~~
@@ -133,9 +139,9 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			for (const auto& this_magic_engine_descriptor : m_magic_engines) {
 				this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
 			}
-			if ((mg_verbose_output_flag) && (!force_no_messages)){
-				std::string msg = std::string("Start of global tick ") + std::to_string(m_global_tick_index);
-				std::cout << GenerateHeader(msg) << std::endl;
+			if ((mg_verbose_flag) && (!force_no_messages)){
+				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index)) + "\n";
+				LogMessage(message);
 			}
 			// Advance all clocks.
 			for (const auto& this_clock_descriptor : m_clocks) {
@@ -143,6 +149,15 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			}
 			// Solve top-level simulation state.
 			Solve();
+			// Print any messages logged this tick.
+			PrintAndClearMessages();
+			// If any errors have been reported this tick, break here and finish.
+			// Asserted the __ALL_STOP__ internal input of a Device will log an error message and hence stop the simulation.
+			if (m_error_messages.size() > 0) {
+				print_errors_flag = true;
+				m_simulation_running = false;
+				break;
+			}
 			// Every input_check_count_limit ticks check if user has pressed a key and respond.
 			if (input_check_count >= input_check_count_limit) {
 				char key_pressed = CheckForCharacter();
@@ -165,11 +180,6 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 					break;
 				}
 			}
-			// If something has asserted the __ALL_STOP__ internal input somewhere, the m_sim_running flag will
-			// have been de-asserted and we should break here and finish.
-			if (m_simulation_running == false) {
-				break;
-			}
 		}
 		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
 		EnableTerminalRawIO(false);	
@@ -185,9 +195,12 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			}
 			std::cout << GenerateHeader("Done.") << std::endl << std::endl;
 		}
-		mg_verbose_output_flag = previous_verbose_output_flag;
+		mg_verbose_flag = previous_verbose_output_flag;
 	} else {
-		PrintBuildErrors();
+		print_errors_flag = true;
+	}
+	if (print_errors_flag) {
+		PrintErrorMessages();
 	}
 }
 
@@ -207,7 +220,7 @@ void Simulation::AddClock(std::string const& clock_name, std::vector<bool> const
 	} else {
 		// Log error - Component is not on probable components list.
 		std::string build_error = "Clock " + clock_name + " can not be be created as another clock by this name already exists.";
-		LogBuildError(build_error);
+		LogError(build_error);
 	}
 }
 
@@ -218,7 +231,7 @@ void Simulation::ClockConnect(std::string const& target_clock_name, std::string 
 	} else {
 		// Log error - Target clock does not exist.
 		std::string build_error = "Clock " + target_clock_name + " can not be connected onward because it does not exist.";
-		LogBuildError(build_error);
+		LogError(build_error);
 	}
 }
 
@@ -248,17 +261,17 @@ void Simulation::AddProbe(std::string const& probe_name, std::string const& targ
 			} else {
 				// Log error - Trigger clock does not exist.
 				std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because trigger clock " + trigger_clock_pointer->GetName() + " does not exist.";
-				LogBuildError(build_error);
+				LogError(build_error);
 			}
 		} else {
 			// Log error - One or more of the specified pins do not exist.
 			std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because one or more of the specified target pins do not exist.";
-			LogBuildError(build_error);
+			LogError(build_error);
 		}
 	} else {
 		// Log error - Component is not on probable components list.
 		std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because target Component " + target_component_full_name + " is not on the top-level Simulation's probable Component list.";
-		LogBuildError(build_error);
+		LogError(build_error);
 	}
 }
 
@@ -275,7 +288,7 @@ void Simulation::AddToProbableComponents(Component* target_component_pointer) {
 	} else {
 		// Log build error here.		-- This connection already exists.
 		std::string build_error = "Component " + target_component_pointer->GetFullName() + " can not be added to the probable Components list because it has already been added.";
-		LogBuildError(build_error);
+		LogError(build_error);
 	}
 }
 
@@ -313,10 +326,12 @@ Component* Simulation::GetProbableComponentPointer(std::string const& target_com
 }
 
 bool Simulation::IsSimulationRunning() {
+	std::unique_lock<std::mutex> lock(m_sim_lock);
 	return m_simulation_running;
 }
 
 void Simulation::StopSimulation() {
+	std::unique_lock<std::mutex> lock(m_sim_lock);
 	m_simulation_running = false;
 }
 
@@ -328,14 +343,27 @@ void Simulation::CheckProbeTriggers() {
 	}
 }
 
-void Simulation::LogBuildError(std::string const& build_error) {
-	m_build_errors.emplace_back(build_error);
+void Simulation::LogError(std::string const& error_message) {
+	std::unique_lock<std::mutex> lock(m_sim_lock);
+	m_error_messages.emplace_back(error_message);
 }
 
-void Simulation::PrintBuildErrors(void) {
-	std::cout << GenerateHeader("Build Errors.") << std::endl << std::endl;
+void Simulation::LogMessage(std::string const& message) {
+	std::unique_lock<std::mutex> lock(m_sim_lock);
+	m_messages.emplace_back(message);
+}
+
+void Simulation::PrintAndClearMessages() {
+	for (const auto& this_message : m_messages) {
+		std::cout << this_message << std::endl;
+	}
+	m_messages.clear();
+}
+
+void Simulation::PrintErrorMessages(void) {
+	std::cout << GenerateHeader("Error messages.") << std::endl << std::endl;
 	int index = 0;
-	for (const auto& this_build_error : m_build_errors) {
+	for (const auto& this_build_error : m_error_messages) {
 		std::cout << "Error " << std::to_string(index) << " : " << this_build_error << std::endl;
 		index ++;
 	}
@@ -366,19 +394,27 @@ void Simulation::PurgeComponent() {
 		header =  "Purging -> SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
 		std::cout << GenerateHeader(header) << std::endl;
 	}
+	// Set the Simulation's deletion flag to let child components know that they don't need to tidy-up
+	// after themselves (remove connections from sibling components, remove themselves from Clocks,
+	// Probes, etc).
 	m_deletion_flag = true;
-	// Need to Purge all child Components and delete.
-	PurgeAllChildComponents();
 	//	Simulation has no external inputs or outputs to handle (as it is top-level).
 	// 	Next we need to purge all Clocks.
 	for (const auto& this_clock_descriptor : m_clocks) {
 		delete this_clock_descriptor.clock_pointer;
 	}
+	if (m_deletion_flag) {
+		// If the simulation's deletion flag is set, the Clock destructor will *not* handle deletion of Probes,
+		// so we need to do it here.
+		for (const auto& this_probe_descriptor : m_probes) {
+			delete this_probe_descriptor.probe_pointer;
+		}
+	}
 	if (mg_verbose_destructor_flag) {
 		header =  "SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 		std::cout << GenerateHeader(header) << std::endl;
 	}
-	// - It should now be safe to delete this object -
+	// ~Device() will follow - this will take care of deleting all child Components.
 }
 
 void Simulation::PurgeComponentFromClocks(Component* target_component_pointer) {

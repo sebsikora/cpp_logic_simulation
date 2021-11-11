@@ -28,7 +28,7 @@
 #include "utils.h"
 #include "strnatcmp.h"
 
-bool Component::mg_verbose_output_flag;
+bool Component::mg_verbose_flag;
 bool Component::mg_verbose_destructor_flag;
 
 Component::~Component() {

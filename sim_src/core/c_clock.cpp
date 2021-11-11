@@ -59,9 +59,10 @@ void Clock::AddToProbeList(std::string const& probe_identifier, Probe* probe_poi
 void Clock::Tick(void) {
 	bool new_logical_state = m_toggle_pattern[m_sub_index];
 	// Print output pin changes.
-	bool verbose_output_flag = m_top_level_sim_pointer->mg_verbose_output_flag;
+	bool verbose_output_flag = m_top_level_sim_pointer->mg_verbose_flag;
 	if (m_monitor_on || (verbose_output_flag)) {
-		std::cout << std::endl << "T: " << std::to_string(m_index) << " " << BOLD(FYEL("CLOCKSET: ")) << "On tick " << BOLD("" << m_index << "") << " " << m_name << ":clock output set to " << BoolToChar(new_logical_state) << std::endl;
+		std::string message = "T: " + std::to_string(m_index) + " " + KBLD + KYEL + "CLOCKSET: " + RST + "On tick " + KBLD + std::to_string(m_index) + RST + " " + m_name + ":clock output set to " + BoolToChar(new_logical_state);
+		m_top_level_sim_pointer->LogMessage(message);
 	}
 	// Change output state and propagate.
 	m_out_pin_state = new_logical_state;
@@ -106,22 +107,22 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 				} else {
 					// Log build error here.		-- Target pin is not an in pin.
 					std::string build_error = "Clock " + m_name + " tried to connect to " + target_component_name + " in pin " + target_pin_name + " but it is not an in pin.";
-					m_top_level_sim_pointer->LogBuildError(build_error);
+					m_top_level_sim_pointer->LogError(build_error);
 				}
 			} else {
 				// Log build error here.		-- Target pin is already driven by another out pin.
 				std::string build_error = "Clock " + m_name + " tried to connect to Component " + target_component_name + " in pin " + target_pin_name + " but it is already driven by another out pin.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 		} else {
 			// Log build error here.		-- Target pin does not exist.
 			std::string build_error = "Clock " + m_name + " tried to connect to Component " + target_component_name + " in pin " + target_pin_name + " but it does not exist.";
-			m_top_level_sim_pointer->LogBuildError(build_error);
+			m_top_level_sim_pointer->LogError(build_error);
 		}
 	} else {
 		// Log build error here.		-- Component does not exist.
 		std::string build_error = "Clock " + m_name + " tried to connect to Component " + target_component_name + " but it does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	}
 }
 
@@ -182,27 +183,27 @@ void Clock::PurgeClock(void) {
 				std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
 			}
 		}
-	}
-	// Make a list of pointers for m_probes, then loop over *these* below. We can modify Probe.PurgeProbe() called by
-	// PurgeChildProbe() below to follow the trigger clock pointer and call PurgeProbeFromClock() below to rebuild
-	// this Clock's m_probes vector, omitting the target Probe.
-	{
-		std::vector<probe_descriptor> m_probes_copy = {};
-		for (const auto& this_probe_descriptor : m_probes) {
-			probe_descriptor new_probe_descriptor;
-			new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
-			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
-			m_probes_copy.push_back(new_probe_descriptor);
+		// Make a list of pointers for m_probes, then loop over *these* below. We can modify Probe.PurgeProbe() called by
+		// PurgeChildProbe() below to follow the trigger clock pointer and call PurgeProbeFromClock() below to rebuild
+		// this Clock's m_probes vector, omitting the target Probe.
+		{
+			std::vector<probe_descriptor> m_probes_copy = {};
+			for (const auto& this_probe_descriptor : m_probes) {
+				probe_descriptor new_probe_descriptor;
+				new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
+				new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
+				m_probes_copy.push_back(new_probe_descriptor);
+			}
+			// PurgeProbe() will purge the relevant probe_descriptor from both this Clock's m_probes and the
+			// parent Simulation's m_probes.
+			for (const auto& this_probe_descriptor : m_probes_copy) {
+				delete this_probe_descriptor.probe_pointer;
+			}
+			m_probes = m_probes_copy;
 		}
-		// PurgeProbe() will purge the relevant probe_descriptor from both this Clock's m_probes and the
-		// parent Simulation's m_probes.
-		for (const auto& this_probe_descriptor : m_probes_copy) {
-			delete this_probe_descriptor.probe_pointer;
-		}
-		m_probes = m_probes_copy;
+		// Finally we purge the Clock from the parent Simulation's m_clocks vector.
+		m_top_level_sim_pointer->PurgeClockDescriptorFromSimulation(this);
 	}
-	// Finally we purge the Clock from the parent Simulation's m_clocks vector.
-	m_top_level_sim_pointer->PurgeClockDescriptorFromSimulation(this);
 	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		header =  "CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 		std::cout << GenerateHeader(header) << std::endl;

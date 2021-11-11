@@ -184,29 +184,30 @@ void Device::Reset() {
 
 void Device::Stabilise() {
 	// Ensures that internal device state settles correctly.
-	if (mg_verbose_output_flag) {
-		std::string msg = "Stabilising new level " + std::to_string(m_nesting_level) + " Device " + m_full_name;
-		std::cout << GenerateHeader(msg) << std::endl << std::endl;
+	if (mg_verbose_flag) {
+		std::string message = GenerateHeader("Stabilising new level " + std::to_string(m_nesting_level) + " Device " + m_full_name);
+		m_top_level_sim_pointer->LogMessage(message + "\n");
 	}
 	// First we call Initialise() for all Components to set their out pins state_changed flags to true and
 	// add their local ids to this Device's propagate next vector.
 	for (const auto& this_component_descriptor : m_components) {
-			if (mg_verbose_output_flag) {
-				std::cout << "Initialising " << this_component_descriptor.component_full_name << "..." << std::endl;
+			if (mg_verbose_flag) {
+				std::string message = "Initialising " + this_component_descriptor.component_full_name + "...";
+				m_top_level_sim_pointer->LogMessage(message);
 			}
 			this_component_descriptor.component_pointer->Initialise();
 	}
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
 	// Then we call Solve() for this Device.
 	Solve();
-	if (mg_verbose_output_flag) {
-		std::cout << GenerateHeader("Starting state settled.") << std::endl << std::endl;
+	if (mg_verbose_flag) {
+		std::string message = "\n" + GenerateHeader("Starting state settled.") + "\n";
+		m_top_level_sim_pointer->LogMessage(message);
 	}
 	if (this == m_top_level_sim_pointer) {
 		ReportUnConnectedPins();
-		std::cout << GenerateHeader("Simulation build completed.") << std::endl << std::endl;
+		std::string message = "\n" + GenerateHeader("Simulation build completed.") + "\n";
+		m_top_level_sim_pointer->LogMessage(message);
+		m_top_level_sim_pointer->PrintAndClearMessages();
 	}
 }
 
@@ -290,7 +291,7 @@ void Device::ChildConnect(std::string const& target_child_component_name, std::v
 	if (target_component_pointer == 0) {
 		// Log build error here.		-- Child Component does not exist.
 		std::string build_error = "Device " + m_full_name + " tried to connect from child Component " + target_child_component_name + " but it does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		target_component_pointer->Connect(connection_parameters);
 	}
@@ -301,16 +302,16 @@ void Device::ChildSet(std::string const& target_child_component_name, std::strin
 	if (target_component_pointer == 0) {
 		// Log build error here.		-- Child Component does not exist.
 		std::string build_error = "Device " + m_full_name + " tried to Set() an input of child Component " + target_child_component_name + " but it does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-		if (mg_verbose_output_flag || target_component_pointer->GetMonitorOnFlag()) {
+		if (mg_verbose_flag || target_component_pointer->GetMonitorOnFlag()) {
 			std::cout << BOLD(FYEL("CHILDSET: ")) << "Component " << BOLD("" << target_component_pointer->GetFullName() << ":" << target_component_pointer->GetComponentType() << "") << " terminal " << BOLD("" << target_pin_name << "") << " set to " << BoolToChar(logical_state) << std::endl;
 		}
 		target_component_pointer->Set(target_pin_port_index, logical_state);
-		if (mg_verbose_output_flag) {
-			std::cout << std::endl;
-		}
+		//~if (mg_verbose_flag) {
+			//~std::cout << std::endl;
+		//~}
 		// If this is a 1st-level device, if the simulation is not running the user would need to call Solve() after every
 		// 'manual' pin change to make sure that 1st-level device state is propagated. Instead, we check for them here if
 		// the simulation is not running and call Solve() at the end of the Set() call.
@@ -325,7 +326,7 @@ void Device::ChildPrintPinStates(std::string const& target_child_component_name,
 	if (target_component_pointer == 0) {
 		// Log build error here.		-- Child Component does not exist.
 		std::string build_error = "Device " + m_full_name + " tried to recursively print pin states from child Component " + target_child_component_name + " but it does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		target_component_pointer->PrintPinStates(max_levels);
 	}
@@ -336,7 +337,7 @@ void Device::ChildPrintInPinStates(std::string const& target_child_component_nam
 	if (target_component_pointer == 0) {
 		// Log build error here.		-- Child Component does not exist.
 		std::string build_error = "Device " + m_full_name + " tried to print in pin states for child Component " + target_child_component_name + " but it does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		target_component_pointer->PrintInPinStates();
 	}
@@ -347,7 +348,7 @@ void Device::ChildPrintOutPinStates(std::string const& target_child_component_na
 	if (target_component_pointer == 0) {
 		// Log build error here.		-- Child Component does not exist.
 		std::string build_error = "Device " + m_full_name + " tried to print out pin states for child Component " + target_child_component_name + " but it does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		target_component_pointer->PrintOutPinStates();
 	}
@@ -358,7 +359,7 @@ void Device::ChildMakeProbable(std::string const& target_child_component_name) {
 	if (target_component_pointer == 0) {
 		// Log build error here.		-- Child Component does not exist.
 		std::string build_error = "Device " + m_full_name + " tried to make child Component " + target_child_component_name + " probable but it does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		target_component_pointer->MakeProbable();
 	}
@@ -369,7 +370,7 @@ void Device::ChildMarkOutputNotConnected(std::string const& target_child_compone
 	if (target_component_pointer == 0) {
 		// Log build error here.		-- Child Component does not exist.
 		std::string build_error = "Device " + m_full_name + " tried to mark child Component " + target_child_component_name + " output pin " + target_out_pin_name + " not connected but the component does not exist.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		bool found = false;
 		for (const auto& this_pin_name : target_component_pointer->GetSortedOutPinNames()) {
@@ -383,7 +384,7 @@ void Device::ChildMarkOutputNotConnected(std::string const& target_child_compone
 		if (!found) {
 			// Log build error here.		-- Output pin does not exist.
 			std::string build_error = "Device " + m_full_name + " tried to mark child Component " + target_child_component_name + " output pin " + target_out_pin_name + " not connected but the pin does not exist.";
-			m_top_level_sim_pointer->LogBuildError(build_error);
+			m_top_level_sim_pointer->LogError(build_error);
 		}
 	}
 }
@@ -506,27 +507,27 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 			if (!target_component_exists) {
 				// Log build error here.		-- Component does not exist.
 				std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " but it does not exist.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			} else {
 				if (!target_pin_exists) {
 					// Log build error here.		-- Target pin does not exist.
 					std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it does not exist.";
-					m_top_level_sim_pointer->LogBuildError(build_error);
+					m_top_level_sim_pointer->LogError(build_error);
 				} else {
 					if (!target_pin_direction_compatible) {
 						// Log build error here.		-- Origin and target pin directions are not compatible.
 						std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " " + target_direction + " pin " + target_pin_name + " but they are not compatible";
-						m_top_level_sim_pointer->LogBuildError(build_error);
+						m_top_level_sim_pointer->LogError(build_error);
 					} else {
 						if (!no_existing_connection) {
 							// Log build error here.		-- This connection already exists.
 							std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but is already connected to it.";
-							m_top_level_sim_pointer->LogBuildError(build_error);
+							m_top_level_sim_pointer->LogError(build_error);
 						} else {
 							if (target_pin_already_driven[0]) {
 								// Log build error here.		-- This target pin is already driven by another pin.
 								std::string build_error = "Device " + m_full_name + " tried to connect " + origin_direction + " " + origin_pin_name + " to " + target_component_nature_string + " component " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
-								m_top_level_sim_pointer->LogBuildError(build_error);
+								m_top_level_sim_pointer->LogError(build_error);
 							}
 						}
 					}
@@ -535,12 +536,12 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 		} else {
 			// Log build error here.		-- Origin pin does not exist.
 			std::string build_error = "Device " + m_full_name + " tried to connect from input " + origin_pin_name + " but it does not exist.";
-			m_top_level_sim_pointer->LogBuildError(build_error);
+			m_top_level_sim_pointer->LogError(build_error);
 		}
 	} else {
 		// Log build error here.		-- Wrong number of connection parameters.
 		std::string build_error = "Device " + m_full_name + " tried to form a connection but the wrong number of connection parameters were provided.";
-		m_top_level_sim_pointer->LogBuildError(build_error);
+		m_top_level_sim_pointer->LogError(build_error);
 	}
 }
 
@@ -549,17 +550,16 @@ void Device::Solve() {
 	m_solve_this_tick_flag = false;
 	int sub_tick_count = 0;
 	int sub_tick_limit = m_max_propagations;
-	if (mg_verbose_output_flag) {
-		std::cout << BOLD(FMAG("Level " << BOLD("" << m_nesting_level << "") << " Device " << BOLD("" << m_full_name << "") << " Propagating inputs...")) << std::endl << std::endl;
+	if (mg_verbose_flag) {
+		std::string message = std::string("\n") + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " Propagating inputs...\n";
+		m_top_level_sim_pointer->LogMessage(message);
 	}
 	// Propagate Device inputs first.
 	PropagateInputs();
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
 	while (true) {
-		if (mg_verbose_output_flag) {
-			std::cout << BOLD(FMAG("Level " << BOLD("" << m_nesting_level << "") << " Device " << BOLD("" << m_full_name << "") << " starting to Solve()...")) << std::endl << std::endl;
+		if (mg_verbose_flag) {
+			std::string message = std::string("\n") + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " starting to Solve()...";
+			m_top_level_sim_pointer->LogMessage(message);
 		}
 		// Handle pending propagations for child Gates and child Device out pins.
 		while (sub_tick_count <= sub_tick_limit) {
@@ -572,14 +572,14 @@ void Device::Solve() {
 			}
 		}
 		if (sub_tick_count > sub_tick_limit) {
-			//~// Log error here.		-- Not able to stabilise Device state.
-			//~std::string build_error = "~~~~~~~~";
-			//~m_top_level_sim_pointer->LogBuildError(build_error);
-			std::cout << "Could not stabilise " << m_full_name << " state within " << m_max_propagations << " propagation steps." << std::endl;
+			// Log error here.		-- Not able to stabilise Device state.
+			std::string error_message = "Could not stabilise " + m_full_name + " state within " + std::to_string(m_max_propagations) + " propagation steps.";
+			m_top_level_sim_pointer->LogError(error_message);
 			break;
 		} else {
-			if (mg_verbose_output_flag) {
-				std::cout << "...Solve()d." << std::endl << std::endl;
+			if (mg_verbose_flag) {
+				std::string message = std::string("\n") + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " Solve()d.";
+				m_top_level_sim_pointer->LogMessage(message);
 			}
 		}
 		// Experimental multi-threading support -----------------------------------------------------------------------------
@@ -623,8 +623,9 @@ void Device::Solve() {
 }
 
 void Device::SubTick(int index) {
-	if (mg_verbose_output_flag) {
-		std::cout << "Iteration: " << std::to_string(index) << std::endl;
+	if (mg_verbose_flag) {
+		std::string message = std::string("\nIteration: ") + std::to_string(index);
+		m_top_level_sim_pointer->LogMessage(message);
 	}
 	// ------------------------------------------
 	for (const auto& this_entry : m_propagate_next_tick) {
@@ -638,9 +639,6 @@ void Device::SubTick(int index) {
 		m_components[this_entry].component_pointer->Propagate();
 	}
 	m_propagate_this_tick.clear();
-	if (mg_verbose_output_flag) {
-		std::cout << std::endl;
-	}
 	// ------------------------------------------
 }
 
@@ -664,8 +662,9 @@ void Device::PropagateInputs() {
 	for (auto& this_pin : m_pins) {
 		if ((this_pin.direction == 1) || (this_pin.direction == 3)) {
 			if (this_pin.state_changed) {
-				if (mg_verbose_output_flag) {
-					std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating input " << this_pin.name << " = " << BoolToChar(this_pin.state) << std::endl;
+				if (mg_verbose_flag) {
+					std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + m_full_name + RST + " propagating input " + this_pin.name + " = " + BoolToChar(this_pin.state);
+					m_top_level_sim_pointer->LogMessage(message);
 				}
 				this_pin.state_changed = false;
 				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
@@ -680,8 +679,9 @@ void Device::Propagate() {
 	for (auto& this_pin : m_pins) {
 		if (this_pin.direction == 2) {
 			if (this_pin.state_changed) {
-				if (mg_verbose_output_flag) {
-					std::cout << BOLD(FGRN("->")) << " Device " << BOLD("" << m_full_name << "") << " propagating output " << this_pin.name << " = " << BoolToChar(this_pin.state) << std::endl;
+				if (mg_verbose_flag) {
+					std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + m_full_name + RST + " propagating output " + this_pin.name + " = " + BoolToChar(this_pin.state);
+					m_top_level_sim_pointer->LogMessage(message);
 				}
 				this_pin.state_changed = false;
 				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
@@ -696,13 +696,15 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 	pin* this_pin = &m_pins[pin_port_index];
 	if (this_pin->direction == 1) {
 		if (state_to_set != this_pin->state) {
-			if ((m_monitor_on) || (mg_verbose_output_flag)) {
-				if (mg_verbose_output_flag) {
-					std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << " input terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
+			if ((m_monitor_on) || (mg_verbose_flag)) {
+				if (mg_verbose_flag) {
+					std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Device " + KBLD + m_full_name + RST + " input terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
+					m_top_level_sim_pointer->LogMessage(message);
 				}
-				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << "input terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
+				std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + "Component " + KBLD + m_full_name + ":" + m_component_type + RST + + " input terminal " + KBLD + this_pin->name + RST + " set to " + BoolToChar(state_to_set);
+				m_top_level_sim_pointer->LogMessage(message);
 			}
-			if (m_magic_device_flag == true) {
+				if (m_magic_device_flag == true) {
 				if (m_magic_pin_flag[pin_port_index]) {
 					m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
 				}
@@ -716,11 +718,13 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 		}
 	} else if (this_pin->direction == 2) {
 		if (state_to_set != this_pin->state) {
-			if ((m_monitor_on) || (mg_verbose_output_flag)) {
-				if (mg_verbose_output_flag) {
-					std::cout << BOLD(FGRN("  ->")) << " Device " << BOLD("" << m_full_name << "") << " output terminal " << BOLD("" << this_pin->name << "") << " set from " << BoolToChar(this_pin->state) << " to " << BoolToChar(state_to_set) << std::endl;
+			if ((m_monitor_on) || (mg_verbose_flag)) {
+				if (mg_verbose_flag) {
+					std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Device " + KBLD + m_full_name + RST + " output terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
+					m_top_level_sim_pointer->LogMessage(message);
 				}
-				std::cout << BOLD(FRED("  MONITOR: ")) << "Component " << BOLD("" << m_full_name << ":" << m_component_type << " ") << "output terminal " << BOLD("" << this_pin->name << "") << " set to " << BoolToChar(state_to_set) << std::endl;
+				std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + "Component " + KBLD + m_full_name + ":" + m_component_type + RST + " output terminal " + KBLD + this_pin->name + RST + " set to " + BoolToChar(state_to_set);
+				m_top_level_sim_pointer->LogMessage(message);
 			}
 			this_pin->state = state_to_set;
 			this_pin->state_changed = true;
@@ -728,10 +732,10 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 			m_buffered_propagation = true;
 		}
 	} else {
-		if ((this_pin->name == "all_stop") && (m_top_level_sim_pointer->IsSimulationRunning())) {
+		if (this_pin->name == "all_stop") {
 			if (state_to_set) {
-				std::cout << BOLD(" ---!--- Device " << m_full_name << " ALL_STOP was asserted ---!---") << std::endl;
-				m_top_level_sim_pointer->StopSimulation();
+				std::string message = " ---!--- Device " + m_full_name + " ALL_STOP was asserted ---!---";
+				m_top_level_sim_pointer->LogError(message);
 			}
 		}
 	}
@@ -805,8 +809,9 @@ void Device::PrintInternalPinStates(int max_levels) {
 }
 
 void Device::ReportUnConnectedPins() {
-	if (mg_verbose_output_flag) {
-		std::cout  << "Checking pins for Device " << m_full_name << " local component id = " << m_local_component_index << std::endl << std::endl;
+	if (mg_verbose_flag) {
+		std::string message = "Checking pins for Device " + m_full_name + " local component id = " + std::to_string(m_local_component_index) + "\n";
+		m_top_level_sim_pointer->LogMessage(message);
 	}
 	for (const auto& this_pin : m_pins) {
 		if (this_pin.direction == 1) {
@@ -814,24 +819,24 @@ void Device::ReportUnConnectedPins() {
 			if ((!this_pin.drive[0]) && (m_nesting_level > 1)) {
 				// Log undriven Device in pin.
 				std::string build_error = "Device " + m_full_name + " in pin " + this_pin.name + " is not driven by any Component.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 			if (!this_pin.drive[1]) {
 				// Log undriving Device in pin.
 				std::string build_error = "Device " + m_full_name + " in pin " + this_pin.name + " drives no internal Components.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 		} else if (this_pin.direction == 2) {
 			if (!this_pin.drive[0]) {
 				// Log undriven Device out pin.
 				std::string build_error = "Device " + m_full_name + " out pin " + this_pin.name + " is not driven by any child Component.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 			// We don't halt on a build error for un-driving output pins of upper-most level Devices.
 			if ((!this_pin.drive[1]) && (m_nesting_level > 1)) {
 				// Log undriving Device out pin.
 				std::string build_error = "Device " + m_full_name + " out pin " + this_pin.name + " drives no Component.";
-				m_top_level_sim_pointer->LogBuildError(build_error);
+				m_top_level_sim_pointer->LogError(build_error);
 			}
 		}
 	}
@@ -839,9 +844,6 @@ void Device::ReportUnConnectedPins() {
 	for (const auto& this_component_descriptor : m_components) {
 		this_component_descriptor.component_pointer->ReportUnConnectedPins();
 		compindex ++;
-	}
-	if ((mg_verbose_output_flag) && (this != m_top_level_sim_pointer)) {
-		std::cout << std::endl;
 	}
 }
 
@@ -872,7 +874,7 @@ Component* Device::SearchForComponentPointer(std::string const& target_component
 			if (this_component_descriptor.component_full_name == target_component_full_name) {
 				// Target Component is a child of this Device. Break and return it's pointer.
 				target_component_pointer = this_component_descriptor.component_pointer;
-				if (mg_verbose_output_flag) {
+				if (mg_verbose_flag) {
 					std::cout << "Component " << target_component_full_name << " found @ " << target_component_pointer << std::endl;
 				}
 				break;
@@ -904,48 +906,49 @@ bool Device::GetDeletionFlag(void) {
 }
 
 void Device::PurgeComponent() {
-	if (this != m_top_level_sim_pointer) {
-		std::string header;
-		if (mg_verbose_destructor_flag) {
-			header =  "Purging -> DEVICE :" + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
-			std::cout << GenerateHeader(header) << std::endl;
-		}
-		m_deletion_flag = true;
-		// First  - Need to Purge and delete all child components.
-		PurgeAllChildComponents();
-		if (!(m_parent_device_pointer->GetDeletionFlag())) {
-			// Second - Ask parent Device to purge all local references to this Device...
-			// 			NOTE - Should elaborate on 'references here' really...
-			//			If we are deleting this Component because we are in the process of deleting
-			//			it's parent, we do not need to do this.
-			m_parent_device_pointer->PurgeChildConnections(this);
-		}
-		if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
-			// Third  - Purge Device from Simulation Clocks, Probes and probable_components vector.
-			//			This will 'automatically' get rid of any Probes associated with the Device
-			//			(as otherwise they would target cleared memory).
-			//			If we are deleting this component because we are in the process of deleting
-			//			the top-level Simulation, we do not need to do this.
-			m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
-			m_top_level_sim_pointer->PurgeComponentFromClocks(this);
-			m_top_level_sim_pointer->PurgeComponentFromProbes(this);
-		}
-		// Fourth - If this is a magic Device, purge it's magic Device engine.
-		if (m_magic_device_flag) {
-			delete m_magic_engine_pointer;
-		}
-		if (!(m_parent_device_pointer->GetDeletionFlag())) {
-			// Fifth  - Clear component entry from parent device's m_components.
-			//			If we are deleting this Component because we are in the process of deleting
-			//			it's parent, we do not need to do this.
-			m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
-		}
-		if (mg_verbose_destructor_flag) {
-			header =  "DEVICE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-			std::cout << GenerateHeader(header) << std::endl;
-		}
-		// - It should now be safe to delete this object -
+	std::string header;
+	if (mg_verbose_destructor_flag) {
+		header =  "Purging -> DEVICE :" + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
+		std::cout << GenerateHeader(header) << std::endl;
 	}
+	// Set the Device's deletion flag to let child components know that they don't need to tidy-up
+	// after themselves (remove connections from sibling components, remove themselves from Clocks,
+	// Probes, etc).
+	m_deletion_flag = true;
+	// First  - Need to Purge and delete all child components.
+	PurgeAllChildComponents();
+	if (!(m_parent_device_pointer->GetDeletionFlag())) {
+		// Second - Ask parent Device to purge all local references to this Device...
+		// 			NOTE - Should elaborate on 'references here' really...
+		//			If we are deleting this Component because we are in the process of deleting
+		//			it's parent, we do not need to do this.
+		m_parent_device_pointer->PurgeChildConnections(this);
+	}
+	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
+		// Third  - Purge Device from Simulation Clocks, Probes and probable_components vector.
+		//			This will 'automatically' get rid of any Probes associated with the Device
+		//			(as otherwise they would target cleared memory).
+		//			If we are deleting this component because we are in the process of deleting
+		//			the top-level Simulation, we do not need to do this.
+		m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
+		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
+		m_top_level_sim_pointer->PurgeComponentFromProbes(this);
+	}
+	// Fourth - If this is a magic Device, purge it's magic Device engine.
+	if (m_magic_device_flag) {
+		delete m_magic_engine_pointer;
+	}
+	if (!(m_parent_device_pointer->GetDeletionFlag())) {
+		// Fifth  - Clear component entry from parent device's m_components.
+		//			If we are deleting this Component because we are in the process of deleting
+		//			it's parent, we do not need to do this.
+		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
+	}
+	if (mg_verbose_destructor_flag) {
+		header =  "DEVICE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
+		std::cout << GenerateHeader(header) << std::endl;
+	}
+	// - It should now be safe to delete this object -
 }
 
 void Device::PurgeAllChildComponents() {
