@@ -189,6 +189,7 @@ class Device : public Component {
 		void PurgeChildComponentIdentifiers(Component* target_component_pointer);
 		void CreateChildFlags(void);
 		bool GetDeletionFlag(void);
+		int GetMessageBranchID(void);
 		
 	private:
 		// Device class private methods.
@@ -208,10 +209,11 @@ class Device : public Component {
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 		std::vector<state_descriptor> m_in_pin_default_states;
+		int m_message_branch_id = 0;
 		
 	protected:
 		// Device class protected methods.
-		void Solve(void);
+		void Solve(bool threaded_solve, int branch_id);
 		void QueueToSolve(int local_component_identifier);
 		void PropagateInputs(void);
 		

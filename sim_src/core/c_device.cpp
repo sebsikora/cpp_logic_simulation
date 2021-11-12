@@ -198,7 +198,7 @@ void Device::Stabilise() {
 			this_component_descriptor.component_pointer->Initialise();
 	}
 	// Then we call Solve() for this Device.
-	Solve();
+	Solve(false, 0);
 	if (mg_verbose_flag) {
 		std::string message = "\n" + GenerateHeader("Starting state settled.") + "\n";
 		m_top_level_sim_pointer->LogMessage(message);
@@ -316,7 +316,7 @@ void Device::ChildSet(std::string const& target_child_component_name, std::strin
 		// 'manual' pin change to make sure that 1st-level device state is propagated. Instead, we check for them here if
 		// the simulation is not running and call Solve() at the end of the Set() call.
 		if (!m_top_level_sim_pointer->IsSimulationRunning()) {
-			m_top_level_sim_pointer->Solve();
+			m_top_level_sim_pointer->Solve(false, 0);
 		}
 	}
 }
@@ -545,21 +545,29 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 	}
 }
 
-void Device::Solve() {
-	// Clear the Solve() pending flag for starters.
+void Device::Solve(bool threaded_solve, int branch_id) {
+	int original_branch_id = m_message_branch_id;
+	if (threaded_solve) {
+		m_message_branch_id = m_CUID;
+	} else {
+		m_message_branch_id = branch_id;	
+	}
+	// Indicate the start of this solution level to the message handler.
+	m_top_level_sim_pointer->LogMessage("~S" + std::to_string(m_message_branch_id));
+	// Clear the Solve() pending flag.
 	m_solve_this_tick_flag = false;
 	int sub_tick_count = 0;
 	int sub_tick_limit = m_max_propagations;
 	if (mg_verbose_flag) {
-		std::string message = std::string("\n") + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " Propagating inputs...\n";
-		m_top_level_sim_pointer->LogMessage(message);
+		std::string message = std::string("\n") + std::to_string(m_message_branch_id) + ": " + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " Propagating inputs...\n" + std::to_string(m_message_branch_id) + ":";
+		m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 	}
 	// Propagate Device inputs first.
 	PropagateInputs();
 	while (true) {
 		if (mg_verbose_flag) {
-			std::string message = std::string("\n") + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " starting to Solve()...";
-			m_top_level_sim_pointer->LogMessage(message);
+			std::string message = std::string("\n") + std::to_string(m_message_branch_id) + ": " + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " starting to Solve()...";
+			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message); 
 		}
 		// Handle pending propagations for child Gates and child Device out pins.
 		while (sub_tick_count <= sub_tick_limit) {
@@ -574,41 +582,40 @@ void Device::Solve() {
 		if (sub_tick_count > sub_tick_limit) {
 			// Log error here.		-- Not able to stabilise Device state.
 			std::string error_message = "Could not stabilise " + m_full_name + " state within " + std::to_string(m_max_propagations) + " propagation steps.";
-			m_top_level_sim_pointer->LogError(error_message);
+			m_top_level_sim_pointer->LogError("~" + std::to_string(m_message_branch_id) + ": " + error_message);
 			break;
 		} else {
 			if (mg_verbose_flag) {
-				std::string message = std::string("\n") + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " Solve()d.";
-				m_top_level_sim_pointer->LogMessage(message);
+				std::string message = std::string("\n") + std::to_string(m_message_branch_id) + ": " + KBLD + KMAG + "Level " + RST + KBLD + std::to_string(m_nesting_level) + RST + " Device " + KBLD + m_full_name + RST + " Solve()d.";
+				m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 			}
 		}
+		// Indicate the end of the first Solve() phase to the message handler.
+		m_top_level_sim_pointer->LogMessage("~E" + std::to_string(m_message_branch_id));
 		// Experimental multi-threading support -----------------------------------------------------------------------------
 		if (m_top_level_sim_pointer->m_use_threaded_solver && (m_nesting_level == m_top_level_sim_pointer->m_threaded_solve_nesting_level)) {
 			// Threaded Solve() for all pending child Devices.
 			for (const auto& this_local_device_index : m_solve_this_tick) {
 				Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
-				m_top_level_sim_pointer->m_thread_pool_pointer->AddJob(std::bind(&Device::Solve, this_device_pointer));
+				m_top_level_sim_pointer->m_thread_pool_pointer->AddJob(std::bind(&Device::Solve, this_device_pointer, true, 0));
 			}
 			// Wait until all Device Solve() threads finish.
 			m_top_level_sim_pointer->m_thread_pool_pointer->WaitForAllJobs();
-			m_solve_this_tick.clear();
-			// If there are no pending propagations within this Device following the child Device solve loop
-			// above, we're all done here.
-			if (m_propagate_next_tick.size() == 0) {
-				break;
-			}
 		} else {	// ------------------------------------------------------------------------------------------------------
 			// Regular Solve() for all pending child Devices.
 			for (const auto& this_local_device_index : m_solve_this_tick) {
 				Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index].component_pointer);
-				this_device_pointer->Solve();
+				this_device_pointer->Solve(false, m_message_branch_id);
 			}
-			m_solve_this_tick.clear();
-			// If there are no pending propagations within this Device following the child Device solve loop
-			// above, we're all done here.
-			if (m_propagate_next_tick.size() == 0) {
-				break;
-			}
+		}
+		m_solve_this_tick.clear();
+		// If there are no pending propagations within this Device following the child Device solve loop
+		// above, we're all done here.
+		if (m_propagate_next_tick.size() == 0) {
+			break;
+		} else {
+			// If we have changes to propagate, indicate to the message handler that we're starting another pass at this level.
+			m_top_level_sim_pointer->LogMessage("~S" + std::to_string(m_message_branch_id));
 		}
 	}
 	// If we're solving the top-level Simulation state, we need to check if the Clock has triggered any Probes.
@@ -620,12 +627,13 @@ void Device::Solve() {
 			m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
 		}
 	}
+	m_message_branch_id = original_branch_id;
 }
 
 void Device::SubTick(int index) {
 	if (mg_verbose_flag) {
-		std::string message = std::string("\nIteration: ") + std::to_string(index);
-		m_top_level_sim_pointer->LogMessage(message);
+		std::string message = std::string("\n" + std::to_string(m_message_branch_id) + ": " + "Iteration: ") + std::to_string(index);
+		m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 	}
 	// ------------------------------------------
 	for (const auto& this_entry : m_propagate_next_tick) {
@@ -664,7 +672,7 @@ void Device::PropagateInputs() {
 			if (this_pin.state_changed) {
 				if (mg_verbose_flag) {
 					std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + m_full_name + RST + " propagating input " + this_pin.name + " = " + BoolToChar(this_pin.state);
-					m_top_level_sim_pointer->LogMessage(message);
+					m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 				}
 				this_pin.state_changed = false;
 				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
@@ -681,7 +689,7 @@ void Device::Propagate() {
 			if (this_pin.state_changed) {
 				if (mg_verbose_flag) {
 					std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + m_full_name + RST + " propagating output " + this_pin.name + " = " + BoolToChar(this_pin.state);
-					m_top_level_sim_pointer->LogMessage(message);
+					m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 				}
 				this_pin.state_changed = false;
 				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
@@ -699,10 +707,10 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 			if ((m_monitor_on) || (mg_verbose_flag)) {
 				if (mg_verbose_flag) {
 					std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Device " + KBLD + m_full_name + RST + " input terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
-					m_top_level_sim_pointer->LogMessage(message);
+					m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 				}
-				std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + "Component " + KBLD + m_full_name + ":" + m_component_type + RST + + " input terminal " + KBLD + this_pin->name + RST + " set to " + BoolToChar(state_to_set);
-				m_top_level_sim_pointer->LogMessage(message);
+				std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + "Component " + KBLD + m_full_name + ":" + m_component_type + RST + " input terminal " + KBLD + this_pin->name + RST + " set to " + BoolToChar(state_to_set);
+				m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 			}
 				if (m_magic_device_flag == true) {
 				if (m_magic_pin_flag[pin_port_index]) {
@@ -721,10 +729,10 @@ void Device::Set(int pin_port_index, bool state_to_set) {
 			if ((m_monitor_on) || (mg_verbose_flag)) {
 				if (mg_verbose_flag) {
 					std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Device " + KBLD + m_full_name + RST + " output terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
-					m_top_level_sim_pointer->LogMessage(message);
+					m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 				}
 				std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + "Component " + KBLD + m_full_name + ":" + m_component_type + RST + " output terminal " + KBLD + this_pin->name + RST + " set to " + BoolToChar(state_to_set);
-				m_top_level_sim_pointer->LogMessage(message);
+				m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_message_branch_id) + ": " + message);
 			}
 			this_pin->state = state_to_set;
 			this_pin->state_changed = true;
@@ -754,6 +762,10 @@ Component* Device::GetChildComponentPointer(std::string const& target_child_comp
 
 int Device::GetNestingLevel() {
 	return m_nesting_level;
+}
+
+int Device::GetMessageBranchID() {
+	return m_message_branch_id;
 }
 
 int Device::GetNewLocalComponentIndex() {
@@ -810,7 +822,7 @@ void Device::PrintInternalPinStates(int max_levels) {
 
 void Device::ReportUnConnectedPins() {
 	if (mg_verbose_flag) {
-		std::string message = "Checking pins for Device " + m_full_name + " local component id = " + std::to_string(m_local_component_index) + "\n";
+		std::string message = "Checking pins for Device " + m_full_name + " local component id = " + std::to_string(m_local_component_index);
 		m_top_level_sim_pointer->LogMessage(message);
 	}
 	for (const auto& this_pin : m_pins) {

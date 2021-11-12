@@ -19,12 +19,15 @@
 
 */
 
+#include <stdexcept>				// std::out_of_range.
+#include <unordered_map>			// std::unordered_map.
 #include <string>					// std::string.
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::v.ctor
 #include <ctime>					// time().
 #include <cstdlib>					// srand().
 #include <mutex>					// std::mutex, std::unique_lock.
+#include <algorithm>				// std::equal.
 
 #include <termios.h>				// terminal settings.
 #include <unistd.h>					// POSIX bits.
@@ -148,7 +151,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 				this_clock_descriptor.clock_pointer->Tick();
 			}
 			// Solve top-level simulation state.
-			Solve();
+			Solve(false, m_CUID);
 			// Print any messages logged this tick.
 			PrintAndClearMessages();
 			// If any errors have been reported this tick, break here and finish.
@@ -354,8 +357,43 @@ void Simulation::LogMessage(std::string const& message) {
 }
 
 void Simulation::PrintAndClearMessages() {
-	for (const auto& this_message : m_messages) {
-		std::cout << this_message << std::endl;
+	std::unordered_map<int, std::vector<std::string>> message_collations;
+	for (auto& this_message : m_messages) {
+		std::string start_prefix = std::string("~S");	// Solution branch start.
+		std::string end_prefix = std::string("~E");		// Solution branch end.
+		std::string message_to_collate_prefix = std::string("~");		// Prefixed message.
+		if (std::equal(start_prefix.begin(), start_prefix.end(), this_message.begin())) {
+			// Start of messages from a new solution branch.
+			this_message.erase(0, 2);
+			int branch_prefix = std::stoi(this_message);
+			message_collations[branch_prefix].clear();		// operator[] will create an entry via default constructor if none with key branch_prefix.
+			std::cout << std::endl << "Started collating messages from branch " << branch_prefix << std::endl;
+		} else if (std::equal(end_prefix.begin(), end_prefix.end(), this_message.begin())) {
+			// End of this solution branch.
+			this_message.erase(0, 2);
+			int branch_prefix = std::stoi(this_message);
+			std::cout << std::endl << "Finished collating messages from branch " << branch_prefix << std::endl;
+			// Print messages from this branch to the console and then clear the dictionary entry.
+			for (const auto& this_collated_message : message_collations[branch_prefix]) {
+				std::cout << this_collated_message << std::endl;
+			}
+			message_collations.erase(branch_prefix);
+		} else if (std::equal(message_to_collate_prefix.begin(), message_to_collate_prefix.end(), this_message.begin())) {
+			// Message with a branch prefix.
+			this_message.erase(0, 1);
+			int prefix = std::stoi(this_message.substr(0, this_message.find(":", 0)));
+			// operator[] will create an entry under that key if none exists, which can lead to fairly quiet
+			// if not silent failure in the event that anything unexpected gets through.
+			try {
+				message_collations.at(prefix).push_back(this_message);
+			}
+			catch (const std::out_of_range& oor_error) {
+				std::cerr << "Unexpected branch prefix on this message: " << this_message << std::endl;
+			}
+		} else {
+			// No prefix at all, just print the message.
+			std::cout << this_message << std::endl;
+		}
 	}
 	m_messages.clear();
 }

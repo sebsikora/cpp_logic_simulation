@@ -178,7 +178,7 @@ void Gate::Set(int pin_port_index, bool state_to_set) {
 	if (this_pin->state != state_to_set) {
 		if (mg_verbose_flag) {
 			std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
-			m_top_level_sim_pointer->LogMessage(message);
+			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
 		}
 		this_pin->state = state_to_set;
 		Evaluate();
@@ -196,7 +196,7 @@ void Gate::Evaluate() {
 	if (out_pin->state != new_state) {
 		if (mg_verbose_flag) {
 			std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " output terminal set to " + BoolToChar(new_state);
-			m_top_level_sim_pointer->LogMessage(message);
+			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
 		}
 		// If the gate output has changed add it to the parent Devices propagate_next list, UNLESS this gate
 		// is already queued-up to propagate this tick.
@@ -206,7 +206,7 @@ void Gate::Evaluate() {
 		// Print output pin changes if we are monitoring this gate.
 		if (m_monitor_on || mg_verbose_flag) {
 			std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + KBLD + m_full_name + ":" + m_component_type + " output terminal set to " + BoolToChar(new_state);
-			m_top_level_sim_pointer->LogMessage(message);
+			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
 		}
 	}
 }
@@ -216,7 +216,7 @@ void Gate::Propagate() {
 	if (out_pin->state_changed) {
 		if (mg_verbose_flag) {
 			std::string message = std::string(KBLD) + KYEL + "->" + RST + " Gate " + KBLD + m_full_name + RST + " propagating output = " + BoolToChar(out_pin->state);
-			m_top_level_sim_pointer->LogMessage(message);
+			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
 		}
 		out_pin->state_changed = false;
 		for (const auto& this_connection_descriptor : m_connections) {

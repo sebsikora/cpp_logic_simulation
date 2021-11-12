@@ -127,10 +127,12 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 }
 
 void Clock::Propagate() {
+	m_top_level_sim_pointer->LogMessage("~S0");
 	for (const auto& this_connection_descriptor : m_connections) {
 		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
 		target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, m_out_pin_state);
 	}
+	m_top_level_sim_pointer->LogMessage("~E0");
 }
 
 bool Clock::GetTickedFlag() {
