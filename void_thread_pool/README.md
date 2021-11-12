@@ -81,7 +81,7 @@ To stop the thread pool, we call it's `Finish()` method, which will stop the wor
 For a complete usage example [see](https://github.com/sebsikora/void_thread_pool/blob/main/demo.cpp) `demo.cpp`.
 
 
-To compile the example (for example, using gcc), enter `g++ -o main -g void_thread_pool.cpp demo.cpp` on the command line.
+To compile the example (for example, using gcc), enter `g++ -pthread -o main -g void_thread_pool.cpp demo.cpp` on the command line. Note the `-pthread` compiler flag to add multi-threading support via the pthreads library.
 
 License:
 -------------------------
