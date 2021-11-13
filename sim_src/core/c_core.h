@@ -44,7 +44,7 @@ class Component {
 		// Component class virtual methods.
 		virtual void Initialise(void) = 0;
 		virtual void Connect(std::vector<std::string> connection_parameters) = 0;
-		virtual void Set(int pin_port_index, bool state_to_set) = 0;
+		virtual void Set(const int pin_port_index, const bool state_to_set) = 0;
 		virtual void Propagate(void) = 0;
 		virtual void PrintPinStates(int max_levels) = 0;
 		virtual void ReportUnConnectedPins(void) = 0;
@@ -61,7 +61,7 @@ class Component {
 		int GetLocalComponentIndex(void);
 		void SetLocalComponentIndex(int new_local_component_index);
 		Simulation* GetTopLevelSimPointer(void);
-		bool GetPinState(int pin_port_index);
+		bool GetPinState(const int pin_port_index);
 		std::string GetPinName(int pin_port_index);
 		std::vector<std::string> GetSortedInPinNames(void);
 		std::vector<std::string> GetSortedOutPinNames(void);
@@ -108,7 +108,7 @@ class Gate : public Component {
 		// Override Component virtual methods.
 		void Initialise(void) override;
 		void Connect(std::vector<std::string> connection_parameters) override;
-		void Set(int pin_port_index, bool state_to_set) override;
+		void Set(const int pin_port_index, const bool state_to_set) override;
 		void Propagate(void) override;
 		void PrintPinStates(int max_levels) override;
 		void ReportUnConnectedPins(void) override;
@@ -143,7 +143,7 @@ class Device : public Component {
 		// Override Component virtual methods.
 		void Initialise(void) override;
 		void Connect(std::vector<std::string> connection_parameters) override;
-		void Set(int pin_port_index, bool state_to_set) override;
+		void Set(const int pin_port_index, const bool state_to_set) override;
 		void Propagate(void) override;
 		void PrintPinStates(int max_levels) override;
 		void ReportUnConnectedPins(void) override;
@@ -178,8 +178,8 @@ class Device : public Component {
 		int GetNewLocalComponentIndex(void);
 		int GetLocalComponentCount(void);
 		int GetInPinCount(void);
-		void AppendChildPropagationIdentifier(int propagation_identifier);
-		void QueueToPropagate(int propagation_identifier);
+		void AppendChildPropagationIdentifier(const int propagation_identifier);
+		void QueueToPropagate(const int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		void MarkInnerTerminalsDisconnected(void);
 		Component* SearchForComponentPointer(std::string const& target_component_full_name);
@@ -193,7 +193,8 @@ class Device : public Component {
 		
 	private:
 		// Device class private methods.
-		void SubTick(int index);
+		//~void SubTick(const int index);
+		void SubTick(const int index);
 		
 		std::vector<component_descriptor> m_components;
 		std::vector<int> m_devices;
@@ -210,11 +211,13 @@ class Device : public Component {
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 		std::vector<state_descriptor> m_in_pin_default_states;
 		int m_message_branch_id = 0;
+		bool m_solve_children_in_own_threads = false;
 		
 	protected:
 		// Device class protected methods.
-		void Solve(bool threaded_solve, int branch_id);
-		void QueueToSolve(int local_component_identifier);
+		//~void Solve(const bool threaded_solve, const int branch_id);
+		void Solve(const bool threaded_solve, const int branch_id);
+		void QueueToSolve(const int local_component_identifier);
 		void PropagateInputs(void);
 		
 		int m_max_propagations;
@@ -262,14 +265,14 @@ class Simulation : public Device {
 		void PurgeGlobalComponent(std::string const& target_component_full_name);
 		bool GetSearchingFlag(void);
 		void SetSearchingFlag(bool value);
+		void PrintAndClearMessages(void);
 		
-		VoidThreadPool* m_thread_pool_pointer;
+		VoidThreadPool* m_thread_pool_pointer = 0;
 		bool m_use_threaded_solver;
 		int m_threaded_solve_nesting_level;
-		void PrintAndClearMessages(void);
 				
 	private:
-		void EnableTerminalRawIO(bool raw_flag);
+		void EnableTerminalRawIO(const bool raw_flag);
 		char CheckForCharacter(void);
 		void PrintErrorMessages(void);
 		
@@ -295,7 +298,7 @@ class Clock {
 		
 		std::string GetName(void);
 		void Connect(std::string const& target_component_name, std::string const& target_pin_name);
-		void Propagate(void);
+		void Propagate(const bool verbose_flag);
 		void Tick(void);
 		void Reset(void);
 		void AddToProbeList(std::string const& probe_identifier, Probe* probe_pointer);
@@ -328,7 +331,7 @@ class Probe {
 		~Probe();
 		
 		void PreallocateSampleMemory(int number_of_ticks);
-		void Sample(int index);
+		void Sample(const int index);
 		void Reset(void);
 		Component* GetTargetComponentPointer(void);
 		void PrintSamples(void);

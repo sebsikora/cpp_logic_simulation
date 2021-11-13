@@ -173,7 +173,7 @@ void Gate::Connect(std::vector<std::string> connection_parameters) {
 	}
 }
 
-void Gate::Set(int pin_port_index, bool state_to_set) {
+void Gate::Set(const int pin_port_index, const bool state_to_set) {
 	pin* this_pin = &m_pins[pin_port_index];
 	if (this_pin->state != state_to_set) {
 		if (mg_verbose_flag) {

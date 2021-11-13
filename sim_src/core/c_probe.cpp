@@ -51,7 +51,7 @@ Probe::~Probe() {
 	}
 }
 
-void Probe::Sample(int index) {
+void Probe::Sample(const int index) {
 	m_this_sample.clear();
 	m_timestamps.emplace_back(index);
 	bool pin_state = false;

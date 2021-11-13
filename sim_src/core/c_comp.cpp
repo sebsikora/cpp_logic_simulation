@@ -69,7 +69,7 @@ Simulation* Component::GetTopLevelSimPointer() {
 	return m_top_level_sim_pointer;
 }
 
-bool Component::GetPinState(int pin_port_index) {
+bool Component::GetPinState(const int pin_port_index) {
 	return m_pins[pin_port_index].state;
 }
 

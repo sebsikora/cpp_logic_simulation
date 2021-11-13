@@ -54,12 +54,16 @@ Simulation::Simulation(std::string const& simulation_name, bool verbose_output_f
 		LogMessage(message);
 	}
 	// Start up the Simulation's solver threadpool.
-	m_thread_pool_pointer = new VoidThreadPool(false);
+	if (m_use_threaded_solver) {
+		m_thread_pool_pointer = new VoidThreadPool(false);
+	}
 	srand(time(0));
 }
 
 Simulation::~Simulation() {
-	delete m_thread_pool_pointer;
+	if (m_use_threaded_solver) {
+		delete m_thread_pool_pointer;
+	}
 	PurgeComponent();
 	if (mg_verbose_destructor_flag) {
 		std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl;
@@ -72,7 +76,7 @@ int Simulation::GetNewCUID() {
 	return new_CUID;
 }
 
-void Simulation::EnableTerminalRawIO(bool raw_flag) {
+void Simulation::EnableTerminalRawIO(const bool raw_flag) {
 	// If raw_flag = true, we change some flags to set the current terminal to 'raw' mode, in which characters are
 	// immediately made available to STDIN, such that they can be read in using getchar(). If raw_flag = false, we
 	// change the flags back to their old value (captured in m_old_term_io_settings) to put the current terminal back
@@ -144,7 +148,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			}
 			if ((mg_verbose_flag) && (!force_no_messages)){
 				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index)) + "\n";
-				LogMessage(message);
+				LogMessage("\n" + message);
 			}
 			// Advance all clocks.
 			for (const auto& this_clock_descriptor : m_clocks) {
@@ -153,7 +157,9 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			// Solve top-level simulation state.
 			Solve(false, m_CUID);
 			// Print any messages logged this tick.
-			PrintAndClearMessages();
+			if (mg_verbose_flag) {
+				PrintAndClearMessages();
+			}
 			// If any errors have been reported this tick, break here and finish.
 			// Asserted the __ALL_STOP__ internal input of a Device will log an error message and hence stop the simulation.
 			if (m_error_messages.size() > 0) {
@@ -329,13 +335,21 @@ Component* Simulation::GetProbableComponentPointer(std::string const& target_com
 }
 
 bool Simulation::IsSimulationRunning() {
-	std::unique_lock<std::mutex> lock(m_sim_lock);
-	return m_simulation_running;
+	if (!m_use_threaded_solver) {
+		return m_simulation_running;
+	} else {
+		std::unique_lock<std::mutex> lock(m_sim_lock);
+		return m_simulation_running;
+	}
 }
 
 void Simulation::StopSimulation() {
-	std::unique_lock<std::mutex> lock(m_sim_lock);
-	m_simulation_running = false;
+	if (!m_use_threaded_solver) {
+		m_simulation_running = false;
+	} else {
+		std::unique_lock<std::mutex> lock(m_sim_lock);
+		m_simulation_running = false;
+	}
 }
 
 void Simulation::CheckProbeTriggers() {
@@ -347,13 +361,21 @@ void Simulation::CheckProbeTriggers() {
 }
 
 void Simulation::LogError(std::string const& error_message) {
-	std::unique_lock<std::mutex> lock(m_sim_lock);
-	m_error_messages.emplace_back(error_message);
+	if (!m_use_threaded_solver) {
+		m_error_messages.emplace_back(error_message);
+	} else {
+		std::unique_lock<std::mutex> lock(m_sim_lock);
+		m_error_messages.emplace_back(error_message);
+	}
 }
 
 void Simulation::LogMessage(std::string const& message) {
-	std::unique_lock<std::mutex> lock(m_sim_lock);
-	m_messages.emplace_back(message);
+	if (!m_use_threaded_solver) {
+		m_messages.emplace_back(message);
+	} else {
+		std::unique_lock<std::mutex> lock(m_sim_lock);
+		m_messages.emplace_back(message);
+	}
 }
 
 void Simulation::PrintAndClearMessages() {

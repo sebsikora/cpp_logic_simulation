@@ -14,9 +14,9 @@ int main () {
 	bool print_probe_samples = true;
 	
 	// Square grid base dimension.
-	int x_dimension = 31;
+	int x_dimension = 9;
 	// Number of game iterations to simulate.
-	int iteration_count = 50;
+	int iteration_count = 1;
 	
 	int cell_count = x_dimension * x_dimension;
 	int tick_count = 18 * iteration_count;
@@ -50,7 +50,7 @@ int main () {
 	sim->AddClock("clock_0", {false, true}, monitor_on);
 	sim->ClockConnect("clock_0", "game_of_life", "clk");
 	
-	sim->AddProbe("cell_states", "test_sim:game_of_life", {output_identifiers}, "clock_0", {18, x_dimension, {" ", "■"}});
+	sim->AddProbe("cell_states", "test_sim:game_of_life", {output_identifiers}, "clock_0", {1, x_dimension, {" ", "■"}});
 	
 	sim->ChildSet("game_of_life", "not_clear_cycle", false);
 	sim->ChildSet("game_of_life", "not_clear_cycle", true);
@@ -61,7 +61,6 @@ int main () {
 	//~}
 	
 	//~int initial_offset = ((x_dimension * x_dimension) / (int)2) + (x_dimension / (int)2);
-	
 	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset - x_dimension], false);
 	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset - x_dimension], true);
 	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset], false);
@@ -70,7 +69,7 @@ int main () {
 	//~sim->ChildSet("game_of_life", not_preset_state_identifiers[initial_offset + x_dimension], true);
 	
 	auto t1 = std::chrono::high_resolution_clock::now();
-	sim->Run(tick_count, true, verbose, false, true);
+	sim->Run(tick_count - 1, true, verbose, false, true);
 	auto t2 = std::chrono::high_resolution_clock::now();
 	sim->Run(1, false, verbose, print_probe_samples, false);
 	

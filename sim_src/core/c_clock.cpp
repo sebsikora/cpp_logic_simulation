@@ -57,21 +57,17 @@ void Clock::AddToProbeList(std::string const& probe_identifier, Probe* probe_poi
 }
 
 void Clock::Tick(void) {
-	bool new_logical_state = m_toggle_pattern[m_sub_index];
 	// Print output pin changes.
-	bool verbose_output_flag = m_top_level_sim_pointer->mg_verbose_flag;
-	if (m_monitor_on || (verbose_output_flag)) {
-		std::string message = "T: " + std::to_string(m_index) + " " + KBLD + KYEL + "CLOCKSET: " + RST + "On tick " + KBLD + std::to_string(m_index) + RST + " " + m_name + ":clock output set to " + BoolToChar(new_logical_state);
+	bool verbose_flag = m_top_level_sim_pointer->mg_verbose_flag;
+	if (m_monitor_on || (verbose_flag)) {
+		std::string message = "T: " + std::to_string(m_index) + " " + KBLD + KYEL + "CLOCKSET: " + RST + "On tick " + KBLD + std::to_string(m_index) + RST + " " + m_name + ":clock output set to " + BoolToChar(m_toggle_pattern[m_sub_index]);
 		m_top_level_sim_pointer->LogMessage(message);
 	}
 	// Change output state and propagate.
-	m_out_pin_state = new_logical_state;
-	Propagate();
-	if (verbose_output_flag) {
-		std::cout << std::endl;
-	}
-	m_index = m_index + 1;
-	m_sub_index = m_sub_index + 1;
+	m_out_pin_state = m_toggle_pattern[m_sub_index];
+	Propagate(verbose_flag);
+	m_index ++;
+	m_sub_index ++;
 	if (m_sub_index >= m_toggle_pattern.size()) {
 		m_sub_index = 0;
 	}
@@ -126,13 +122,16 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 	}
 }
 
-void Clock::Propagate() {
-	m_top_level_sim_pointer->LogMessage("~S0");
-	for (const auto& this_connection_descriptor : m_connections) {
-		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
-		target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, m_out_pin_state);
+void Clock::Propagate(const bool verbose_flag) {
+	if (verbose_flag) {
+		m_top_level_sim_pointer->LogMessage("~S0");
 	}
-	m_top_level_sim_pointer->LogMessage("~E0");
+	for (const auto& this_connection_descriptor : m_connections) {
+		this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, m_out_pin_state);
+	}
+	if (verbose_flag) {
+		m_top_level_sim_pointer->LogMessage("~E0");
+	}
 }
 
 bool Clock::GetTickedFlag() {
@@ -142,7 +141,7 @@ bool Clock::GetTickedFlag() {
 void Clock::TriggerProbes() {
 	// Add new state to state history and then trigger all associated probes.
 	if (m_probes.size() > 0) {
-		m_state_history.push_back(m_out_pin_state);
+		m_state_history.emplace_back(m_out_pin_state);
 		for (const auto& this_probe_descriptor : m_probes) {
 			this_probe_descriptor.probe_pointer->Sample(m_index - 1);
 		}
