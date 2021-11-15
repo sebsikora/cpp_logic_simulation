@@ -41,7 +41,7 @@ int main () {
 	// https://www.electronics-tutorials.ws/sequential/seq_2.html
 	//
 	// Simulation's member function
-	// AddGate(std::string const& component_name,
+	// AddGate(std::string const& component_name,                - Unique identifier string.
 	//         std::string const& component_type,                - EG and, or, nand, nor, xor, not.
 	//         std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
 	//         bool monitor_on);                                 - If flag = true changes in input or output
