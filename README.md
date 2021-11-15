@@ -67,10 +67,13 @@ int main () {
 	//
 	// Parent Device's member function
 	// ChildConnect(std::string const& target_child_component_name,
-	//              std::vector<std::string> const& connection_parameters);		- Typically three connection parameters,
-	//                                                                            origin_pin_name string
-	//                                                                            target_child_component_name string 
-	//                                                                            target_pin_name string
+	//              std::vector<std::string> const& connection_parameters);
+	//
+	//              - Typically three connection parameters,
+	//                origin_pin_name
+	//                target_child_component_name string 
+	//                target_pin_name string
+	//
 	sim.ChildConnect("nand_1", {"nand_3", "input_0"});
 	sim.ChildConnect("nand_2", {"nand_4", "input_0"});
 	sim.ChildConnect("nand_3", {"nand_4", "input_1"});
