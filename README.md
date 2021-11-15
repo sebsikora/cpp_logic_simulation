@@ -40,6 +40,11 @@ int main () {
 	//
 	// https://www.electronics-tutorials.ws/sequential/seq_2.html
 	//
+	// Simulation's member function AddGate(std::string const& component_name,
+	//					std::string const& component_type,
+	//					std::vector<std::string> const& in_pin_names,
+	//					bool monitor_on);
+	//					
 	sim.AddGate("nand_1", "nand", {"input_0", "input_1", "input_2"}, false);
 	sim.AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"});
 	sim.AddGate("nand_3", "nand", {"input_0", "input_1"});
@@ -57,6 +62,25 @@ int main () {
 	sim.ClockConnect("clock_0", "nand_2", "input_2");		// For master-slave JK flip-flop clock connects
 	sim.ClockConnect("clock_0", "not_1", "input");			// to both master input NAND gates and NOT gate
 															// that feeds slave input NAND gates.
+	// Interconnect components.
+	sim.ChildConnect("nand_1", {"nand_3", "input_0"});
+	sim.ChildConnect("nand_2", {"nand_4", "input_0"});
+	sim.ChildConnect("nand_3", {"nand_4", "input_1"});
+	sim.ChildConnect("nand_4", {"nand_3", "input_1"});
+	
+	sim.ChildConnect("nand_3", {"nand_5", "input_0"});
+	sim.ChildConnect("nand_4", {"nand_6", "input_0"});
+
+	sim.ChildConnect("not_1", {"nand_5", "input_1"});
+	sim.ChildConnect("not_1", {"nand_6", "input_1"});
+	
+	sim.ChildConnect("nand_5", {"nand_7", "input_0"});
+	sim.ChildConnect("nand_6", {"nand_8", "input_0"});
+	sim.ChildConnect("nand_7", {"nand_8", "input_1"});
+	sim.ChildConnect("nand_8", {"nand_7", "input_1"});
+	
+	sim.ChildConnect("nand_7", {"nand_2", "input_1"});
+	sim.ChildConnect("nand_8", {"nand_1", "input_1"});
 ...
 ```
 
