@@ -57,7 +57,14 @@ int main () {
 	sim.AddGate("not_1", "not");	// For not Gates we can leave off the in pins vector,
 					// it will be replaced by a single "input".
 	
-	sim.AddClock("clock_0", {false, true}, monitor_on);		// Add a Clock.
+	// Add a Clock.
+	//
+	// Simulation's member function
+	// AddClock(std::string const& clock_name,                   - Unique identifier string.
+	//          std::vector<bool> const& toggle_pattern,         - Sequence of false/true values through which the Clock will step.
+	//          bool monitor_on);                                - If flag = true changes in input or output
+	//					                                                    states are reported on the console.
+	sim.AddClock("clock_0", {false, true}, monitor_on);
 	
 	sim.ClockConnect("clock_0", "nand_1", "input_2");	// Connect the clock where needed.
 	sim.ClockConnect("clock_0", "nand_2", "input_2");	// For master-slave JK flip-flop clock connects
