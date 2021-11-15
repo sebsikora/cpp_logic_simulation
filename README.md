@@ -62,7 +62,7 @@ int main () {
 	sim.ClockConnect("clock_0", "nand_1", "input_2");	// Connect the clock where needed.
 	sim.ClockConnect("clock_0", "nand_2", "input_2");	// For master-slave JK flip-flop clock connects
 	sim.ClockConnect("clock_0", "not_1", "input");		// to both master input NAND gates and NOT gate
-										// that feeds slave input NAND gates.
+								// that feeds slave input NAND gates.
 	// Interconnect components.
 	sim.ChildConnect("nand_1", {"nand_3", "input_0"});
 	sim.ChildConnect("nand_2", {"nand_4", "input_0"});
