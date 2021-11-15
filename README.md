@@ -62,14 +62,12 @@ int main () {
 	// Simulation's member function
 	// AddClock(std::string const& clock_name,                   - Unique identifier string.
 	//          std::vector<bool> const& toggle_pattern,         - Sequence of false/true values through which the Clock will step.
-	//          bool monitor_on);                                - If flag = true changes in input or output
-	//					                       states are reported on the console.
+	//          bool monitor_on);                                - If flag = true changes in input or output states are reported on the console.
 	sim.AddClock("clock_0", {false, true}, monitor_on);
 	
 	sim.ClockConnect("clock_0", "nand_1", "input_2");	// Connect the clock where needed.
-	sim.ClockConnect("clock_0", "nand_2", "input_2");	// For master-slave JK flip-flop clock connects
-	sim.ClockConnect("clock_0", "not_1", "input");		// to both master input NAND gates and NOT gate
-								// that feeds slave input NAND gates.
+	sim.ClockConnect("clock_0", "nand_2", "input_2");	// For master-slave JK flip-flop clock connects to both master 
+	sim.ClockConnect("clock_0", "not_1", "input");		// input NAND gates and NOT gate that feeds slave input NAND gates.
 	// Interconnect components.
 	//
 	// Parent Device's member function
@@ -78,10 +76,9 @@ int main () {
 	//
 	//            - Typically three connection parameters,
 	//              std::string origin_pin_name       - The out pin name from which we wish to form a connection.
-	//              std::string target_component_name - The name of the sibling component to which we wish to connect,
-	//                                                  use "parent" to connect to an out pin of the parent Device.
-	//              std::string target_pin_name       - The sibling Component in pin or parent Device out pin to which
-	//                                                  we wish to connect.
+	//              std::string target_component_name - The name of the sibling component to which we wish to connect, use "parent"
+	//                                                  to connect to an out pin of the parent Device.
+	//              std::string target_pin_name       - The sibling Component in pin or parent Device out pin to which we wish to connect.
 	//
 	//            - Gates can omit the first connection parameter as they only have a single
 	//              out pin "output".
@@ -109,15 +106,14 @@ int main () {
 	//
 	// Simulation's member function
 	// Connect(std::string const& origin_pin_name,           - The out pin name from which we wish to form a connection.
-	//         std::string const& target_component_name,     - The name of the sibling component to which we wish to connect.
-	//         std::string const& target_pin_name);          - The sibling Component in pin or parent Device out pin to which
-	//                                                         we wish to connect.
+	//         std::string const& target_component_name,     - The unique identifier of the sibling component to which we wish to connect.
+	//         std::string const& target_pin_name);          - The sibling Component in pin or parent Device out pin to which we wish to connect.
 	//
 	sim.Connect("true", "nand_1", "input_0");
 	sim.Connect("true", "nand_2", "input_0");
 	
-	// If we want to probe any Components, we need to add them to the
-	// Simulation's probable Devices list.
+	// If we want to probe any Components, we need to add them to the Simulation's probable Devices list.
+	// We refer to them via their unique identifier string.
 	sim.ChildMakeProbable("nand_7");
 	sim.ChildMakeProbable("nand_8");
 	
