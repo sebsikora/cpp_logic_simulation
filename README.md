@@ -31,7 +31,7 @@ int main () {
 	bool verbose = false;
 	
 	Simulation sim("test_sim", verbose);	// Instantiate top-level Simulation Device.
-					// verbose flag turns off 'verbose output' for now.
+						// verbose flag turns off 'verbose output' for now.
 	
 	// Master-slave JK flip-flop can be assembled from 8 NAND gates, two three-input and six two-input,
 	// and a single inverter (NOT gate) as shown here:
