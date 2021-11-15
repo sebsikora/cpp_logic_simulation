@@ -27,6 +27,8 @@ Let's dive-in and make something.
 Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
 
 ```cpp
+// ms_jk_ff.cpp
+
 #include "c_core.h" 	// Include core simulation functionality
 
 int main () {
@@ -132,6 +134,48 @@ int main () {
 		
 	return 0;
 }
+```
+Compile and run:
+```
+user@home:~/cpp_logic_simulation$ g++ -pthread -Wall -g -O3 -I sim_src/core/ -I sim_src/utils/ -I void_thread_pool/ sim_src/core/c_gate.cpp sim_src/core/c_m_engine.cpp sim_src/core/c_probe.cpp sim_src/core/c_sim.cpp sim_src/core/c_clock.cpp sim_src/core/c_comp.cpp sim_src/core/c_device.cpp sim_src/utils/utils.cpp sim_src/utils/strnatcmp.cpp void_thread_pool/void_thread_pool.cpp ms_jk_ff.cpp -o ms_jk_ff
+user@home:~/cpp_logic_simulation$ ./ms_jk_ff
+
+---------------------------- Simulation build started.  ----------------------------
+
+(Simulation verbose output is off)
+
+--------------------------- Simulation build completed.  ---------------------------
+
+----------------------------- Simulation started (8).  -----------------------------
+
+(Simulation verbose output is off)
+
+-------------------------------------- Done.  --------------------------------------
+
+---------------------------------- Probed values. ----------------------------------
+
+Probe: q - test_sim:nand_7
+T: 0   T
+T: 1   T
+T: 2   F
+T: 3   F
+T: 4   T
+T: 5   T
+T: 6   F
+T: 7   F
+
+Probe: not_q - test_sim:nand_8
+T: 0   F
+T: 1   F
+T: 2   T
+T: 3   T
+T: 4   F
+T: 5   F
+T: 6   T
+T: 7   T
+
+-------------------------------------- Done.  --------------------------------------
+
 ```
 
 Demos.
