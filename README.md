@@ -27,7 +27,7 @@ Let's dive-in and make something.
 Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
 
 ```cpp
-#include "c_core.h" 			// Include core simulation functionality
+#include "c_core.h" 	// Include core simulation functionality
 
 int main () {
 	bool verbose = false;
