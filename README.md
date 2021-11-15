@@ -22,7 +22,7 @@ A basic example.
 
 Let's dive-in and make something.
 
-[Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state, and to this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics\)), of which there are a number of types. The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop. Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
+[Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state, and to this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics)), of which there are a number of types. The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop. Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
 
 ```cpp
 #include "c_core.h" 			// Include core simulation functionality
