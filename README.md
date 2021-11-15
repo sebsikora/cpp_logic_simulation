@@ -46,8 +46,8 @@ int main () {
 	sim.AddGate("nand_6", "nand", {"input_0", "input_1"});
 	sim.AddGate("nand_7", "nand", {"input_0", "input_1"});
 	sim.AddGate("nand_8", "nand", {"input_0", "input_1"});
-	sim.AddGate("not_1", "not");			// For not Gates we can leave off the in pins vector,
-											// it will be replaced by a single "input".
+	sim.AddGate("not_1", "not");		// For not Gates we can leave off the in pins vector,
+						// it will be replaced by a single "input".
 ...
 ```
 
