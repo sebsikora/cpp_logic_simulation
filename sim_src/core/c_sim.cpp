@@ -421,13 +421,15 @@ void Simulation::PrintAndClearMessages() {
 }
 
 void Simulation::PrintErrorMessages(void) {
-	std::cout << GenerateHeader("Error messages.") << std::endl << std::endl;
-	int index = 0;
-	for (const auto& this_build_error : m_error_messages) {
-		std::cout << "Error " << std::to_string(index) << " : " << this_build_error << std::endl;
-		index ++;
+	if (m_error_messages.size() > 0) {
+		std::cout << GenerateHeader("Error messages.") << std::endl << std::endl;
+		int index = 0;
+		for (const auto& this_build_error : m_error_messages) {
+			std::cout << "Error " << std::to_string(index) << " : " << this_build_error << std::endl;
+			index ++;
+		}
+		std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
 	}
-	std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
 }
 
 std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vector<std::string> const& probe_names) {

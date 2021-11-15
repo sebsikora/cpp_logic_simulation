@@ -268,6 +268,84 @@ void N_Bit_Counter::Build() {
 	//~MakeProbable();
 }
 
+N_Bit_Counter_AIO::N_Bit_Counter_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+ : Device(parent_device_pointer, name, "n_bit_counter_all_in_one", {"run", "clk"}, {}, monitor_on, input_default_states) {
+	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
+	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	if (width < 2) {
+		width = 2;
+	}
+	m_width = width;
+	ConfigureOutputs();
+	Build();
+	Stabilise();
+ }
+
+void N_Bit_Counter_AIO::ConfigureOutputs() {
+	std::vector<std::string> outputs_to_create;
+	for (int index = 0; index < m_width; index ++) {
+		std::string output_identifier = "q_" + std::to_string(index);
+		outputs_to_create.push_back(output_identifier);
+	}
+	CreateOutPins(outputs_to_create);
+}
+
+void N_Bit_Counter_AIO::Build() {
+	for (int i = 0; i < m_width; i ++) {
+		// Each 1-bit slice comprises an and gate and a jk flip-flop.
+		// And Gate.
+		AddGate("and_" + std::to_string(i), "and", {"input_0", "input_1"}, false);
+		// JK flip-flop.
+		// Not Gate.
+		AddGate("not_" + std::to_string(i), "not");
+		// 2 x 3-input Nand Gate.
+		AddGate("nand_" + std::to_string(i) + "_0", "nand", {"input_0", "input_1", "input_2"}, false);
+		AddGate("nand_" + std::to_string(i) + "_1", "nand", {"input_0", "input_1", "input_2"}, false);
+		// 6 x 2-input Nand Gate.
+		AddGate("nand_" + std::to_string(i) + "_2", "nand", {"input_0", "input_1"}, false);
+		AddGate("nand_" + std::to_string(i) + "_3", "nand", {"input_0", "input_1"}, false);
+		AddGate("nand_" + std::to_string(i) + "_4", "nand", {"input_0", "input_1"}, false);
+		AddGate("nand_" + std::to_string(i) + "_5", "nand", {"input_0", "input_1"}, false);
+		AddGate("nand_" + std::to_string(i) + "_6", "nand", {"input_0", "input_1"}, false);
+		AddGate("nand_" + std::to_string(i) + "_7", "nand", {"input_0", "input_1"}, false);
+		
+		Connect("clk", "nand_" + std::to_string(i) + "_0", "input_2");
+		Connect("clk", "nand_" + std::to_string(i) + "_1", "input_2");
+		Connect("clk", "not_" + std::to_string(i));
+		
+		if (i == 0) {
+			Connect("run", "and_" + std::to_string(i), "input_1");
+			Connect("true", "and_" + std::to_string(i), "input_0");
+		} else {
+			ChildConnect("nand_" + std::to_string(i - 1) + "_6", {"and_" + std::to_string(i), "input_0"});
+			ChildConnect("and_" + std::to_string(i - 1), {"and_" + std::to_string(i), "input_1"});
+		}
+		
+		ChildConnect("and_" + std::to_string(i), {"nand_" + std::to_string(i) + "_0", "input_1"});
+		ChildConnect("and_" + std::to_string(i), {"nand_" + std::to_string(i) + "_1", "input_1"});
+		ChildConnect("not_" + std::to_string(i), {"nand_" + std::to_string(i) + "_4", "input_1"});
+		ChildConnect("not_" + std::to_string(i), {"nand_" + std::to_string(i) + "_5", "input_1"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_0", {"nand_" + std::to_string(i) + "_2", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_1", {"nand_" + std::to_string(i) + "_3", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_2", {"nand_" + std::to_string(i) + "_3", "input_1"});
+		ChildConnect("nand_" + std::to_string(i) + "_3", {"nand_" + std::to_string(i) + "_2", "input_1"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_2", {"nand_" + std::to_string(i) + "_4", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_3", {"nand_" + std::to_string(i) + "_5", "input_0"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_4", {"nand_" + std::to_string(i) + "_6", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_5", {"nand_" + std::to_string(i) + "_7", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_6", {"nand_" + std::to_string(i) + "_7", "input_1"});
+		ChildConnect("nand_" + std::to_string(i) + "_7", {"nand_" + std::to_string(i) + "_6", "input_1"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_6", {"nand_" + std::to_string(i) + "_1", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_7", {"nand_" + std::to_string(i) + "_0", "input_0"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_6", {"parent", "q_" + std::to_string(i)});
+	}
+}
+
 N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk", "not_clear"}, {}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
@@ -543,6 +621,96 @@ void N_Bit_Register::Build() {
 	// Add device to top-level probable list.
 	//~MakeProbable();
 	//~PrintInPinStates();
+}
+
+N_Bit_Register_ASC_AIO::N_Bit_Register_ASC_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+ : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "not_c", "clk"}, {}, monitor_on, input_default_states) {
+	 m_bus_width = width;
+	 ConfigureBusses(input_default_states);
+	 Build();
+	 Stabilise();
+ }
+ 
+void N_Bit_Register_ASC_AIO::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
+	std::vector<std::string> inputs_to_create;
+	for (int index = 0; index < m_bus_width; index ++) {
+		std::string input_identifier = "d_in_" + std::to_string(index);
+		inputs_to_create.push_back(input_identifier);
+	}
+	std::vector<std::string> outputs_to_create;
+	for (int index = 0; index < m_bus_width; index ++) {
+		std::string output_identifier = "d_out_" + std::to_string(index);
+		outputs_to_create.push_back(output_identifier);
+	}
+	CreateInPins(inputs_to_create, input_default_states);
+	CreateOutPins(outputs_to_create);
+}
+
+void N_Bit_Register_ASC_AIO::Build() {
+	// Shared Not gate to generate not_clr.
+	AddGate("not_clr", "not");
+	Connect("clr", "not_clr");
+	
+	for (int i = 0; i < m_bus_width; i ++) {
+		// Each slice contains a Not Gate, 2-input And Gate, a 3-input And Gate and a 2-input Or Gate in the front-end.
+		AddGate("not_" + std::to_string(i) + "_0", "not");
+		AddGate("and_" + std::to_string(i) + "_0", "and", {"input_0", "input_1"});
+		AddGate("and_" + std::to_string(i) + "_1", "and", {"input_0", "input_1", "input_2"});
+		AddGate("or_" + std::to_string(i) + "_0", "or", {"input_0", "input_1"});
+		
+		// Front-end connections.
+		Connect("load", "and_" + std::to_string(i) + "_1", "input_0");							// 'load' connections.
+		Connect("load", "and_" + std::to_string(i) + "_0", "input_0");
+		Connect("clr", "or_" + std::to_string(i) + "_0", "input_1");							// 'clr' connection.
+		ChildConnect("not_clr", {"and_" + std::to_string(i) + "_1", "input_1"});				// 'not_clr' connection.
+		Connect("d_in_" + std::to_string(i), "and_" + std::to_string(i) + "_1", "input_2");		// 'd_in_i' connections.
+		Connect("d_in_" + std::to_string(i), "not_" + std::to_string(i) + "_0");
+		
+		ChildConnect("not_" + std::to_string(i) + "_0", {"and_" + std::to_string(i) + "_0", "input_1"});	// 'not_d_in_i' connection.
+		ChildConnect("and_" + std::to_string(i) + "_0", {"or_" + std::to_string(i) + "_0", "input_0"});
+		
+		// Then the components for the jk flip-flop.
+		AddGate("nand_" + std::to_string(i) + "_0", "nand", {"input_0", "input_1", "input_2"});
+		AddGate("nand_" + std::to_string(i) + "_1", "nand", {"input_0", "input_1", "input_2"});
+		AddGate("nand_" + std::to_string(i) + "_2", "nand", {"input_0", "input_1"});
+		AddGate("nand_" + std::to_string(i) + "_3", "nand", {"input_0", "input_1", "input_2"});
+		AddGate("nand_" + std::to_string(i) + "_4", "nand", {"input_0", "input_1"});
+		AddGate("nand_" + std::to_string(i) + "_5", "nand", {"input_0", "input_1"});
+		AddGate("nand_" + std::to_string(i) + "_6", "nand", {"input_0", "input_1"});
+		AddGate("nand_" + std::to_string(i) + "_7", "nand", {"input_0", "input_1", "input_2"});
+		AddGate("not_" + std::to_string(i) + "_1", "not");
+		
+		// Then the flip-flop connections.
+		ChildConnect("and_" + std::to_string(i) + "_1", {"nand_" + std::to_string(i) + "_0", "input_1"});		// Drives 'j'
+		ChildConnect("or_" + std::to_string(i) + "_0", {"nand_" + std::to_string(i) + "_1", "input_1"});		// Drives 'k'
+		
+		ChildConnect("nand_" + std::to_string(i) + "_0", {"nand_" + std::to_string(i) + "_2", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_1", {"nand_" + std::to_string(i) + "_3", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_2", {"nand_" + std::to_string(i) + "_3", "input_1"});
+		ChildConnect("nand_" + std::to_string(i) + "_3", {"nand_" + std::to_string(i) + "_2", "input_1"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_2", {"nand_" + std::to_string(i) + "_4", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_3", {"nand_" + std::to_string(i) + "_5", "input_0"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_4", {"nand_" + std::to_string(i) + "_6", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_5", {"nand_" + std::to_string(i) + "_7", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_6", {"nand_" + std::to_string(i) + "_7", "input_1"});
+		ChildConnect("nand_" + std::to_string(i) + "_7", {"nand_" + std::to_string(i) + "_6", "input_1"});
+		
+		ChildConnect("nand_" + std::to_string(i) + "_6", {"nand_" + std::to_string(i) + "_1", "input_0"});
+		ChildConnect("nand_" + std::to_string(i) + "_7", {"nand_" + std::to_string(i) + "_0", "input_0"});
+		
+		Connect("clk", "nand_" + std::to_string(i) + "_0", "input_2");
+		Connect("clk", "nand_" + std::to_string(i) + "_1", "input_2");
+		Connect("clk", "not_" + std::to_string(i) + "_1");
+		ChildConnect("not_" + std::to_string(i) + "_1", {"nand_" + std::to_string(i) + "_4", "input_1"});
+		ChildConnect("not_" + std::to_string(i) + "_1", {"nand_" + std::to_string(i) + "_5", "input_1"});
+		
+		Connect("not_c", "nand_" + std::to_string(i) + "_3", "input_2");
+		Connect("not_c", "nand_" + std::to_string(i) + "_7", "input_2");
+		
+		ChildConnect("nand_" + std::to_string(i) + "_6", {"parent", "d_out_" + std::to_string(i)});
+	}
 }
 
 NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 

@@ -265,6 +265,7 @@ class Simulation : public Device {
 		void PurgeGlobalComponent(std::string const& target_component_full_name);
 		bool GetSearchingFlag(void);
 		void SetSearchingFlag(bool value);
+		void PrintErrorMessages(void);
 		void PrintAndClearMessages(void);
 		
 		VoidThreadPool* m_thread_pool_pointer = 0;
@@ -274,7 +275,6 @@ class Simulation : public Device {
 	private:
 		void EnableTerminalRawIO(const bool raw_flag);
 		char CheckForCharacter(void);
-		void PrintErrorMessages(void);
 		
 		std::vector<Component*> m_probable_components;
 		std::vector<probe_descriptor> m_probes;

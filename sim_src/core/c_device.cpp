@@ -19,13 +19,13 @@
 
 */
 
-#include <string>					// std::string.
-#include <iostream>					// std::cout, std::endl.
+#include <string>					// std::string
+#include <iostream>					// std::cout, std::endl
 #include <vector>					// std::vector
 #include <algorithm>				// std::sort
 #include <thread>					// std::thread
-#include <mutex>					// std::mutex, std::unique_lock.
-#include <functional>				// std::bind.
+#include <mutex>					// std::mutex, std::unique_lock
+#include <functional>				// std::bind
 
 #include "c_core.h"					// Core simulator functionality
 #include "utils.h"
@@ -210,6 +210,7 @@ void Device::Stabilise() {
 		std::string message = "\n" + GenerateHeader("Simulation build completed.") + "\n";
 		m_top_level_sim_pointer->LogMessage(message);
 		m_top_level_sim_pointer->PrintAndClearMessages();
+		m_top_level_sim_pointer->PrintErrorMessages();
 	}
 }
 

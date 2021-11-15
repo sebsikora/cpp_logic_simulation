@@ -17,7 +17,7 @@ GOL_SRC:=$(wildcard sim_src/devices/game_of_life/*.cpp)
 MD_SRC:=$(wildcard sim_src/magic_devices/*.cpp)
 
 naked_jk_ff_demo: naked_jk_ff_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
-	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
+	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
 
 jk_ff_demo: jk_ff_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
@@ -29,6 +29,9 @@ jk_ff_aspc_demo: jk_ff_aspc_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(T
 	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
 
 n_bit_counter_demo: n_bit_counter_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
+
+n_bit_counter_aio_demo: n_bit_counter_aio_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
 
 n_bit_counter_asc_demo: n_bit_counter_asc_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
@@ -46,6 +49,9 @@ n_bit_decoder_demo: n_bit_decoder_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SR
 n_bit_register_demo: n_bit_register_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
 
+n_bit_register_asc_aio_demo: n_bit_register_asc_aio_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
+
 n_x_1_bit_mux_demo: n_x_1_bit_mux_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
 
@@ -53,6 +59,9 @@ n_x_m_bit_mux_demo: n_x_m_bit_mux_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SR
 	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
 
 timing_test: timing_test.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
+
+timing_test_3: timing_test_3.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CC) $(LIBS) $(CFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $@.cpp -o $@
 
 really_long_inverter_chain: really_long_inverter_chain.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
