@@ -44,7 +44,7 @@ int main () {
 	//					std::string const& component_type,                - EG and, or, nand, nor, xor, not.
 	//					std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
 	//					bool monitor_on);                                 - If flag = true changes in input or output
-	//                                                                      states are reported in the console.
+	//					                                                    states are reported in the console.
 	sim.AddGate("nand_1", "nand", {"input_0", "input_1", "input_2"}, false);
 	sim.AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"});
 	sim.AddGate("nand_3", "nand", {"input_0", "input_1"});
