@@ -97,6 +97,27 @@ int main () {
 	
 	sim.ChildConnect("nand_7", {"nand_2", "input_1"});
 	sim.ChildConnect("nand_8", {"nand_1", "input_1"});
+
+	// Tie the 'j' and 'k' in pins to the Simulation's 'true' hidden in pin.
+	sim.Connect("true", "nand_1", "input_0");
+	sim.Connect("true", "nand_2", "input_0");
+	
+	// If we want to probe any Components, we need to add them to the Simulation's probable Devices list.
+	sim.ChildMakeProbable("nand_7");
+	sim.ChildMakeProbable("nand_8");
+	
+	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
+	sim.Stabilise();
+
+	sim.AddProbe("q", "test_sim:nand_7", {"output"}, "clock_0");
+	sim.AddProbe("not_q", "test_sim:nand_8", {"output"}, "clock_0");
+	
+	// Run the simulation for 8 ticks. We should see the two probed out pins opposite
+	// and toggling every other tick on the true->false clock transition.
+	sim.Run(8, true, verbose, print_probe_samples);
+		
+	return 0;
+}	
 ...
 ```
 
