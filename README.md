@@ -45,7 +45,7 @@ int main () {
 	//         std::string const& component_type,                - EG and, or, nand, nor, xor, not.
 	//         std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
 	//         bool monitor_on);                                 - If flag = true changes in input or output
-	//					                                                    states are reported on the console.
+	//					                       states are reported on the console.
 	sim.AddGate("nand_1", "nand", {"input_0", "input_1", "input_2"}, false);
 	sim.AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"});
 	sim.AddGate("nand_3", "nand", {"input_0", "input_1"});
@@ -63,7 +63,7 @@ int main () {
 	// AddClock(std::string const& clock_name,                   - Unique identifier string.
 	//          std::vector<bool> const& toggle_pattern,         - Sequence of false/true values through which the Clock will step.
 	//          bool monitor_on);                                - If flag = true changes in input or output
-	//					                            states are reported on the console.
+	//					                       states are reported on the console.
 	sim.AddClock("clock_0", {false, true}, monitor_on);
 	
 	sim.ClockConnect("clock_0", "nand_1", "input_2");	// Connect the clock where needed.
