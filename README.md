@@ -123,13 +123,27 @@ int main () {
 	// Once we have added all our devices, call the simulation's Stabilise()
 	// method to finish setup.
 	sim.Stabilise();
-
+	
+	// Simulation's member function
+	// AddProbe(std::string const& probe_name,                       - The out pin name from which we wish to form a connection.
+	//          std::string const& target_component_full_name,       - The unique identifier of the sibling component to which we wish to connect.
+	//          std::vector<std::string> const& target_pin_names,    - The sibling Component in pin or parent Device out pin to which we wish to connect.
+	//          std::string const& trigger_clock_name,               - ...
+	//          probe_configuration probe_conf);                     - ...
+	//
 	sim.AddProbe("q", "test_sim:nand_7", {"output"}, "clock_0");
 	sim.AddProbe("not_q", "test_sim:nand_8", {"output"}, "clock_0");
 	
 	// Run the simulation for 8 ticks. We should see the two probed out pins opposite
 	// and toggling every other tick on the true->false clock transition.
 	bool print_probe_samples = true;
+	// Simulation's member function
+	// Run(int number_of_ticks,                 - ...
+	//     bool restart_flag,                   - ...
+	//     bool verbose_output_flag,            - ...
+	//     bool print_probes_flag,              - ...
+	//     bool force_no_messages);             - ...
+	//
 	sim.Run(8, true, verbose, print_probe_samples);
 		
 	return 0;
