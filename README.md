@@ -63,7 +63,8 @@ int main () {
 	// AddClock(std::string const& clock_name,                   - Unique identifier string.
 	//          std::vector<bool> const& toggle_pattern,         - Sequence of false/true values through which the Clock will step.
 	//          bool monitor_on);                                - If flag = true changes in input or output states are reported on the console.
-	sim.AddClock("clock_0", {false, true}, monitor_on);
+	//
+	sim.AddClock("clock_0", {false, true}, false);
 	
 	sim.ClockConnect("clock_0", "nand_1", "input_2");	// Connect the clock where needed.
 	sim.ClockConnect("clock_0", "nand_2", "input_2");	// For master-slave JK flip-flop clock connects to both master 
@@ -126,6 +127,7 @@ int main () {
 	
 	// Run the simulation for 8 ticks. We should see the two probed out pins opposite
 	// and toggling every other tick on the true->false clock transition.
+	bool print_probe_samples = true;
 	sim.Run(8, true, verbose, print_probe_samples);
 		
 	return 0;
