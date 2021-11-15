@@ -73,7 +73,7 @@ int main () {
 	// Interconnect components.
 	//
 	// Parent Device's member function
-	// ChildConnect(std::string const& target_child_component_name,
+	// ChildConnect(std::string const& target_child_component_name,  - The name of the Component from which we wish to form a connection.
 	//              std::vector<std::string> const& connection_parameters);
 	//
 	//            - Typically three connection parameters,
