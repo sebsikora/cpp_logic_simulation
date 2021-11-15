@@ -15,6 +15,29 @@ cpp_logic_simulation is a framework for constructing simulations of digital [log
 
 A further sub-class of the *Device* class is the *Simulation* class, which lies at the top-level and contains the *Device* or *Devices* that comprise the logic circuit. The *Simulation* can also contain members of two additional utility classes, *Clocks* to drive the contained logic circuit, and *Probes*, which can sample and display the logical state of any inputs or outputs of *Gates* or *Devices* within the circuit. The state of the logic circuit is recalculated automatically in response to any state changes at it's inputs. However, sampling and displaying state using *Probes* can only occur while the simulation is 'running', with the circuit driven via one or more *Clocks*.
 
+To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/magic_devices/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
+
+A basic example.
+-------------------------
+
+Let's dive-in and make something.
+
+[Sequential]() digital logic circuits need a way to store state, and to this they typically make use of [flip-flops](), of which there are a number of types. The most versatile type is the [JK flip-flop](), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop. Let's make a [master-slave JK flip-flop](), as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for completely static sequential circuits.
+
+```cpp
+#include "c_core.h"
+
+int main () {
+	bool verbose = false;
+	
+	Simulation sim("test_sim", verbose);
+	
+...
+``` 
+
+Demos.
+-------------------------
+
 A number of demonstrations using the framework to simulate simple logic circuits are provided here. To run the simulations with maximally verbose output, detailing all of state changes within the circuit at runtime, set the `verbose` and `monitor_on` flags towards the top of the demos to `true`.
 * `jk_ff_demo.cpp` - A master-slave JK flip-flop - [more](./sim_doc/jk_ff_demo.md)
 * `4_bit_counter_demo.cpp` - A simple 4-bit counter - [more](./sim_doc/4_bit_counter_demo.md)
@@ -26,8 +49,6 @@ A number of demonstrations using the framework to simulate simple logic circuits
 
 A significantly more complex demonstration is also provided here.
 * `n_x_n_game_of_life_demo.cpp` - An N by N implementation of Conway's [Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) with a toroidal boundary condition at the edges.
-
-To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/magic_devices/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
 
 Some *MagicDevice* demonstrations are provided here.
 * `simple_rom_demo.cpp` - A ROM IC that pulls data from a text file - [more](./sim_doc/simple_rom_demo.md)
