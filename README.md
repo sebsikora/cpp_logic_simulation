@@ -40,10 +40,11 @@ int main () {
 	//
 	// https://www.electronics-tutorials.ws/sequential/seq_2.html
 	//
-	// Simulation's member function AddGate(std::string const& component_name,
-	//					std::string const& component_type,                - EG and, or, nand, nor, xor, not.
-	//					std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
-	//					bool monitor_on);                                 - If flag = true changes in input or output
+	// Simulation's member function
+	// AddGate(std::string const& component_name,
+	//         std::string const& component_type,                - EG and, or, nand, nor, xor, not.
+	//         std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
+	//         bool monitor_on);                                 - If flag = true changes in input or output
 	//					                                                    states are reported in the console.
 	sim.AddGate("nand_1", "nand", {"input_0", "input_1", "input_2"}, false);
 	sim.AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"});
