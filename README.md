@@ -25,13 +25,13 @@ Let's dive-in and make something.
 [Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state, and to this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics\)), of which there are a number of types. The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop. Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
 
 ```cpp
-#include "c_core.h" 								// Include core simulation functionality
+#include "c_core.h" 			// Include core simulation functionality
 
 int main () {
 	bool verbose = false;
 	
-	Simulation sim("test_sim", verbose);			// Instantiate top-level Simulation Device.
-													// verbose flag turns off 'verbose output' for now.
+	Simulation sim("test_sim", verbose);	// Instantiate top-level Simulation Device.
+											// verbose flag turns off 'verbose output' for now.
 	
 	// Master-slave JK flip-flop can be assembled from 8 NAND gates, two three-input and six two-input,
 	// and a single inverter (NOT gate) as shown here:
@@ -46,8 +46,8 @@ int main () {
 	sim.AddGate("nand_6", "nand", {"input_0", "input_1"});
 	sim.AddGate("nand_7", "nand", {"input_0", "input_1"});
 	sim.AddGate("nand_8", "nand", {"input_0", "input_1"});
-	sim.AddGate("not_1", "not");					// For not Gates we can leave off the in pins vector,
-													// it will be replaced by a single "input".
+	sim.AddGate("not_1", "not");			// For not Gates we can leave off the in pins vector,
+											// it will be replaced by a single "input".
 ...
 ```
 
