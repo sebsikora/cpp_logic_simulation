@@ -111,7 +111,7 @@ int main () {
 	// Connect(std::string const& origin_pin_name,           - The out pin name from which we wish to form a connection.
 	//         std::string const& target_component_name,     - The name of the sibling component to which we wish to connect.
 	//         std::string const& target_pin_name);          - The sibling Component in pin or parent Device out pin to which
-	//                                                  we wish to connect.
+	//                                                         we wish to connect.
 	//
 	sim.Connect("true", "nand_1", "input_0");
 	sim.Connect("true", "nand_2", "input_0");
