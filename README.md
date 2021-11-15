@@ -69,15 +69,15 @@ int main () {
 	// ChildConnect(std::string const& target_child_component_name,
 	//              std::vector<std::string> const& connection_parameters);
 	//
-	//              - Typically three connection parameters,
-	//                std::string origin_pin_name       - The out pin name from which we wish to form a connection.
-	//                std::string target_component_name - The name of the sibling component to which we wish to connect,
-	//                                                    use "parent" to connect to an out pin of the parent Device.
-	//                std::string target_pin_name       - The sibling Component in pin or parent Device out pin to which
-	//                                                    we wish to connect.
+	//            - Typically three connection parameters,
+	//              std::string origin_pin_name       - The out pin name from which we wish to form a connection.
+	//              std::string target_component_name - The name of the sibling component to which we wish to connect,
+	//                                                  use "parent" to connect to an out pin of the parent Device.
+	//              std::string target_pin_name       - The sibling Component in pin or parent Device out pin to which
+	//                                                  we wish to connect.
 	//
-	//              - Gates can omit the first connection parameter as they only have a single
-	//                out pin "output".
+	//            - Gates can omit the first connection parameter as they only have a single
+	//              out pin "output".
 	//
 	sim.ChildConnect("nand_1", {"nand_3", "input_0"});
 	sim.ChildConnect("nand_2", {"nand_4", "input_0"});
