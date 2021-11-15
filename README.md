@@ -22,7 +22,9 @@ A basic example.
 
 Let's dive-in and make something.
 
-[Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state, and to this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics)), of which there are a number of types. The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop. Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
+[Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state, and to this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics)), of which there are a number of types. The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
+
+Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
 
 ```cpp
 #include "c_core.h" 			// Include core simulation functionality
@@ -48,6 +50,13 @@ int main () {
 	sim.AddGate("nand_8", "nand", {"input_0", "input_1"});
 	sim.AddGate("not_1", "not");		// For not Gates we can leave off the in pins vector,
 						// it will be replaced by a single "input".
+	
+	sim.AddClock("clock_0", {false, true}, monitor_on);		// Add a Clock.
+	
+	sim.ClockConnect("clock_0", "nand_1", "input_2");		// Connect the clock where needed.
+	sim.ClockConnect("clock_0", "nand_2", "input_2");		// For master-slave JK flip-flop clock connects
+	sim.ClockConnect("clock_0", "not_1", "input");			// to both master input NAND gates and NOT gate
+															// that feeds slave input NAND gates.
 ...
 ```
 
