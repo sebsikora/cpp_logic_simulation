@@ -45,7 +45,7 @@ int main () {
 	sim.ChildConnect("and_0", {"or_0", "input_0"});
 
 	sim.Connect("false", "or_0", "input_1");       // Cannot have un-driven in pins so we connect Simulation's
-	sim.Connect("false", "not_0");                    utility pin "false" to both.
+	sim.Connect("false", "not_0");                 // utility pin "false" to both.
 	
 	sim.Stabilise();                               // Once we have assembled circuit call Stabilise().
 	
