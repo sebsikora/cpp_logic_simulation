@@ -17,7 +17,7 @@ A further sub-class of the *Device* class is the *Simulation* class, which lies 
 
 To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/magic_devices/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
 
-A basic example.
+Basic example.
 -------------------------
 
 Let's dive-in and make something.
@@ -29,7 +29,7 @@ The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip
 ```cpp
 // sr_latch_demo.cpp
 
-#include "c_core.h"
+#include "c_core.h"                                // Core simulation functionality.
 
 int main () {
 	bool verbose_flag = false;                     // Set = true to see 'verbose output' on the console.
@@ -113,6 +113,47 @@ CHILDSET: Component test_sim:not_0:not terminal input set to T
 CHILDSET: Component test_sim:not_0:not terminal input set to F
   MONITOR: test_sim:not_0:not output terminal set to T
 user@home:~/cpp_logic_simulation$
+```
+
+Great! We can see the output responding to the changing input stimulus as we should expect for an SR latch.
+
+Encapsulating our circuit in a *Device*.
+-------------------------
+
+We can take our circuit and encapsulate it in a *Device*. We can then easily instantiate multiple copies of it in a single simulation, or re-use it elsewhere.
+
+First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe how to assemble our new device.
+
+```cpp
+// sr_latch.h
+
+#include "c_core.h"					// Core simulator functionality
+
+class SR_Latch : public Device {
+	public:
+		SR_Latch(Device* parent_device_pointer, std::string name,
+		         bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		void Build(void);
+};
+```
+
+```cpp
+// sr_latch.cpp
+
+#include "c_core.h"					// Core simulator functionality
+
+SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+ : Device(parent_device_pointer, name, "sr_latch", {"S", "R"}, {"Out"}, monitor_on, input_default_states) {
+	// Following base class constructor (Device), we call the below overridden Build() method to populate the
+	// specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	Build();
+	Stabilise();
+}
+
+void SR_Latch::Build() {
+	
+}
+
 ```
 
 The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
