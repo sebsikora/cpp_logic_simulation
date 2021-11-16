@@ -173,17 +173,18 @@ We use our newly defined *Device* in much the same way as in the previous exampl
 ```cpp
 // sr_latch_demo_2.cpp
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_core.h"           // Core simulator functionality
+#include "sr_latch.h"         // Our new SR_latch device.
 
 int main () {
 	bool verbose = false;
 	bool monitor_on = true;
 	
 	Simulation sim("test_sim", verbose);
-	sim.AddComponent(new SR_Latch(&sim, "test_latch", monitor_on, {{"S", false}, {"R", false}}));
-	sim.Stabilise();
-
 	
+	sim.AddComponent(new SR_Latch(&sim, "test_latch", monitor_on, {{"S", false}, {"R", false}}));
+	
+	sim.Stabilise();
 }
 ```
 
