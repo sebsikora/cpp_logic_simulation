@@ -122,7 +122,7 @@ Encapsulating our circuit in a *Device*.
 
 We can take our circuit and encapsulate it in a *Device*. We can then easily instantiate multiple copies of it in a single simulation, or re-use it elsewhere.
 
-First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe how to assemble our new device. The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as we require.
+First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe how to assemble our new device. The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as we needed.
 
 ```cpp
 // sr_latch.h
