@@ -42,18 +42,40 @@ int main () {
 Blah blah blah...
 ```cpp
 ...
-	sim.Connect("false", "or_0", "input_1");
-	sim.Connect("false", "not_0");
-	
 	sim.ChildConnect("or_0", {"and_0", "input_0"});
 	sim.ChildConnect("not_0", {"and_0", "input_1"});
 	sim.ChildConnect("and_0", {"or_0", "input_0"});
+
+	sim.Connect("false", "or_0", "input_1");
+	sim.Connect("false", "not_0");
 	
 	sim.Stabilise();
 ...
 ```
 Blah blah blah...
-
+```cpp
+	// S input is or_0:input_1, R input is not_0:input
+	// Output is and_0:output
+	
+	// 'Set'.
+	sim.ChildSet("or_0", "input_1", true);
+	sim.ChildSet("or_0", "input_1", false);
+	
+	// 'Reset'.
+	sim.ChildSet("not_0", "input", true);
+	sim.ChildSet("not_0", "input", false);
+	
+	// 'Set'.
+	sim.ChildSet("or_0", "input_1", true);
+	sim.ChildSet("or_0", "input_1", false);
+	
+	// 'Reset'.
+	sim.ChildSet("not_0", "input", true);
+	sim.ChildSet("not_0", "input", false);
+	
+	return 0;
+}
+```
 
 The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
 
