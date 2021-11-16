@@ -40,8 +40,8 @@ int main () {
 ...
 ```
 Blah blah blah...
-```
-...cpp
+```cpp
+...
 	sim.Connect("false", "or_0", "input_1");
 	sim.Connect("false", "not_0");
 	
