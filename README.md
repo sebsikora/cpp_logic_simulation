@@ -32,16 +32,27 @@ The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip
 int main () {
 	bool verbose_flag = false;
 	Simulation sim("sr_latch", verbose_flag);
-
+	
 	bool monitor_flag = true;
 	sim.AddGate("or_0", "or", {"input_0", "input_1"}, monitor_flag);
 	sim.AddGate("and_0", "and", {"input_0", "input_1"}, monitor_flag);
 	sim.AddGate("not_0", "not", monitor_flag);
-
+...
+```
+Blah blah blah...
+```
+...cpp
+	sim.Connect("false", "or_0", "input_1");
+	sim.Connect("false", "not_0");
+	
+	sim.ChildConnect("or_0", {"and_0", "input_0"});
+	sim.ChildConnect("not_0", {"and_0", "input_1"});
+	sim.ChildConnect("and_0", {"or_0", "input_0"});
+	
 	sim.Stabilise();
 ...
 ```
-
+Blah blah blah...
 
 
 The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
