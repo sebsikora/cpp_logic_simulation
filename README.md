@@ -27,6 +27,8 @@ Let's dive-in and make something.
 The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip-flop_(electronics)#SR_AND-OR_latch). An SR latch can be made in a number of ways, but the pedagologically simplest version comprises one AND gate, one OR gate, and an inverter (NOT 'gate'). Let's simulate one.
 
 ```cpp
+// sr_latch_demo.cpp
+
 #include "c_core.h"
 
 int main () {
@@ -80,6 +82,48 @@ Blah blah blah...
 	
 	return 0;
 }
+```
+Compile and run:
+```
+user@home:~/cpp_logic_simulation$ g++ -pthread -Wall -g -O3 -I sim_src/core/ -I sim_src/utils/ -I void_thread_pool/ sim_src/core/c_gate.cpp sim_src/core/c_m_engine.cpp sim_src/core/c_probe.cpp sim_src/core/c_sim.cpp sim_src/core/c_clock.cpp sim_src/core/c_comp.cpp sim_src/core/c_device.cpp sim_src/utils/utils.cpp sim_src/utils/strnatcmp.cpp void_thread_pool/void_thread_pool.cpp sr_latch_demo.cpp -o sr_latch_demo
+user@home:~/cpp_logic_simulation$ ./sr_latch_demo
+
+---------------------------- Simulation build started.  ----------------------------
+
+(Simulation verbose output is off)
+  MONITOR: test_sim:or_0:or output terminal set to F
+  MONITOR: test_sim:not_0:not output terminal set to T
+
+--------------------------- Simulation build completed.  ---------------------------
+
+CHILDSET: Component test_sim:or_0:or terminal input_1 set to T
+  MONITOR: test_sim:or_0:or output terminal set to T
+  MONITOR: test_sim:and_0:and output terminal set to T
+
+CHILDSET: Component test_sim:or_0:or terminal input_1 set to F
+
+CHILDSET: Component test_sim:not_0:not terminal input set to T
+  MONITOR: test_sim:not_0:not output terminal set to F
+  MONITOR: test_sim:and_0:and output terminal set to F
+  MONITOR: test_sim:or_0:or output terminal set to F
+
+CHILDSET: Component test_sim:not_0:not terminal input set to F
+  MONITOR: test_sim:not_0:not output terminal set to T
+
+CHILDSET: Component test_sim:or_0:or terminal input_1 set to T
+  MONITOR: test_sim:or_0:or output terminal set to T
+  MONITOR: test_sim:and_0:and output terminal set to T
+
+CHILDSET: Component test_sim:or_0:or terminal input_1 set to F
+
+CHILDSET: Component test_sim:not_0:not terminal input set to T
+  MONITOR: test_sim:not_0:not output terminal set to F
+  MONITOR: test_sim:and_0:and output terminal set to F
+  MONITOR: test_sim:or_0:or output terminal set to F
+
+CHILDSET: Component test_sim:not_0:not terminal input set to F
+  MONITOR: test_sim:not_0:not output terminal set to T
+user@home:~/cpp_logic_simulation$
 ```
 
 The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
