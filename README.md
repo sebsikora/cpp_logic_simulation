@@ -137,6 +137,8 @@ class SR_Latch : public Device {
 };
 ```
 
+Next we create the class implementation for our device. The Base *Device* class constructor is called first, among other things will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() which will create the SR latch circuit more-or-less as in the previous example.
+
 ```cpp
 // sr_latch.cpp
 
@@ -151,21 +153,22 @@ SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor
 }
 
 void SR_Latch::Build() {
-	sim.AddGate("or_0", "or", {"input_0", "input_1"}, false);
-	sim.AddGate("and_0", "and", {"input_0", "input_1"});
-	sim.AddGate("not_0", "not");
+	AddGate("or_0", "or", {"input_0", "input_1"}, false);   // monitor_on flag can be omitted,
+	AddGate("and_0", "and", {"input_0", "input_1"});        // defaults to false.
+	AddGate("not_0", "not");
 	
-	sim.ChildConnect("or_0", {"and_0", "input_0"});
-	sim.ChildConnect("not_0", {"and_0", "input_1"});
-	sim.ChildConnect("and_0", {"or_0", "input_0"});
-	
-	sim.Connect("S", "or_0", "input_1");
-	sim.Connect("R", "not_0");
-	sim.ChildConnect("and_0", {"parent", "Out"});
+	ChildConnect("or_0", {"and_0", "input_0"});
+	ChildConnect("not_0", {"and_0", "input_1"});
+	ChildConnect("and_0", {"or_0", "input_0"});
+
+	Connect("S", "or_0", "input_1");                        // device's Connect() member function used
+	Connect("R", "not_0");                                  // to connect parent in pin to child in pin.
+	ChildConnect("and_0", {"parent", "Out"});               // ChildConnect() member function used to connect
+	                                                        // child out pin to parent out pin.
 }
 ```
 
-Blah blah blah.
+We use our newly defined *Device* in much the same way as in the previous example.
 
 ```cpp
 // sr_latch_demo_2.cpp
@@ -173,174 +176,15 @@ Blah blah blah.
 #include "c_core.h"			// Core simulator functionality
 
 int main () {
-	
-}
-```
-
-The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
-
-Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
-
-```cpp
-// ms_jk_ff.cpp
-
-#include "c_core.h" 	// Include core simulation functionality
-
-int main () {
 	bool verbose = false;
+	bool monitor_on = true;
 	
-	Simulation sim("test_sim", verbose);	// Instantiate top-level Simulation Device.
-						// verbose flag turns off 'verbose output' for now.
-	
-	// Master-slave JK flip-flop can be assembled from 8 NAND gates, two three-input and six two-input,
-	// and a single inverter (NOT gate) as shown here:
-	//
-	// https://www.electronics-tutorials.ws/sequential/seq_2.html
-	//
-	// Simulation's member function
-	// AddGate(std::string const& component_name,                - Unique identifier string.
-	//         std::string const& component_type,                - EG and, or, nand, nor, xor, not.
-	//         std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
-	//         bool monitor_on);                                 - If flag = true changes in input or output
-	//					                       states are reported on the console.
-	sim.AddGate("nand_1", "nand", {"input_0", "input_1", "input_2"}, false);
-	sim.AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"});
-	sim.AddGate("nand_3", "nand", {"input_0", "input_1"});
-	sim.AddGate("nand_4", "nand", {"input_0", "input_1"});
-	sim.AddGate("nand_5", "nand", {"input_0", "input_1"});
-	sim.AddGate("nand_6", "nand", {"input_0", "input_1"});
-	sim.AddGate("nand_7", "nand", {"input_0", "input_1"});
-	sim.AddGate("nand_8", "nand", {"input_0", "input_1"});
-	sim.AddGate("not_1", "not");	// For not Gates we can leave off the in pins vector,
-					// it will be replaced by a single "input".
-	
-	// Add a Clock.
-	//
-	// Simulation's member function
-	// AddClock(std::string const& clock_name,                   - Unique identifier string.
-	//          std::vector<bool> const& toggle_pattern,         - Sequence of false/true values through which the Clock will step.
-	//          bool monitor_on);                                - If flag = true changes in input or output states are reported on the console.
-	//
-	sim.AddClock("clock_0", {false, true}, false);
-	
-	sim.ClockConnect("clock_0", "nand_1", "input_2");	// Connect the clock where needed.
-	sim.ClockConnect("clock_0", "nand_2", "input_2");	// For master-slave JK flip-flop clock connects to both master 
-	sim.ClockConnect("clock_0", "not_1", "input");		// input NAND gates and NOT gate that feeds slave input NAND gates.
-	// Interconnect components.
-	//
-	// Parent Device's member function
-	// ChildConnect(std::string const& target_child_component_name,  - The name of the Component from which we wish to form a connection.
-	//              std::vector<std::string> const& connection_parameters);
-	//
-	//            - Typically three connection parameters,
-	//              std::string origin_pin_name       - The out pin name from which we wish to form a connection.
-	//              std::string target_component_name - The name of the sibling component to which we wish to connect, use "parent"
-	//                                                  to connect to an out pin of the parent Device.
-	//              std::string target_pin_name       - The sibling Component in pin or parent Device out pin to which we wish to connect.
-	//
-	//            - Gates can omit the first connection parameter as they only have a single
-	//              out pin "output".
-	//
-	sim.ChildConnect("nand_1", {"nand_3", "input_0"});
-	sim.ChildConnect("nand_2", {"nand_4", "input_0"});
-	sim.ChildConnect("nand_3", {"nand_4", "input_1"});
-	sim.ChildConnect("nand_4", {"nand_3", "input_1"});
-	
-	sim.ChildConnect("nand_3", {"nand_5", "input_0"});
-	sim.ChildConnect("nand_4", {"nand_6", "input_0"});
-
-	sim.ChildConnect("not_1", {"nand_5", "input_1"});
-	sim.ChildConnect("not_1", {"nand_6", "input_1"});
-	
-	sim.ChildConnect("nand_5", {"nand_7", "input_0"});
-	sim.ChildConnect("nand_6", {"nand_8", "input_0"});
-	sim.ChildConnect("nand_7", {"nand_8", "input_1"});
-	sim.ChildConnect("nand_8", {"nand_7", "input_1"});
-	
-	sim.ChildConnect("nand_7", {"nand_2", "input_1"});
-	sim.ChildConnect("nand_8", {"nand_1", "input_1"});
-
-	// Tie the 'j' and 'k' in pins to the Simulation's 'true' utility pin.
-	//
-	// Simulation's member function
-	// Connect(std::string const& origin_pin_name,           - The out pin name from which we wish to form a connection.
-	//         std::string const& target_component_name,     - The unique identifier of the sibling component to which we wish to connect.
-	//         std::string const& target_pin_name);          - The sibling Component in pin or parent Device out pin to which we wish to connect.
-	//
-	sim.Connect("true", "nand_1", "input_0");
-	sim.Connect("true", "nand_2", "input_0");
-	
-	// Once we have added all our devices, call the simulation's Stabilise()
-	// method to finish setup.
+	Simulation sim("test_sim", verbose);
+	sim.AddComponent(new SR_Latch(&sim, "test_latch", monitor_on, {{"S", false}, {"R", false}}));
 	sim.Stabilise();
+
 	
-	// Simulation's member function
-	// AddProbe(std::string const& probe_name,                       - The out pin name from which we wish to form a connection.
-	//          std::string const& target_component_full_name,       - The unique identifier of the sibling component to which we wish to connect.
-	//          std::vector<std::string> const& target_pin_names,    - The sibling Component in pin or parent Device out pin to which we wish to connect.
-	//          std::string const& trigger_clock_name,               - ...
-	//          probe_configuration probe_conf);                     - ...
-	//
-	sim.AddProbe("q", "test_sim:nand_7", {"output"}, "clock_0");
-	sim.AddProbe("not_q", "test_sim:nand_8", {"output"}, "clock_0");
-	
-	// Run the simulation for 8 ticks. We should see the two probed out pins opposite
-	// and toggling every other tick on the true->false clock transition.
-	bool print_probe_samples = true;
-	// Simulation's member function
-	// Run(int number_of_ticks,                 - ...
-	//     bool restart_flag,                   - ...
-	//     bool verbose_output_flag,            - ...
-	//     bool print_probes_flag,              - ...
-	//     bool force_no_messages);             - ...
-	//
-	sim.Run(8, true, verbose, print_probe_samples);
-		
-	return 0;
 }
-```
-Compile and run:
-```
-user@home:~/cpp_logic_simulation$ g++ -pthread -Wall -g -O3 -I sim_src/core/ -I sim_src/utils/ -I void_thread_pool/ sim_src/core/c_gate.cpp sim_src/core/c_m_engine.cpp sim_src/core/c_probe.cpp sim_src/core/c_sim.cpp sim_src/core/c_clock.cpp sim_src/core/c_comp.cpp sim_src/core/c_device.cpp sim_src/utils/utils.cpp sim_src/utils/strnatcmp.cpp void_thread_pool/void_thread_pool.cpp ms_jk_ff.cpp -o ms_jk_ff
-user@home:~/cpp_logic_simulation$ ./ms_jk_ff
-
----------------------------- Simulation build started.  ----------------------------
-
-(Simulation verbose output is off)
-
---------------------------- Simulation build completed.  ---------------------------
-
------------------------------ Simulation started (8).  -----------------------------
-
-(Simulation verbose output is off)
-
--------------------------------------- Done.  --------------------------------------
-
----------------------------------- Probed values. ----------------------------------
-
-Probe: q - test_sim:nand_7
-T: 0   T
-T: 1   T
-T: 2   F
-T: 3   F
-T: 4   T
-T: 5   T
-T: 6   F
-T: 7   F
-
-Probe: not_q - test_sim:nand_8
-T: 0   F
-T: 1   F
-T: 2   T
-T: 3   T
-T: 4   F
-T: 5   F
-T: 6   T
-T: 7   T
-
--------------------------------------- Done.  --------------------------------------
-
-user@home:~/cpp_logic_simulation$
 ```
 
 Demos.
