@@ -39,11 +39,20 @@ int main () {
 	sim.AddGate("or_0", "or", {"input_0", "input_1"}, monitor_flag);
 	sim.AddGate("and_0", "and", {"input_0", "input_1"}, monitor_flag);
 	sim.AddGate("not_0", "not", monitor_flag);
+
+	// Simulation::AddGate member function.
+	// AddGate(std::string const& component_name,                - Unique identifier string.
+	//         std::string const& component_type,                - EG and, or, nand, nor, xor, not.
+	//         std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
+	//         bool monitor_on);                                 - If flag = true changes at output pins
+	//                                                             are displayed on the console.
 ...
 ...
 ```
 
 First, we instantiate the top-level Simulation, passing the constructor two arguments, a name string and a boolean flag that indicates whether we want the simulator to display 'verbose' messages on the console.
+
+Next, we call the Simulation's AddGate() function to create the three logic gates we require. 
 
 ```cpp
 ...
