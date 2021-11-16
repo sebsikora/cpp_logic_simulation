@@ -26,6 +26,7 @@ Let's dive-in and make something.
 
 The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip-flop_(electronics)#SR_AND-OR_latch). An SR latch can be made in a number of ways, but the pedagologically simplest version comprises one AND gate, one OR gate, and an inverter (NOT 'gate'). Let's simulate one.
 
+
 ```cpp
 // sr_latch_demo.cpp
 
