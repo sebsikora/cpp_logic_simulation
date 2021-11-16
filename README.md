@@ -22,7 +22,29 @@ A basic example.
 
 Let's dive-in and make something.
 
-[Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state, and to this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics)), of which there are a number of types. The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
+[Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state. To this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics)), a bi-stable logic circuit that can 'latch' in one of two states, of which there are a number of types.
+
+The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip-flop_(electronics)#SR_AND-OR_latch). An SR latch can be made in a number of ways, but the pedagologically simplest version comprises one AND gate, one OR gate, and an inverter (NOT 'gate'). Let's simulate one.
+
+```cpp
+#include "c_core.h"
+
+int main () {
+	bool verbose_flag = false;
+	Simulation sim("sr_latch", verbose_flag);
+
+	bool monitor_flag = true;
+	sim.AddGate("or_0", "or", {"input_0", "input_1"}, monitor_flag);
+	sim.AddGate("and_0", "and", {"input_0", "input_1"}, monitor_flag);
+	sim.AddGate("not_0", "not", monitor_flag);
+
+	sim.Stabilise();
+...
+```
+
+
+
+The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
 
 Let's make a master-slave JK flip-flop, as they are completely insensitive to the duration of input signals (*edge-triggered*) and as-such are an ideal building-block for use in completely static sequential circuits.
 
@@ -114,11 +136,6 @@ int main () {
 	//
 	sim.Connect("true", "nand_1", "input_0");
 	sim.Connect("true", "nand_2", "input_0");
-	
-	// If we want to probe any Components, we need to add them to the Simulation's probable Devices list.
-	// We refer to them via their unique identifier string.
-	sim.ChildMakeProbable("nand_7");
-	sim.ChildMakeProbable("nand_8");
 	
 	// Once we have added all our devices, call the simulation's Stabilise()
 	// method to finish setup.
