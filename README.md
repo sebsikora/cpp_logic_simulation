@@ -32,64 +32,38 @@ The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip
 #include "c_core.h"
 
 int main () {
-	bool verbose_flag = false;
+	bool verbose_flag = false;                     // Set = true to see 'verbose output' on the console.
 	Simulation sim("sr_latch", verbose_flag);
 	
-	bool monitor_flag = true;
+	bool monitor_flag = true;                      // monitor_flag = true to print changes at out pins on the console.
 	sim.AddGate("or_0", "or", {"input_0", "input_1"}, monitor_flag);
 	sim.AddGate("and_0", "and", {"input_0", "input_1"}, monitor_flag);
-	sim.AddGate("not_0", "not", monitor_flag);
-
-	// Simulation::AddGate member function.
-	// AddGate(std::string const& component_name,                - Unique identifier string.
-	//         std::string const& component_type,                - EG and, or, nand, nor, xor, not.
-	//         std::vector<std::string> const& in_pin_names,     - Number of inputs determined from names.
-	//         bool monitor_on);                                 - If flag = true changes at output pins
-	//                                                             are displayed on the console.
-...
-...
-```
-
-First, we instantiate the top-level Simulation, passing the constructor two arguments, a name string and a boolean flag that indicates whether we want the simulator to display 'verbose' messages on the console.
-
-Next, we call the Simulation's AddGate() function to create the three logic gates we require. 
-
-```cpp
-...
-...
+	sim.AddGate("not_0", "not", monitor_flag);     // NOT gate only has one in pin "input" by default.
+	
 	sim.ChildConnect("or_0", {"and_0", "input_0"});
 	sim.ChildConnect("not_0", {"and_0", "input_1"});
 	sim.ChildConnect("and_0", {"or_0", "input_0"});
 
-	sim.Connect("false", "or_0", "input_1");
-	sim.Connect("false", "not_0");
+	sim.Connect("false", "or_0", "input_1");       // Cannot have un-driven in pins so we connect Simulation's
+	sim.Connect("false", "not_0");                    utility pin "false" to both.
 	
-	sim.Stabilise();
-...
-...
-```
-
-Blah blah blah...
-
-```cpp
-...
-...
-	// S input is or_0:input_1, R input is not_0:input
-	// Output is and_0:output
+	sim.Stabilise();                               // Once we have assembled circuit call Stabilise().
 	
-	// 'Set'.
+	// or_0:input_1 is 'S', not_0:input is 'R', and_0:output is 'Output'
+	
+	// 'S' (set).
 	sim.ChildSet("or_0", "input_1", true);
 	sim.ChildSet("or_0", "input_1", false);
 	
-	// 'Reset'.
+	// 'R' (reset).
 	sim.ChildSet("not_0", "input", true);
 	sim.ChildSet("not_0", "input", false);
 	
-	// 'Set'.
+	// 'S' (set).
 	sim.ChildSet("or_0", "input_1", true);
 	sim.ChildSet("or_0", "input_1", false);
 	
-	// 'Reset'.
+	// 'R' (reset).
 	sim.ChildSet("not_0", "input", true);
 	sim.ChildSet("not_0", "input", false);
 	
