@@ -122,7 +122,7 @@ Encapsulating our circuit in a *Device*.
 
 We can take our circuit and encapsulate it in a *Device*. We can then easily instantiate multiple copies of it in a single simulation, or re-use it elsewhere.
 
-First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe how to assemble our new device.
+First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe how to assemble our new device. The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as we require.
 
 ```cpp
 // sr_latch.h
@@ -177,14 +177,32 @@ We use our newly defined *Device* in much the same way as in the previous exampl
 #include "sr_latch.h"         // Our new SR_latch device.
 
 int main () {
-	bool verbose = false;
-	bool monitor_on = true;
 	
+	bool verbose = false;
 	Simulation sim("test_sim", verbose);
 	
-	sim.AddComponent(new SR_Latch(&sim, "test_latch", monitor_on, {{"S", false}, {"R", false}}));
+	bool monitor_on = true
+	sim.AddComponent(new SR_Latch(&sim, "sr_latch", monitor_on, {{"S", false}, {"R", false}}));
 	
 	sim.Stabilise();
+	
+	// 'Set'.
+	sim.ChildSet("sr_latch", "S", true);
+	sim.ChildSet("sr_latch", "S", false);
+	
+	// 'Reset'.
+	sim.ChildSet("sr_latch", "R", true);
+	sim.ChildSet("sr_latch", "R", false);
+	
+	// 'Set'.
+	sim.ChildSet("sr_latch", "S", true);
+	sim.ChildSet("sr_latch", "S", false);
+	
+	// 'Reset'.
+	sim.ChildSet("sr_latch", "R", true);
+	sim.ChildSet("sr_latch", "R", false);
+	
+	return 0;
 }
 ```
 
