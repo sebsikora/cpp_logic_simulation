@@ -29,7 +29,7 @@ The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip
 ```cpp
 // sr_latch_demo.cpp
 
-#include "c_core.h"                                // Core simulation functionality.
+#include "c_core.h"			// Core simulator functionality
 
 int main () {
 	bool verbose_flag = false;                     // Set = true to see 'verbose output' on the console.
@@ -127,12 +127,12 @@ First of all we need to create a class definition for our device, inheriting fro
 ```cpp
 // sr_latch.h
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_core.h"			// Core simulator functionality
 
 class SR_Latch : public Device {
 	public:
-		SR_Latch(Device* parent_device_pointer, std::string name,
-		         bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
+		SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on = false,
+		         std::vector<state_descriptor> input_default_states = {});
 		void Build(void);
 };
 ```
@@ -140,7 +140,7 @@ class SR_Latch : public Device {
 ```cpp
 // sr_latch.cpp
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_core.h"			// Core simulator functionality
 
 SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "sr_latch", {"S", "R"}, {"Out"}, monitor_on, input_default_states) {
@@ -151,9 +151,30 @@ SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor
 }
 
 void SR_Latch::Build() {
+	sim.AddGate("or_0", "or", {"input_0", "input_1"}, false);
+	sim.AddGate("and_0", "and", {"input_0", "input_1"});
+	sim.AddGate("not_0", "not");
+	
+	sim.ChildConnect("or_0", {"and_0", "input_0"});
+	sim.ChildConnect("not_0", {"and_0", "input_1"});
+	sim.ChildConnect("and_0", {"or_0", "input_0"});
+	
+	sim.Connect("S", "or_0", "input_1");
+	sim.Connect("R", "not_0");
+	sim.ChildConnect("and_0", {"parent", "Out"});
+}
+```
+
+Blah blah blah.
+
+```cpp
+// sr_latch_demo_2.cpp
+
+#include "c_core.h"			// Core simulator functionality
+
+int main () {
 	
 }
-
 ```
 
 The most versatile type is the [JK flip-flop](https://www.electronics-tutorials.ws/sequential/seq_2.html), known as a 'universal' flip-flop as it can be configured to behave as any other kind of flip-flop.
