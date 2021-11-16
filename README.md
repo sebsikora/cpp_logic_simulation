@@ -137,7 +137,7 @@ class SR_Latch : public Device {
 };
 ```
 
-Next we create the class implementation for our device. The Base *Device* class constructor is called first, among other things will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() which will create the SR latch circuit more-or-less as in the previous example.
+Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() which will create the SR latch circuit more-or-less as in the previous example.
 
 ```cpp
 // sr_latch.cpp
