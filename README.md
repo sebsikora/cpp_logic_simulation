@@ -271,6 +271,148 @@ CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to F
 user@home:~/cpp_logic_simulation$
 ```
 
+Great! We can see our SR latch device out pin responding to the changing in pin stimulus as we should expect for an SR latch, just as before.
+
+Nesting *Devices*.
+-------------------------
+
+Things get even more interesting once we start nesting *Devices* and *Gates* to form ever-more sophisticated logic circuits. Now that we have defined our SR latch device, let's use it to make a further example. We can combine both *Devices* and *Gates* in the same circuit, by doing this we will make a quad SR latch with an additional collective reset.
+
+```cpp
+// quad_sr_latch.h
+
+#include "c_core.h"			// Core simulator functionality
+
+class Quad_SR_Latch : public Device {
+	public:
+		Quad_SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on = false,
+		              std::vector<state_descriptor> input_default_states = {});
+		void Build(void);
+};
+```
+
+N
+
+```cpp
+// quad_sr_latch.cpp
+
+#include "c_core.h"	             // Core simulator functionality
+#include "sr_latch.h"            // Previously defined SR latch device
+#include "quad_sr_latch.h"       // Our new device
+
+Quad_SR_Latch::Quad_SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+ : Device(parent_device_pointer, name, "quad_sr_latch", {"S_0", "S_1", "S_2", "S_3", "R_0", "R_1", "R_2", "R_3", "R_All"}, {"Out_0", "Out_1", "Out_2", "Out_3"}, monitor_on, input_default_states) {
+	// Following base class constructor (Device), we call the below overridden Build() method to populate the
+	// specific device, then we call the base Stabilise() method to configure initial internal device component state.
+	Build();
+	Stabilise();
+}
+
+void Quad_SR_Latch::Build() {
+	// Instantiate latches.
+	//
+	sim.AddComponent(new SR_Latch(&sim, "sr_latch_0"));
+	sim.AddComponent(new SR_Latch(&sim, "sr_latch_1"));
+	sim.AddComponent(new SR_Latch(&sim, "sr_latch_2"));
+	sim.AddComponent(new SR_Latch(&sim, "sr_latch_3"));
+
+	// Instantiate gates.
+	//
+	sim.AddGate("or_0", "or", {"input_0", "input_1"});
+	sim.AddGate("or_1", "or", {"input_0", "input_1"});
+	sim.AddGate("or_2", "or", {"input_0", "input_1"});
+	sim.AddGate("or_3", "or", {"input_0", "input_1"});
+
+	Connect("S_0", "sr_latch_0", "S");
+	Connect("S_1", "sr_latch_1", "S");
+	Connect("S_2", "sr_latch_2", "S");
+	Connect("S_3", "sr_latch_3", "S");
+	Connect("R_0", "or_0", "input_0");
+	Connect("R_1", "or_1", "input_0");
+	Connect("R_2", "or_2", "input_0");
+	Connect("R_3", "or_3", "input_0");
+	Connect("R_All", "or_0", "input_1");
+	Connect("R_All", "or_1", "input_1");
+	Connect("R_All", "or_2", "input_1");
+	Connect("R_All", "or_3", "input_1");
+	
+	ChildConnect("or_0", {"sr_latch_0", "R"});
+	ChildConnect("or_1", {"sr_latch_1", "R"});
+	ChildConnect("or_2", {"sr_latch_2", "R"});
+	ChildConnect("or_3", {"sr_latch_3", "R"});
+	
+	ChildConnect("sr_latch_0", {"Out", "parent", "Out_0"});
+	ChildConnect("sr_latch_1", {"Out", "parent", "Out_1"});
+	ChildConnect("sr_latch_2", {"Out", "parent", "Out_2"});
+	ChildConnect("sr_latch_3", {"Out", "parent", "Out_3"});
+}
+```
+
+Blah...
+
+```cpp
+// quad_sr_latch_demo.cpp
+
+#include "c_core.h"           // Core simulator functionality
+#include "quad_sr_latch.h"    ./ Our new Quad_SR_latch device.
+
+int main () {
+	bool verbose = false;
+	Simulation sim("test_sim", verbose);
+
+	// Add an quad SR latch device to the top-level simulation.
+	//
+	bool monitor_on = true
+	sim.AddComponent(new Quad_SR_Latch(&sim, "quad_sr_latch", monitor_on, {{"S_0", false}, {"S_1", false}, {"S_2", false}, {"S_3", false}, {"R_0", false}, {"R_1", false}, {"R_2", false}, {"R_3", false}, {"R_All", false}}));
+	
+	sim.Stabilise();          // Settle initial device internal and external states.
+	
+	// 'Reset All'.
+	sim.ChildSet("quad_sr_latch", "R_All", true);
+	sim.ChildSet("quad_sr_latch", "R_All", false);
+	
+	// 'Set 0'.
+	sim.ChildSet("quad_sr_latch", "S_0", true);
+	sim.ChildSet("quad_sr_latch", "S_0", false);
+
+	// 'Set 1'.
+	sim.ChildSet("quad_sr_latch", "S_1", true);
+	sim.ChildSet("quad_sr_latch", "S_1", false);
+
+	// 'Set 2'.
+	sim.ChildSet("quad_sr_latch", "S_2", true);
+	sim.ChildSet("quad_sr_latch", "S_2", false);
+
+	// 'Set 3'.
+	sim.ChildSet("quad_sr_latch", "S_3", true);
+	sim.ChildSet("quad_sr_latch", "S_3", false);
+	
+	// 'Reset 0'.
+	sim.ChildSet("quad_sr_latch", "R_0", true);
+	sim.ChildSet("quad_sr_latch", "R_0", false);
+
+	// 'Reset 1'.
+	sim.ChildSet("quad_sr_latch", "R_1", true);
+	sim.ChildSet("quad_sr_latch", "R_1", false);
+
+	// 'Reset 2'.
+	sim.ChildSet("quad_sr_latch", "R_2", true);
+	sim.ChildSet("quad_sr_latch", "R_2", false);
+
+	// 'Reset 3'.
+	sim.ChildSet("quad_sr_latch", "R_3", true);
+	sim.ChildSet("quad_sr_latch", "R_3", false);
+	
+	return 0;
+}
+```
+
+Compile and run:
+
+```
+user@home:~/cpp_logic_simulation$
+```
+
 Demos.
 -------------------------
 
