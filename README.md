@@ -313,18 +313,18 @@ Quad_SR_Latch::Quad_SR_Latch(Device* parent_device_pointer, std::string name, bo
 void Quad_SR_Latch::Build() {
 	// Instantiate latches.
 	//
-	sim.AddComponent(new SR_Latch(&sim, "sr_latch_0"));
-	sim.AddComponent(new SR_Latch(&sim, "sr_latch_1"));
-	sim.AddComponent(new SR_Latch(&sim, "sr_latch_2"));
-	sim.AddComponent(new SR_Latch(&sim, "sr_latch_3"));
-
+	AddComponent(new SR_Latch(this, "sr_latch_0"));
+	AddComponent(new SR_Latch(this, "sr_latch_1"));
+	AddComponent(new SR_Latch(this, "sr_latch_2"));
+	AddComponent(new SR_Latch(this, "sr_latch_3"));
+	
 	// Instantiate gates.
 	//
-	sim.AddGate("or_0", "or", {"input_0", "input_1"});
-	sim.AddGate("or_1", "or", {"input_0", "input_1"});
-	sim.AddGate("or_2", "or", {"input_0", "input_1"});
-	sim.AddGate("or_3", "or", {"input_0", "input_1"});
-
+	AddGate("or_0", "or", {"input_0", "input_1"});
+	AddGate("or_1", "or", {"input_0", "input_1"});
+	AddGate("or_2", "or", {"input_0", "input_1"});
+	AddGate("or_3", "or", {"input_0", "input_1"});
+	
 	Connect("S_0", "sr_latch_0", "S");
 	Connect("S_1", "sr_latch_1", "S");
 	Connect("S_2", "sr_latch_2", "S");
@@ -364,7 +364,7 @@ int main () {
 
 	// Add an quad SR latch device to the top-level simulation.
 	//
-	bool monitor_on = true
+	bool monitor_on = true;
 	sim.AddComponent(new Quad_SR_Latch(&sim, "quad_sr_latch", monitor_on, {{"S_0", false}, {"S_1", false},
 	                 {"S_2", false}, {"S_3", false}, {"R_0", false}, {"R_1", false}, {"R_2", false},{"R_3", false}, {"R_All", false}}));
 	
