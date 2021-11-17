@@ -35,19 +35,26 @@ int main () {
 	bool verbose_flag = false;                     // Set = true to see 'verbose output' on the console.
 	Simulation sim("sr_latch", verbose_flag);
 	
+	// Instantiate gates.
+	//
 	bool monitor_flag = true;                      // monitor_flag = true to print changes at out pins on the console.
 	sim.AddGate("or_0", "or", {"input_0", "input_1"}, monitor_flag);
 	sim.AddGate("and_0", "and", {"input_0", "input_1"}, monitor_flag);
 	sim.AddGate("not_0", "not", monitor_flag);     // NOT gate only has one in pin "input" by default.
-	
+
+	// Interconnect gates.
+	//
 	sim.ChildConnect("or_0", {"and_0", "input_0"});
 	sim.ChildConnect("not_0", {"and_0", "input_1"});
 	sim.ChildConnect("and_0", {"or_0", "input_0"});
 
+	// Connections from simulation.
+	//
 	sim.Connect("false", "or_0", "input_1");       // Cannot have un-driven in pins so we connect Simulation's
 	sim.Connect("false", "not_0");                 // utility pin "false" to both.
 	
-	sim.Stabilise();                               // Once we have assembled circuit call Stabilise().
+	sim.Stabilise();                               // Once we have assembled circuit call Stabilise() to
+	                                               // settle simulation state.
 	
 	// or_0:input_1 is 'S', not_0:input is 'R', and_0:output is 'Output'
 	
@@ -118,11 +125,11 @@ user@home:~/cpp_logic_simulation$
 Great! We can see the output responding to the changing input stimulus as we should expect for an SR latch.
 
 Encapsulating our circuit in a *Device*.
--------------------------
+-------------------------------------------
 
 We can take our circuit and encapsulate it in a *Device*. We can then easily instantiate multiple copies of it in a single simulation, or re-use it elsewhere.
 
-First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe how to assemble our new device. The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as needed.
+First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe the assembly of our new device. The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as needed.
 
 ```cpp
 // sr_latch.h
@@ -137,7 +144,7 @@ class SR_Latch : public Device {
 };
 ```
 
-Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() which will create the SR latch circuit more-or-less as in the previous example.
+Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() to create the internal SR latch circuit, and then finally Stabilise() to settle the device's initial internal and external state. Notice that defining the assembly of the internal circuit is very similar to the previous example. Connections are made from the device's in pins to the in pins of child gates, and from the out pins of child gates to the device's out pin.
 
 ```cpp
 // sr_latch.cpp
@@ -153,14 +160,20 @@ SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor
 }
 
 void SR_Latch::Build() {
+	// Instantiate gates.
+	//
 	AddGate("or_0", "or", {"input_0", "input_1"}, false);   // monitor_on flag can be omitted,
 	AddGate("and_0", "and", {"input_0", "input_1"});        // defaults to false.
 	AddGate("not_0", "not");
-	
+
+	// Child gate interconnections.
+	//
 	ChildConnect("or_0", {"and_0", "input_0"});
 	ChildConnect("not_0", {"and_0", "input_1"});
 	ChildConnect("and_0", {"or_0", "input_0"});
 
+	// Connections from parent device in pins & to parent device out pin.
+	//
 	Connect("S", "or_0", "input_1");                        // device's Connect() member function used
 	Connect("R", "not_0");                                  // to connect parent in pin to child in pin.
 	ChildConnect("and_0", {"parent", "Out"});               // ChildConnect() member function used to connect
@@ -168,7 +181,7 @@ void SR_Latch::Build() {
 }
 ```
 
-We use our newly defined *Device* in much the same way as in the previous example.
+We use our newly defined device in much the same way as in the previous example. In this case we use the simulation's AddComponent() member function to instantiate an SR latch device and add a pointer to it to our simulation's list of child components. Note we pass a reference to the top-level simulation as the first argument to the device constructor. We can instantiate the device with desired states applied at it's in pins via the optional in_pin_default_state argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
 
 ```cpp
 // sr_latch_demo_2.cpp
@@ -204,6 +217,12 @@ int main () {
 	
 	return 0;
 }
+```
+
+Compile and run:
+
+```
+user@home:~/cpp_logic_simulation$
 ```
 
 Demos.
