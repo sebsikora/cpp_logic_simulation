@@ -356,7 +356,7 @@ void Quad_SR_Latch::Build() {
 }
 ```
 
-
+Quick demo:
 
 ```cpp
 // quad_sr_latch_demo.cpp
