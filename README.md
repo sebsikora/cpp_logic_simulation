@@ -365,7 +365,8 @@ int main () {
 	// Add an quad SR latch device to the top-level simulation.
 	//
 	bool monitor_on = true
-	sim.AddComponent(new Quad_SR_Latch(&sim, "quad_sr_latch", monitor_on, {{"S_0", false}, {"S_1", false}, {"S_2", false}, {"S_3", false}, {"R_0", false}, {"R_1", false}, {"R_2", false}, {"R_3", false}, {"R_All", false}}));
+	sim.AddComponent(new Quad_SR_Latch(&sim, "quad_sr_latch", monitor_on, {{"S_0", false}, {"S_1", false},
+	                 {"S_2", false}, {"S_3", false}, {"R_0", false}, {"R_1", false}, {"R_2", false},{"R_3", false}, {"R_All", false}}));
 	
 	sim.Stabilise();          // Settle initial device internal and external states.
 	
