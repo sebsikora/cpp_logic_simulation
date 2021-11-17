@@ -369,41 +369,41 @@ int main () {
 	
 	sim.Stabilise();          // Settle initial device internal and external states.
 	
-	// 'Reset All'.
-	sim.ChildSet("quad_sr_latch", "R_All", true);
-	sim.ChildSet("quad_sr_latch", "R_All", false);
+	// 'Reset 0'.
+	sim.ChildSet("quad_sr_latch", "R_0", true);
+	sim.ChildSet("quad_sr_latch", "R_0", false);
+	
+	// 'Reset 1'.
+	sim.ChildSet("quad_sr_latch", "R_1", true);
+	sim.ChildSet("quad_sr_latch", "R_1", false);
+	
+	// 'Reset 2'.
+	sim.ChildSet("quad_sr_latch", "R_2", true);
+	sim.ChildSet("quad_sr_latch", "R_2", false);
+	
+	// 'Reset 3'.
+	sim.ChildSet("quad_sr_latch", "R_3", true);
+	sim.ChildSet("quad_sr_latch", "R_3", false);
 	
 	// 'Set 0'.
 	sim.ChildSet("quad_sr_latch", "S_0", true);
 	sim.ChildSet("quad_sr_latch", "S_0", false);
-
+	
 	// 'Set 1'.
 	sim.ChildSet("quad_sr_latch", "S_1", true);
 	sim.ChildSet("quad_sr_latch", "S_1", false);
-
+	
 	// 'Set 2'.
 	sim.ChildSet("quad_sr_latch", "S_2", true);
 	sim.ChildSet("quad_sr_latch", "S_2", false);
-
+	
 	// 'Set 3'.
 	sim.ChildSet("quad_sr_latch", "S_3", true);
 	sim.ChildSet("quad_sr_latch", "S_3", false);
 	
-	// 'Reset 0'.
-	sim.ChildSet("quad_sr_latch", "R_0", true);
-	sim.ChildSet("quad_sr_latch", "R_0", false);
-
-	// 'Reset 1'.
-	sim.ChildSet("quad_sr_latch", "R_1", true);
-	sim.ChildSet("quad_sr_latch", "R_1", false);
-
-	// 'Reset 2'.
-	sim.ChildSet("quad_sr_latch", "R_2", true);
-	sim.ChildSet("quad_sr_latch", "R_2", false);
-
-	// 'Reset 3'.
-	sim.ChildSet("quad_sr_latch", "R_3", true);
-	sim.ChildSet("quad_sr_latch", "R_3", false);
+	// 'Reset All'.
+	sim.ChildSet("quad_sr_latch", "R_All", true);
+	sim.ChildSet("quad_sr_latch", "R_All", false);
 	
 	return 0;
 }
