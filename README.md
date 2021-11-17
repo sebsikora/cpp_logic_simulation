@@ -181,7 +181,11 @@ void SR_Latch::Build() {
 }
 ```
 
-We use our newly defined device in much the same way as in the previous example. In this case we use the simulation's AddComponent() member function to instantiate an SR latch device and add a pointer to it to our simulation's list of child components. Note we pass a reference to the top-level simulation as the first argument to the device constructor. We can instantiate the device with desired states applied at it's in pins via the optional in_pin_default_state argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
+We use our newly defined device in much the same way as in the previous example. In this case we use the simulation's AddComponent() member function to instantiate an SR latch device and add a pointer to it to our simulation's list of child components.
+
+Note we pass a reference to the top-level simulation as the first argument to the device constructor.
+
+We can instantiate the device with desired states applied at it's in pins via the optional in_pin_default_state argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
 
 ```cpp
 // sr_latch_demo_2.cpp
