@@ -356,7 +356,7 @@ Blah...
 // quad_sr_latch_demo.cpp
 
 #include "c_core.h"           // Core simulator functionality
-#include "quad_sr_latch.h"    ./ Our new Quad_SR_latch device.
+#include "quad_sr_latch.h"    // Our new Quad_SR_latch device.
 
 int main () {
 	bool verbose = false;
