@@ -496,6 +496,10 @@ user@home:~/cpp_logic_simulation$
 
 Great!
 
+Note - Part of solving the initial device internal state involves assigning random states to all *Gate* inputs. The consequence of this is that all latches and flip-flops will settle with random initial out pin state (as with real devices).
+
+You may see slightly different output on the console when you run the simulation depending on which SR latches settle with out pin state = true.
+
 Demos.
 -------------------------
 
