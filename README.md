@@ -280,6 +280,8 @@ Things get even more interesting once we start nesting *Devices* and *Gates* to 
 
 We can combine both *Devices* and *Gates* in the same circuit, by doing this we will make a quad SR latch with an additional collective reset.
 
+As before, we create a class definition for our device that inherits from the base *Device* class.
+
 ```cpp
 // quad_sr_latch.h
 
@@ -293,7 +295,11 @@ class Quad_SR_Latch : public Device {
 };
 ```
 
-N
+We then create our device class prototype. Note that apart from the type string and list of pin names passed to the base *Device* constructor the device constructor is the same as for our single SR latch.
+
+In our Build() member function, note that we pass the 'this' pointer as the parent_device_pointer first argument to each SR latch device constructor.
+
+We then use the Connect() member function to connect the parent device's in pins to it's child components' in pins, and the ChildConnect() member function to connect child components' out pins to the parent device's out pins.
 
 ```cpp
 // quad_sr_latch.cpp
@@ -350,7 +356,7 @@ void Quad_SR_Latch::Build() {
 }
 ```
 
-Blah...
+
 
 ```cpp
 // quad_sr_latch_demo.cpp
