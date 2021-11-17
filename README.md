@@ -276,7 +276,9 @@ Great! We can see our SR latch device out pin responding to the changing in pin 
 Nesting *Devices*.
 -------------------------
 
-Things get even more interesting once we start nesting *Devices* and *Gates* to form ever-more sophisticated logic circuits. Now that we have defined our SR latch device, let's use it to make a further example. We can combine both *Devices* and *Gates* in the same circuit, by doing this we will make a quad SR latch with an additional collective reset.
+Things get even more interesting once we start nesting *Devices* and *Gates* to form ever-more sophisticated logic circuits. Now that we have defined our SR latch device, let's use it to make a further example.
+
+We can combine both *Devices* and *Gates* in the same circuit, by doing this we will make a quad SR latch with an additional collective reset.
 
 ```cpp
 // quad_sr_latch.h
