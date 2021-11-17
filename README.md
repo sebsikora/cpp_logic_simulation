@@ -129,7 +129,9 @@ Encapsulating our circuit in a *Device*.
 
 We can take our circuit and encapsulate it in a *Device*. We can then easily instantiate multiple copies of it in a single simulation, or re-use it elsewhere.
 
-First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe the assembly of our new device. The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as needed.
+First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe the assembly of our new device.
+
+The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as needed.
 
 ```cpp
 // sr_latch.h
@@ -144,7 +146,9 @@ class SR_Latch : public Device {
 };
 ```
 
-Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() to create the internal SR latch circuit, and then finally Stabilise() to settle the device's initial internal and external state. Notice that defining the assembly of the internal circuit is very similar to the previous example. Connections are made from the device's in pins to the in pins of child gates, and from the out pins of child gates to the device's out pin.
+Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() to create the internal SR latch circuit, and then finally Stabilise() to settle the device's initial internal and external state.
+
+Notice that defining the assembly of the internal circuit is very similar to the previous example. Connections are made from the device's in pins to the in pins of child gates, and from the out pins of child gates to the device's out pin.
 
 ```cpp
 // sr_latch.cpp
@@ -194,14 +198,15 @@ We can instantiate the device with desired states applied at it's in pins via th
 #include "sr_latch.h"         // Our new SR_latch device.
 
 int main () {
-	
 	bool verbose = false;
 	Simulation sim("test_sim", verbose);
-	
+
+	// Add an SR latch device to the top-level simulation.
+	//
 	bool monitor_on = true
 	sim.AddComponent(new SR_Latch(&sim, "sr_latch", monitor_on, {{"S", false}, {"R", false}}));
 	
-	sim.Stabilise();
+	sim.Stabilise();          // Settle initial device internal and external states.
 	
 	// 'Set'.
 	sim.ChildSet("sr_latch", "S", true);
