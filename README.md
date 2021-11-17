@@ -494,6 +494,8 @@ CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_All set to F
 user@home:~/cpp_logic_simulation$
 ```
 
+Great!
+
 Demos.
 -------------------------
 
