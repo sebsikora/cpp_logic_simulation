@@ -154,6 +154,7 @@ Notice that defining the assembly of the internal circuit is very similar to the
 // sr_latch.cpp
 
 #include "c_core.h"			// Core simulator functionality
+#include "sr_latch.h"       // Our new SR_latch device.
 
 SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "sr_latch", {"S", "R"}, {"Out"}, monitor_on, input_default_states) {
@@ -231,6 +232,42 @@ int main () {
 Compile and run:
 
 ```
+user@home:~/cpp_logic_simulation$ g++ -pthread -Wall -g -O3 -I sim_src/core/ -I sim_src/devices/ -I sim_src/utils/ -I void_thread_pool/ sim_src/core/c_gate.cpp sim_src/core/c_m_engine.cpp sim_src/core/c_probe.cpp sim_src/core/c_sim.cpp sim_src/core/c_clock.cpp sim_src/core/c_comp.cpp sim_src/core/c_device.cpp sim_src/devices/devices.cpp sim_src/devices/sr_latch.cpp sim_src/utils/utils.cpp sim_src/utils/strnatcmp.cpp void_thread_pool/void_thread_pool.cpp sr_latch_demo_2.cpp -o sr_latch_demo_2
+user@home:~/cpp_logic_simulation$ ./sr_latch_demo_2 
+
+---------------------------- Simulation build started.  ----------------------------
+
+(Simulation verbose output is off)
+
+--------------------------- Simulation build completed.  ---------------------------
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal S set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal S set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch output terminal Out set to T
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal S set to F
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal S set to F
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal R set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch output terminal Out set to F
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to F
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal R set to F
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal S set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal S set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch output terminal Out set to T
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal S set to F
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal S set to F
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal R set to T
+  MONITOR: Component test_sim:sr_latch:sr_latch output terminal Out set to F
+
+CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to F
+  MONITOR: Component test_sim:sr_latch:sr_latch input terminal R set to F
 user@home:~/cpp_logic_simulation$
 ```
 
