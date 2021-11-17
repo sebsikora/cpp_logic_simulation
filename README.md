@@ -413,6 +413,78 @@ int main () {
 Compile and run:
 
 ```
+user@home:~/cpp_logic_simulation$ g++ -pthread -Wall -g -O3 -I sim_src/core/ -I sim_src/devices/ -I sim_src/utils/ -I void_thread_pool/ sim_src/core/c_gate.cpp sim_src/core/c_m_engine.cpp sim_src/core/c_probe.cpp sim_src/core/c_sim.cpp sim_src/core/c_clock.cpp sim_src/core/c_comp.cpp sim_src/core/c_device.cpp sim_src/devices/devices.cpp sim_src/devices/quad_sr_latch.cpp sim_src/devices/sr_latch.cpp sim_src/utils/utils.cpp sim_src/utils/strnatcmp.cpp void_thread_pool/void_thread_pool.cpp quad_sr_latch_demo.cpp -o quad_sr_latch_demo
+user@home:~/cpp_logic_simulation$ ./quad_sr_latch_demo
+
+---------------------------- Simulation build started.  ----------------------------
+
+(Simulation verbose output is off)
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_3 set to T
+
+--------------------------- Simulation build completed.  ---------------------------
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_0 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_0 set to T
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_0 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_0 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_1 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_1 set to T
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_1 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_1 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_2 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_2 set to T
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_2 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_2 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_3 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_3 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_3 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_3 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_3 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_0 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_0 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_0 set to T
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_0 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_0 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_1 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_1 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_1 set to T
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_1 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_1 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_2 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_2 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_2 set to T
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_2 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_2 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_3 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_3 set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_3 set to T
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal S_3 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal S_3 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_All set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_All set to T
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_0 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_1 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_2 set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch output terminal Out_3 set to F
+
+CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_All set to F
+  MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_All set to F
 user@home:~/cpp_logic_simulation$
 ```
 
