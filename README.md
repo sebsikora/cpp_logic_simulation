@@ -774,7 +774,6 @@ Files.
 * `./sim_src/utils/` contains shared helper functions & macros for adding escape codes for colour terminal text
 * `data.txt` is the data text file to accompany `simple_rom_demo.cpp`
 <br />
-<br />
 
 Thoughts & limitations.
 -------------------------
