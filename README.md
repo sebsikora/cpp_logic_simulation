@@ -28,7 +28,10 @@ Let's dive-in and make something.
 
 [Sequential](https://en.wikipedia.org/wiki/Sequential_logic) digital logic circuits need a way to store state. To this they typically make use of [flip-flops](https://en.wikipedia.org/wiki/Flip-flop_(electronics)), a bi-stable logic circuit that can 'latch' in one of two states, of which there are a number of types.
 
-The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip-flop_(electronics)#SR_AND-OR_latch). An SR latch can be made in a number of ways, but the pedagologically simplest version comprises one AND gate, one OR gate, and an inverter (NOT 'gate'). Let's simulate one.
+The simplest flip-flop type is the [SR latch](https://en.wikipedia.org/wiki/Flip-flop_(electronics)#SR_AND-OR_latch). An SR latch can be made in a number of ways, but the pedagologically simplest version comprises one AND gate, one OR gate, and an inverter (NOT 'gate').
+<br />
+
+Let's simulate one.
 
 ```cpp
 // sr_latch_demo.cpp
@@ -81,6 +84,7 @@ int main () {
 	return 0;
 }
 ```
+<br />
 
 Compile and run:
 
@@ -125,6 +129,7 @@ CHILDSET: Component test_sim:not_0:not terminal input set to F
   MONITOR: test_sim:not_0:not output terminal set to T
 user@home:~/cpp_logic_simulation$
 ```
+<br />
 
 Great! We can see the output responding to the changing input stimulus as we should expect for an SR latch.
 <br />
