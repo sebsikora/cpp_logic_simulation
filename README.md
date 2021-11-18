@@ -746,7 +746,7 @@ Some *MagicDevice* demonstrations are provided here.
 <br />
 <br />
 
-Running the demos:
+Running the demos.
 -------------------------
 
 cpp_logic_simulation currently requires POSIX support for console io, and as-such cannot be compiled and run natively on Windows. It is possible to compile and run cpp_logic_simulation [on Windows](https://www.staff.ncl.ac.uk/andrey.mokhov/EEE1008/first-c-program.html) using [Cygwin](https://www.cygwin.com/), 'a large collection of GNU and Open Source tools which provide functionality similar to a GNU/Linux distribution on Windows', but that is outside the scope of this README. 
@@ -764,7 +764,7 @@ If you would like to experiment with creating new *Devices* using the framework,
 <br />
 <br />
 
-Files:
+Files.
 -------------------------
 * `./sim_src/core/` comprises the class prototypes and definitions that comprise the 'core engine'
 * `./sim_src/devices/devices.cpp` contains example *Devices* constructed using the framework
@@ -776,14 +776,14 @@ Files:
 <br />
 <br />
 
-Thoughts & limitations:
+Thoughts & limitations.
 -------------------------
 
 * Only logic circuits that are statically-stable state can be simulated.
 <br />
 <br />
 
-License:
+License.
 -------------------------
 
 ![LGPLv3 logo](sim_doc/220px-LGPLv3_Logo.png)
