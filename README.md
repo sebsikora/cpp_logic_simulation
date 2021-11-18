@@ -695,7 +695,6 @@ user@home:~/cpp_logic_simulation$
 
 Great! Our new device exhibits the correct behaviour.\
 \
-
 Demos.
 -------------------------
 
@@ -714,10 +713,8 @@ A significantly more complex demonstration is also provided here.
 Some *MagicDevice* demonstrations are provided here.
 * `simple_rom_demo.cpp` - A ROM IC that pulls data from a text file - [more](./sim_doc/simple_rom_demo.md)
 * `simple_ram_demo.cpp` - A RAM IC that stores data in an array - [more](./sim_doc/simple_ram_demo.md)
-* `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)
+* `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)\
 \
-\
-
 Running the demos:
 -------------------------
 
