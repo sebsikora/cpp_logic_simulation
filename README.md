@@ -758,7 +758,7 @@ user@home:~/cpp_logic_simulation$ make jk_ff_demo
 user@home:~/cpp_logic_simulation$ ./jk_ff_demo
 ```
 
-If you would like to experiment with creating new *Devices* using the framework, when compiling make sure to include the `-pthread` compiler flag to add multi-threading support via the pthreads library.
+If you would like to experiment with creating new *Devices* using the framework, when compiling make sure to include the `-pthread` compiler flag to add multi-threading support via the pthreads library. 
 <br />
 <br />
 
