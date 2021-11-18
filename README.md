@@ -765,7 +765,7 @@ If you would like to experiment with creating new *Devices* using the framework,
 Files.
 -------------------------
 * `./sim_src/core/` comprises the class prototypes and definitions that comprise the 'core engine'
-* `./sim_src/devices/devices.cpp` contains example *Devices* constructed using the framework
+* `./sim_src/devices/devices/` contains example *Devices* constructed using the framework
 * `./sim_src/devices/game_of_life/` contains a number of *Devices* that can together implement Conway's Game of Life
 * `./sim_src/magic_devices/` contains example *MagicDevices* constructed using the framework
 * `./sim_src/simple_terminal_client/` contains the simple terminal client to accompany `simple_terminal_demo.cpp`
