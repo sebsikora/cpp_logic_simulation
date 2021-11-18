@@ -156,6 +156,7 @@ class SR_Latch : public Device {
 		void Build(void);
 };
 ```
+<br />
 
 Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() to create the internal SR latch circuit, and then finally Stabilise() to settle the device's initial internal and external state.
 
@@ -196,6 +197,7 @@ void SR_Latch::Build() {
 	                                                        // child out pin to parent out pin.
 }
 ```
+<br />
 
 We use our newly defined device in much the same way as in the previous example. In this case we use the simulation's AddComponent() member function to instantiate an SR latch device and add a pointer to it to our simulation's list of child components.
 
@@ -239,6 +241,7 @@ int main () {
 	return 0;
 }
 ```
+<br />
 
 Compile and run:
 
@@ -281,6 +284,7 @@ CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to F
   MONITOR: Component test_sim:sr_latch:sr_latch input terminal R set to F
 user@home:~/cpp_logic_simulation$
 ```
+<br />
 
 Great! We can see our SR latch device out pin responding to the changing in pin stimulus as we should expect for an SR latch, just as before.
 <br />
@@ -307,6 +311,7 @@ class Quad_SR_Latch : public Device {
 		void Build(void);
 };
 ```
+<br />
 
 We then create our device class prototype. Note that apart from the type string and list of pin names passed to the base *Device* constructor the device constructor is the same as for our single SR latch.
 
@@ -368,6 +373,7 @@ void Quad_SR_Latch::Build() {
 	ChildConnect("sr_latch_3", {"Out", "parent", "Out_3"});
 }
 ```
+<br />
 
 Quick demo:
 
@@ -428,6 +434,7 @@ int main () {
 	return 0;
 }
 ```
+<br />
 
 Compile and run:
 
@@ -506,6 +513,7 @@ CHILDSET: Component test_sim:quad_sr_latch:quad_sr_latch terminal R_All set to F
   MONITOR: Component test_sim:quad_sr_latch:quad_sr_latch input terminal R_All set to F
 user@home:~/cpp_logic_simulation$
 ```
+<br />
 
 Great!
 
@@ -535,6 +543,7 @@ class N_Bit_SR_Latch : public Device {
 		int m_latch_count;
 };
 ```
+<br />
 
 We then create our device class prototype. Note the inclusion of the additional constructor argument (int latch_count). Also note that this time the only in or out pin name we pass up-front to the base *Device* constructor is the common "R_All". As the number of SR latches is variable all of the other latch-specific in and out pins are created via the CreateBus() parent member function.
 
@@ -576,6 +585,7 @@ void N_Bit_SR_Latch::Build() {
 	}
 }
 ```
+<br />
 
 Quick demo:
 
@@ -627,6 +637,7 @@ int main () {
 	return 0;
 }
 ```
+<br />
 
 Compile and run:
 
@@ -705,6 +716,7 @@ CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_All set to
   MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_All set to F
 user@home:~/cpp_logic_simulation$
 ```
+<br />
 
 Great! Our new device exhibits the correct behaviour.  
 <br />
@@ -728,8 +740,10 @@ A significantly more complex demonstration is also provided here.
 Some *MagicDevice* demonstrations are provided here.
 * `simple_rom_demo.cpp` - A ROM IC that pulls data from a text file - [more](./sim_doc/simple_rom_demo.md)
 * `simple_ram_demo.cpp` - A RAM IC that stores data in an array - [more](./sim_doc/simple_ram_demo.md)
-* `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)\
-\
+* `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)
+<br />
+<br />
+
 Running the demos:
 -------------------------
 
@@ -745,6 +759,8 @@ user@home:~/cpp_logic_simulation$ ./jk_ff_demo
 ```
 
 If you would like to experiment with creating new *Devices* using the framework, when compiling make sure to include the `-pthread` compiler flag to add multi-threading support via the pthreads library.
+<br />
+<br />
 
 Files:
 -------------------------
@@ -755,11 +771,15 @@ Files:
 * `./sim_src/simple_terminal_client/` contains the simple terminal client to accompany `simple_terminal_demo.cpp`
 * `./sim_src/utils/` contains shared helper functions & macros for adding escape codes for colour terminal text
 * `data.txt` is the data text file to accompany `simple_rom_demo.cpp`
+<br />
+<br />
 
 Thoughts & limitations:
 -------------------------
 
 * Only logic circuits that are statically-stable state can be simulated.
+<br />
+<br />
 
 License:
 -------------------------
