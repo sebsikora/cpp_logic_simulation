@@ -129,7 +129,7 @@ pid_t SimpleTerminal_MagicEngine::StartClient(const char *fifo_dat_s_m_identifie
     if (process == 0) {
 		// We are in the child process!
         char arg_string[200] = "";
-        char arg_0[] = "./simple_terminal_client/terminal_client";
+        char arg_0[] = "./sim_src/simple_terminal_client/terminal_client";
         char space[] = " ";
         std::strcat(arg_string, arg_0);
         std::strcat(arg_string, space);

@@ -82,15 +82,15 @@ timing_test_3: demos_src/timing_test_3.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SR
 really_long_inverter_chain: demos_src/really_long_inverter_chain.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
-simple_rom_demo: demos_src/simple_rom_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
-	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(DEVICE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
+simple_rom_demo: demos_src/simple_rom_demo.cpp $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
-simple_ram_demo: demos_src/simple_ram_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
-	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(DEVICE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
+simple_ram_demo: demos_src/simple_ram_demo.cpp $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
-simple_terminal_demo: demos_src/simple_terminal_demo.cpp sim_src/simple_terminal_client/terminal_client.c $(CORE_SRC) $(DEVICES_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
+simple_terminal_demo: demos_src/simple_terminal_demo.cpp sim_src/simple_terminal_client/terminal_client.c $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CC) $(CLIBS) sim_src/simple_terminal_client/terminal_client.c -o sim_src/simple_terminal_client/terminal_client
-	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(DEVICE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
+	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
 game_of_life_cell_demo: demos_src/game_of_life_cell_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $(GOL_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(GOL_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $(GOL_SRC) demos_src/$@.cpp -o $@
