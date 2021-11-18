@@ -4,7 +4,9 @@
 
 [seb.nf.sikora@protonmail.com](mailto:seb.nf.sikora@protonmail.com)
 
-Updated 15/11/2021.
+Updated 18/11/2021.
+<br />
+<br />
 
 What is it?
 -------------------------
@@ -16,6 +18,8 @@ cpp_logic_simulation is a framework for constructing simulations of digital [log
 A further sub-class of the *Device* class is the *Simulation* class, which lies at the top-level and contains the *Device* or *Devices* that comprise the logic circuit. The *Simulation* can also contain members of two additional utility classes, *Clocks* to drive the contained logic circuit, and *Probes*, which can sample and display the logical state of any inputs or outputs of *Gates* or *Devices* within the circuit. The state of the logic circuit is recalculated automatically in response to any state changes at it's inputs. However, sampling and displaying state using *Probes* can only occur while the simulation is 'running', with the circuit driven via one or more *Clocks*.
 
 To do anything more interesting than view *Probe* output tables of changing logic levels within the circuit, a way to 'break the fourth wall' and interface with system resources 'outside' of the simulation is required. This is provided by a final *Device* sub-class, the *MagicDevice*. In addition to the usual *Device* functionality, *MagicDevices* contain special custom code (the *MagicEngine*) to interact with system resources outside of the simulation, and interfaces that hook into the simulated operation of the logic-circuit, and vice-versa. This allows us to create *MagicDevices* that, for example, behave as a RAM IC by accessing data contained in an array, a ROM IC by accessing data contained in a text file, or even a UART-like IC communicating with a remote text terminal! See `./sim_src/magic_devices/simple_ram.cpp`, `simple_rom.cpp` and `simple_terminal.cpp` for examples.
+<br />
+<br />
 
 Basic example.
 -------------------------
@@ -123,6 +127,8 @@ user@home:~/cpp_logic_simulation$
 ```
 
 Great! We can see the output responding to the changing input stimulus as we should expect for an SR latch.
+<br />
+<br />
 
 Encapsulating our circuit in a *Device*.
 -------------------------------------------
@@ -271,8 +277,9 @@ CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to F
 user@home:~/cpp_logic_simulation$
 ```
 
-Great! We can see our SR latch device out pin responding to the changing in pin stimulus as we should expect for an SR latch, just as before.\
-\
+Great! We can see our SR latch device out pin responding to the changing in pin stimulus as we should expect for an SR latch, just as before.
+<br />
+<br />
 
 Nesting *Devices*.
 -------------------------
@@ -499,8 +506,9 @@ Great!
 
 Note - Part of solving the initial device internal state involves assigning random states to all *Gate* inputs. The consequence of this is that all latches and flip-flops will settle with random initial out pin state (as with real devices).
 
-You may see slightly different output on the console when you run the simulation depending on which SR latches initially settle with out pin state = true.\
-\
+You may see slightly different output on the console when you run the simulation depending on which SR latches initially settle with out pin state = true.
+<br />
+<br />
 
 Programmatic *Device* creation.
 -------------------------------------------
