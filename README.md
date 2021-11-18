@@ -203,7 +203,7 @@ We use our newly defined device in much the same way as in the previous example.
 
 Note we pass a reference to the top-level simulation as the first argument to the device constructor.
 
-We can instantiate the device with desired states applied at it's in pins via the optional `in_pin_default_states` argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
+We can instantiate the device with desired states applied at it's in pins via the optional `std::vector<state_descriptor> in_pin_default_states` argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
 
 ```cpp
 // sr_latch_demo_2.cpp
