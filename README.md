@@ -498,7 +498,200 @@ Great!
 
 Note - Part of solving the initial device internal state involves assigning random states to all *Gate* inputs. The consequence of this is that all latches and flip-flops will settle with random initial out pin state (as with real devices).
 
-You may see slightly different output on the console when you run the simulation depending on which SR latches settle with out pin state = true.
+You may see slightly different output on the console when you run the simulation depending on which SR latches initially settle with out pin state = true.
+
+Programmatic *Device* creation.
+-------------------------------------------
+
+The above approach is fine for creating a small device, but would quickly become tedious if we wanted a 32-gang SR latch for example.
+
+We can instead use a programmatic approach, by which we will create a much more versatile device. As before, we create a class definition for our device that inherits from the base *Device* class. Note that we have added an additional argument to our new device constructor (int latch_count), and a corresponding member variable (int m_latch_count).
+
+```cpp
+// n_bit_sr_latch.h
+
+#include "c_core.h"			// Core simulator functionality
+
+class N_Bit_SR_Latch : public Device {
+	public:
+		N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on = false,
+		              std::vector<state_descriptor> input_default_states = {});
+		void Build(void);
+		int m_latch_count;
+};
+```
+
+We then create our device class prototype. Note the inclusion of the additional constructor argument (int latch_count). Also note that this time the only in or out pin name we pass up-front to the base *Device* constructor is the common "R_All". As the number of SR latches is variable all of the other latch-specific in and out pins are created via the CreateBus() parent member function.
+
+```cpp
+// n_bit_sr_latch.cpp
+
+#include "c_core.h"	             // Core simulator functionality
+#include "sr_latch.h"            // Previously defined SR latch device
+#include "n_bit_sr_latch.h"      // Our new device
+
+N_Bit_SR_Latch::N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+ : Device(parent_device_pointer, name, "n_bit_sr_latch", {"R_All"}, {}, monitor_on, input_default_states) {
+	if (latch_count > 0) {
+		m_latch_count = latch_count;
+	} else {
+		m_latch_count = 1;
+	}
+	CreateBus(m_latch_count, "S_", 1, input_default_states);
+	CreateBus(m_latch_count, "R_", 1, input_default_states);
+	CreateBus(m_latch_count, "Out_", 2);
+	Build();
+	Stabilise();
+}
+
+void N_Bit_SR_Latch::Build() {
+	for (int slice_index = 0; slice_index < m_latch_count; slice_index ++) {
+		std::string latch_identifier = "sr_latch_" + std::to_string(slice_index);
+		std::string or_identifier = "or_" + std::to_string(slice_index);
+		std::string slice = std::to_string(slice_index);
+		
+		AddComponent(new SR_Latch(this, latch_identifier));
+		AddGate(or_identifier, "or", {"input_0", "input_1"});
+		
+		Connect("S_" + slice, latch_identifier, "S");
+		Connect("R_" + slice, or_identifier, "input_0");
+		Connect("R_All", or_identifier, "input_1");
+		ChildConnect(or_identifier, {latch_identifier, "R"});
+		ChildConnect(latch_identifier, {"Out", "parent", "Out_" + slice});
+	}
+}
+```
+
+Quick demo:
+
+```cpp
+// n_bit_sr_latch_demo.cpp
+#include <vector>
+#include <string>
+
+#include "c_core.h"           // Core simulator functionality
+#include "n_bit_sr_latch.h"   // Our new Quad_SR_latch device.
+
+int main () {
+	bool verbose = false;
+	Simulation sim("test_sim", verbose);
+	
+	int latch_count = 4;
+	
+	// Make a vector of default in pin states.
+	std::vector<state_descriptor> in_pin_default_states = {};
+	for (int latch_index = 0; latch_index < latch_count; latch_index ++) {
+		in_pin_default_states.push_back({"S_" + std::to_string(latch_index), false});
+		in_pin_default_states.push_back({"R_" + std::to_string(latch_index), false});
+	}
+	in_pin_default_states.push_back({"R_All", false});
+	
+	// Add an n-bit SR latch device to the top-level simulation.
+	//
+	bool monitor_on = true;
+	sim.AddComponent(new N_Bit_SR_Latch(&sim, "n_bit_sr_latch", latch_count, monitor_on, in_pin_default_states));
+	
+	sim.Stabilise();          // Settle initial device internal and external states.
+	
+	// Reset latches one at a time.
+	for (int latch_index = 0; latch_index < latch_count; latch_index ++) {
+		sim.ChildSet("n_bit_sr_latch", "R_" + std::to_string(latch_index), true);
+		sim.ChildSet("n_bit_sr_latch", "R_" + std::to_string(latch_index), false);
+	}
+	
+	// Set latches one at a time.
+	for (int latch_index = 0; latch_index < latch_count; latch_index ++) {
+		sim.ChildSet("n_bit_sr_latch", "S_" + std::to_string(latch_index), true);
+		sim.ChildSet("n_bit_sr_latch", "S_" + std::to_string(latch_index), false);
+	}
+	
+	// 'Reset All'.
+	sim.ChildSet("n_bit_sr_latch", "R_All", true);
+	sim.ChildSet("n_bit_sr_latch", "R_All", false);
+	
+	return 0;
+}
+```
+
+Compile and run:
+
+```
+user@home:~/cpp_logic_simulation$ g++ -pthread -Wall -g -O3 -I sim_src/core/ -I sim_src/devices/ -I sim_src/utils/ -I void_thread_pool/ sim_src/core/c_gate.cpp sim_src/core/c_m_engine.cpp sim_src/core/c_probe.cpp sim_src/core/c_sim.cpp sim_src/core/c_clock.cpp sim_src/core/c_comp.cpp sim_src/core/c_device.cpp sim_src/devices/devices.cpp sim_src/devices/quad_sr_latch.cpp sim_src/devices/n_bit_sr_latch.cpp sim_src/devices/sr_latch.cpp sim_src/utils/utils.cpp sim_src/utils/strnatcmp.cpp void_thread_pool/void_thread_pool.cpp n_bit_sr_latch_demo.cpp -o n_bit_sr_latch_demo
+user@home:~/cpp_logic_simulation$ ./n_bit_sr_latch_demo
+
+---------------------------- Simulation build started.  ----------------------------
+
+(Simulation verbose output is off)
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_0 set to T
+
+--------------------------- Simulation build completed.  ---------------------------
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_0 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_0 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_0 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_0 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_0 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_1 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_1 set to T
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_1 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_1 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_2 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_2 set to T
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_2 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_2 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_3 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_3 set to T
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_3 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_3 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_0 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_0 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_0 set to T
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_0 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_0 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_1 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_1 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_1 set to T
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_1 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_1 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_2 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_2 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_2 set to T
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_2 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_2 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_3 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_3 set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_3 set to T
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal S_3 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal S_3 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_All set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_All set to T
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_0 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_1 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_2 set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch output terminal Out_3 set to F
+
+CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_All set to F
+  MONITOR: Component test_sim:n_bit_sr_latch:n_bit_sr_latch input terminal R_All set to F
+user@home:~/cpp_logic_simulation$
+```
+
+Great! Our new device exhibits the correct behaviour.
 
 Demos.
 -------------------------
