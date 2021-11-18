@@ -140,7 +140,7 @@ Encapsulating our circuit in a *Device*.
 
 We can take our circuit and encapsulate it in a *Device*. We can then easily instantiate multiple copies of it in a single simulation, or re-use it elsewhere.
 
-First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function Device::Build() within which we will describe the assembly of our new device.
+First of all we need to create a class definition for our device, inheriting from the core *Device* class. We are obliged to define a constructor and a member function `Build()` within which we will describe the assembly of our new device.
 
 The constructor arguments shown below are the bare-minimum required. We can include as many additional constructor arguments beyond these as needed.
 
@@ -158,7 +158,7 @@ class SR_Latch : public Device {
 ```
 <br />
 
-Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls Build() to create the internal SR latch circuit, and then finally Stabilise() to settle the device's initial internal and external state.
+Next we create the class implementation for our device. The base *Device* class constructor is called first, among other things it will create the device in pins ("S" & "R") and out pin ("Out"). Next our device constructor calls `Build()` to create the internal SR latch circuit, and then finally `Stabilise()` to settle the device's initial internal and external state.
 
 Notice that defining the assembly of the internal circuit is very similar to the previous example. Connections are made from the device's in pins to the in pins of child gates, and from the out pins of child gates to the device's out pin.
 
@@ -199,11 +199,11 @@ void SR_Latch::Build() {
 ```
 <br />
 
-We use our newly defined device in much the same way as in the previous example. In this case we use the simulation's AddComponent() member function to instantiate an SR latch device and add a pointer to it to our simulation's list of child components.
+We use our newly defined device in much the same way as in the previous example. In this case we use the simulation's `AddComponent()` member function to instantiate an SR latch device and add a pointer to it to our simulation's list of child components.
 
 Note we pass a reference to the top-level simulation as the first argument to the device constructor.
 
-We can instantiate the device with desired states applied at it's in pins via the optional in_pin_default_state argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
+We can instantiate the device with desired states applied at it's in pins via the optional `in_pin_default_states` argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
 
 ```cpp
 // sr_latch_demo_2.cpp
@@ -315,9 +315,9 @@ class Quad_SR_Latch : public Device {
 
 We then create our device class prototype. Note that apart from the type string and list of pin names passed to the base *Device* constructor the device constructor is the same as for our single SR latch.
 
-In our Build() member function, note that we pass the 'this' pointer as the parent_device_pointer first argument to each SR latch device constructor.
+In our `Build()` member function, note that we pass the `this` pointer as the parent_device_pointer first argument to each SR latch device constructor.
 
-We then use the Connect() member function to connect the parent device's in pins to it's child components' in pins, and the ChildConnect() member function to connect child components' out pins to the parent device's out pins.
+We then use the `Connect()` member function to connect the parent device's in pins to it's child components' in pins, and the `ChildConnect()` member function to connect child components' out pins to the parent device's out pins.
 
 ```cpp
 // quad_sr_latch.cpp
@@ -526,9 +526,9 @@ You may see slightly different output on the console when you run the simulation
 Programmatic *Device* creation.
 -------------------------------------------
 
-The above approach is fine for creating a small device, but would quickly become tedious if we wanted a 32-gang SR latch for example.
+The above approach is fine for creating a small device, but would quickly become tedious if we wanted a 32-way SR latch for example.
 
-We can instead use a programmatic approach, by which we will create a much more versatile device. As before, we create a class definition for our device that inherits from the base *Device* class. Note that we have added an additional argument to our new device constructor (int latch_count), and a corresponding member variable (int m_latch_count).
+We can instead use a programmatic approach, by which we will create a much more versatile device. As before, we create a class definition for our device that inherits from the base *Device* class. Note that we have added an additional argument to our new device constructor `int latch_count`, and a corresponding member variable `int m_latch_count`.
 
 ```cpp
 // n_bit_sr_latch.h
@@ -545,9 +545,9 @@ class N_Bit_SR_Latch : public Device {
 ```
 <br />
 
-We then create our device class prototype. Note the inclusion of the additional constructor argument (int latch_count).
+We then create our device class prototype. Note the inclusion of the additional constructor argument `int latch_count`.
 
-Also note that this time the only in or out pin name we pass up-front to the base *Device* constructor is the common "R_All". As the number of SR latches is variable all of the other latch-specific in and out pins are created via the CreateBus() parent member function prior to calling Build().
+Also note that this time the only in or out pin name we pass up-front to the base *Device* constructor is the common "R_All". As the number of SR latches is variable all of the other latch-specific in and out pins are created via the `CreateBus()` parent member function prior to calling `Build()`.
 
 ```cpp
 // n_bit_sr_latch.cpp
@@ -766,10 +766,12 @@ Files.
 -------------------------
 * `./sim_src/core/` comprises the class prototypes and definitions that comprise the 'core engine'
 * `./sim_src/devices/devices.cpp` contains example *Devices* constructed using the framework
-* `./sim_src/devices/game_of_life/` contains a number of *Devices* that can together implement Conway's Game of Life.
+* `./sim_src/devices/game_of_life/` contains a number of *Devices* that can together implement Conway's Game of Life
 * `./sim_src/magic_devices/` contains example *MagicDevices* constructed using the framework
 * `./sim_src/simple_terminal_client/` contains the simple terminal client to accompany `simple_terminal_demo.cpp`
 * `./sim_src/utils/` contains shared helper functions & macros for adding escape codes for colour terminal text
+* `./demos_src/` contains the .cpp source files for the included demos
+* `./void_thread_pool/` contains the source files for the required void_thread_pool project ([more](https://github.com/sebsikora/void_thread_pool))
 * `data.txt` is the data text file to accompany `simple_rom_demo.cpp`
 <br />
 
