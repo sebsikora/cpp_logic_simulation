@@ -751,7 +751,7 @@ cpp_logic_simulation currently requires POSIX support for console io, and as-suc
 
 An elementary makefile is provided for the demos, so to compile a particular demo on GNU/Linux navigate to the root project directory on the command line and enter `make demo_name`, where `demo_name` is the name of one of the demo .cpp files with the .cpp file extension omitted.
 
-For example, to compile and run the jk flip-flop demo ([jk_ff_demo.cpp](jk_ff_demo.cpp)), enter:
+For example, to compile and run the jk flip-flop demo ([jk_ff_demo.cpp](./demos_src/jk_ff_demo.cpp)), enter:
 
 ```
 user@home:~/cpp_logic_simulation$ make jk_ff_demo
