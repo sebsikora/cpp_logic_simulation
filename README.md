@@ -271,7 +271,8 @@ CHILDSET: Component test_sim:sr_latch:sr_latch terminal R set to F
 user@home:~/cpp_logic_simulation$
 ```
 
-Great! We can see our SR latch device out pin responding to the changing in pin stimulus as we should expect for an SR latch, just as before.
+Great! We can see our SR latch device out pin responding to the changing in pin stimulus as we should expect for an SR latch, just as before.\
+\
 
 Nesting *Devices*.
 -------------------------
@@ -498,7 +499,8 @@ Great!
 
 Note - Part of solving the initial device internal state involves assigning random states to all *Gate* inputs. The consequence of this is that all latches and flip-flops will settle with random initial out pin state (as with real devices).
 
-You may see slightly different output on the console when you run the simulation depending on which SR latches initially settle with out pin state = true.
+You may see slightly different output on the console when you run the simulation depending on which SR latches initially settle with out pin state = true.\
+\
 
 Programmatic *Device* creation.
 -------------------------------------------
@@ -691,7 +693,8 @@ CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_All set to
 user@home:~/cpp_logic_simulation$
 ```
 
-Great! Our new device exhibits the correct behaviour.
+Great! Our new device exhibits the correct behaviour.\
+\
 
 Demos.
 -------------------------
@@ -712,6 +715,8 @@ Some *MagicDevice* demonstrations are provided here.
 * `simple_rom_demo.cpp` - A ROM IC that pulls data from a text file - [more](./sim_doc/simple_rom_demo.md)
 * `simple_ram_demo.cpp` - A RAM IC that stores data in an array - [more](./sim_doc/simple_ram_demo.md)
 * `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)
+\
+\
 
 Running the demos:
 -------------------------
