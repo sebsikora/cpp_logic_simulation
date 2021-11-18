@@ -60,7 +60,7 @@ void Clock::Tick(void) {
 	// Print output pin changes.
 	bool verbose_flag = m_top_level_sim_pointer->mg_verbose_flag;
 	if (m_monitor_on || (verbose_flag)) {
-		std::string message = "T: " + std::to_string(m_index) + " " + KBLD + KYEL + "CLOCKSET: " + RST + "On tick " + KBLD + std::to_string(m_index) + RST + " " + m_name + ":clock output set to " + BoolToChar(m_toggle_pattern[m_sub_index]);
+		std::string message = "\nT: " + std::to_string(m_index) + " " + KBLD + KYEL + "CLOCKSET: " + RST + "On tick " + KBLD + std::to_string(m_index) + RST + " " + m_name + ":clock output set to " + BoolToChar(m_toggle_pattern[m_sub_index]);
 		m_top_level_sim_pointer->LogMessage(message);
 	}
 	// Change output state and propagate.

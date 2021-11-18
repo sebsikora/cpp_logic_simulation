@@ -73,7 +73,6 @@ class Component {
 		void SetPinDrivenFlag(int pin_port_index, bool drive_mode, bool state_to_set);
 		void PrintInPinStates(void);
 		void PrintOutPinStates(void);
-		void MakeProbable(void);
 		
 		static bool mg_verbose_flag;
 		static bool mg_verbose_destructor_flag;
@@ -153,11 +152,12 @@ class Device : public Component {
 		void PurgeOutboundConnections(void) override;
 		
 		// Device class virtual methods.
-		virtual void Build(void);
+		virtual void Build(void) = 0;
 
 		// Device class public methods.
 		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
+		void CreateBus(int pin_count, std::string const& pin_name_prefix, int pin_direction, std::vector<state_descriptor> in_pin_default_states = {});
 		void SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states);
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on = false);
@@ -169,7 +169,6 @@ class Device : public Component {
 		void ChildPrintPinStates(std::string const& target_child_component_name, int max_levels);
 		void ChildPrintInPinStates(std::string const& target_child_component_name);
 		void ChildPrintOutPinStates(std::string const& target_child_component_name);
-		void ChildMakeProbable(std::string const& target_child_component_name);
 		void ChildMarkOutputNotConnected(std::string const& target_child_component_name, std::string const& target_out_pin_name);
 		void Connect(std::string const& origin_pin_name, std::string const& target_component_name, std::string const& target_pin_name = "input");
 		void Stabilise(void);
@@ -193,7 +192,6 @@ class Device : public Component {
 		
 	private:
 		// Device class private methods.
-		//~void SubTick(const int index);
 		void SubTick(const int index);
 		
 		std::vector<component_descriptor> m_components;
@@ -215,7 +213,6 @@ class Device : public Component {
 		
 	protected:
 		// Device class protected methods.
-		//~void Solve(const bool threaded_solve, const int branch_id);
 		void Solve(const bool threaded_solve, const int branch_id);
 		void QueueToSolve(const int local_component_identifier);
 		void PropagateInputs(void);
@@ -235,6 +232,9 @@ class Simulation : public Device {
 		
 		// Override Component virtual methods.
 		void PurgeComponent(void) override;
+
+		// Override Device virtual methods.
+		void Build(void) override;
 		
 		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false, bool force_no_messages = false);
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
@@ -242,12 +242,10 @@ class Simulation : public Device {
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,
 			std::string const& trigger_clock_name, probe_configuration probe_conf = {1, 0, {"F", "T"}}
 		);
-		void AddToProbableComponents(Component* target_component_pointer);
 		void AddToMagicEngines(std::string const& magic_engine_identifier, MagicEngine* magic_engine_pointer);
 		int GetTopLevelMaxPropagations(void);
 		int GetNewCUID(void);
 		Clock* GetClockPointer(std::string const& target_clock_name);
-		Component* GetProbableComponentPointer(std::string const& target_component_full_name);
 		bool IsSimulationRunning(void);
 		void StopSimulation(void);
 		void CheckProbeTriggers(void);
@@ -276,7 +274,6 @@ class Simulation : public Device {
 		void EnableTerminalRawIO(const bool raw_flag);
 		char CheckForCharacter(void);
 		
-		std::vector<Component*> m_probable_components;
 		std::vector<probe_descriptor> m_probes;
 		std::vector<clock_descriptor> m_clocks;
 		std::vector<magic_engine_descriptor> m_magic_engines;

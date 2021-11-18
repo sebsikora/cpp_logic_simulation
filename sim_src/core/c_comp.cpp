@@ -179,10 +179,3 @@ void Component::PrintOutPinStates() {
 	}
 	std::cout << "]" << std::endl << std::endl;
 }
-
-void Component::MakeProbable() {
-	if (this != m_top_level_sim_pointer) {
-		m_top_level_sim_pointer->AddToProbableComponents(this);
-	}
-}
-

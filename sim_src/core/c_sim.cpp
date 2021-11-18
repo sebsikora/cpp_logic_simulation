@@ -115,7 +115,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		if (restart_flag) {
 			if (!force_no_messages) {
 				std::string message = GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").");
-				std::cout << message << std::endl;
+				std::cout << std::endl << message << std::endl;
 			}
 			m_global_tick_index = 0;
 			for (const auto& this_clock_descriptor : m_clocks) {
@@ -124,7 +124,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		} else {
 			if (!force_no_messages) {
 				std::string message = GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").");
-				std::cout << message << std::endl;
+				std::cout << std::endl << message << std::endl;
 			}
 		}
 		// Preallocate vectors for storage of Probe samples.
@@ -147,7 +147,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 				this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
 			}
 			if ((mg_verbose_flag) && (!force_no_messages)){
-				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index)) + "\n";
+				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index));
 				LogMessage("\n" + message);
 			}
 			// Advance all clocks.
@@ -157,9 +157,9 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			// Solve top-level simulation state.
 			Solve(false, m_CUID);
 			// Print any messages logged this tick.
-			if (mg_verbose_flag) {
+			//~if (mg_verbose_flag) {
 				PrintAndClearMessages();
-			}
+			//~}
 			// If any errors have been reported this tick, break here and finish.
 			// Asserted the __ALL_STOP__ internal input of a Device will log an error message and hence stop the simulation.
 			if (m_error_messages.size() > 0) {
@@ -193,16 +193,16 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
 		EnableTerminalRawIO(false);	
 		if (!force_no_messages) {
-			std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
+			std::cout << std::endl << GenerateHeader("Done.") << std::endl;
 		}
 		// Print probe samples.
 		if (print_probes_flag) {
-			std::cout << GenerateHeader("Probed values.") << std::endl << std::endl;
+			std::cout << std::endl << GenerateHeader("Probed values.") << std::endl << std::endl;
 			for (const auto& this_probe_descriptor : m_probes) {
 				this_probe_descriptor.probe_pointer->PrintSamples();
 				std::cout << std::endl;
 			}
-			std::cout << GenerateHeader("Done.") << std::endl << std::endl;
+			std::cout << GenerateHeader("Done.") << std::endl;
 		}
 		mg_verbose_flag = previous_verbose_output_flag;
 	} else {
@@ -245,7 +245,7 @@ void Simulation::ClockConnect(std::string const& target_clock_name, std::string 
 }
 
 void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name, probe_configuration probe_conf) {
-	Component* target_component_pointer = GetProbableComponentPointer(target_component_full_name);
+	Component* target_component_pointer = SearchForComponentPointer(target_component_full_name);
 	if (target_component_pointer != 0) {
 		bool pins_exist = true;
 		for (const auto& this_pin_name : target_pin_names) {
@@ -279,24 +279,7 @@ void Simulation::AddProbe(std::string const& probe_name, std::string const& targ
 		}
 	} else {
 		// Log error - Component is not on probable components list.
-		std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because target Component " + target_component_full_name + " is not on the top-level Simulation's probable Component list.";
-		LogError(build_error);
-	}
-}
-
-void Simulation::AddToProbableComponents(Component* target_component_pointer) {
-	bool found = false;
-	for (const auto& this_component_pointer : m_probable_components) {
-		if (this_component_pointer == target_component_pointer) {
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		m_probable_components.emplace_back(target_component_pointer);
-	} else {
-		// Log build error here.		-- This connection already exists.
-		std::string build_error = "Component " + target_component_pointer->GetFullName() + " can not be added to the probable Components list because it has already been added.";
+		std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because target Component " + target_component_full_name + " does not exist";
 		LogError(build_error);
 	}
 }
@@ -321,17 +304,6 @@ Clock* Simulation::GetClockPointer(std::string const& target_clock_name) {
 		}
 	}
 	return clock_pointer;
-}
-
-Component* Simulation::GetProbableComponentPointer(std::string const& target_component_full_name) {
-	Component* target_component_pointer = 0;
-	for (const auto& this_component_pointer : m_probable_components) {
-		if (this_component_pointer->GetFullName() == target_component_full_name) {
-			target_component_pointer = this_component_pointer;
-			break;
-		}
-	}
-	return target_component_pointer;
 }
 
 bool Simulation::IsSimulationRunning() {
@@ -422,13 +394,13 @@ void Simulation::PrintAndClearMessages() {
 
 void Simulation::PrintErrorMessages(void) {
 	if (m_error_messages.size() > 0) {
-		std::cout << GenerateHeader("Error messages.") << std::endl << std::endl;
+		std::cout << std::endl << GenerateHeader("Error messages.") << std::endl << std::endl;
 		int index = 0;
 		for (const auto& this_build_error : m_error_messages) {
 			std::cout << "Error " << std::to_string(index) << " : " << this_build_error << std::endl;
 			index ++;
 		}
-		std::cout << std::endl << GenerateHeader("Done.") << std::endl << std::endl;
+		std::cout << std::endl << GenerateHeader("Done.") << std::endl;
 	}
 }
 
@@ -497,20 +469,6 @@ void Simulation::PurgeComponentFromProbes(Component* target_component_pointer) {
 	for (const auto& this_probe_pointer : probe_pointers) {
 		delete this_probe_pointer;
 	}
-}
-
-void Simulation::PurgeComponentFromProbableComponents(Component* target_component_pointer) {
-	std::vector<Component*> new_probable_components = {};
-	for (const auto& this_probable_component_pointer : m_probable_components) {
-		if (this_probable_component_pointer != target_component_pointer) {
-			new_probable_components.push_back(this_probable_component_pointer);
-		} else {
-			if (mg_verbose_destructor_flag) {
-				std::cout << "Purging " << target_component_pointer->GetFullName() << " from Simulation m_probable_components." << std::endl;
-			}
-		}
-	}
-	m_probable_components = new_probable_components;
 }
 
 void Simulation::PurgeChildProbe(std::string const& target_probe_name) {
@@ -614,4 +572,8 @@ bool Simulation::GetSearchingFlag() {
 
 void Simulation::SetSearchingFlag(bool value) {
 	m_searching_flag = value;
+}
+
+void Simulation::Build() {
+	// Redefine for device subclass... does nothing here.
 }

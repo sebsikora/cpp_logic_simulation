@@ -49,7 +49,6 @@ class Four_Bit_Counter : public Device {
 class N_Bit_Counter : public Device {
 	public:
 		N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureOutputs(void);
 		void Build(void);
 		int m_width;
 };
@@ -57,7 +56,7 @@ class N_Bit_Counter : public Device {
 class N_Bit_Counter_AIO : public Device {
 	public:
 		N_Bit_Counter_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureOutputs(void);
+		//~void ConfigureOutputs(void);
 		void Build(void);
 		int m_width;
 };
@@ -65,7 +64,6 @@ class N_Bit_Counter_AIO : public Device {
 class N_Bit_Counter_ASC : public Device {
 	public:
 		N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureOutputs(void);
 		void Build(void);
 		int m_width;
 };
@@ -73,7 +71,6 @@ class N_Bit_Counter_ASC : public Device {
 class N_Bit_Counter_C_ASC : public Device {
 	public:
 		N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureOutputs(void);
 		void Build(void);
 		int m_width;
 };
@@ -87,7 +84,6 @@ class One_Bit_Register : public Device {
 class N_Bit_Register : public Device {
 	public:
 		N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_bus_width;
 };
@@ -95,7 +91,6 @@ class N_Bit_Register : public Device {
 class N_Bit_Register_ASC_AIO : public Device {
 	public:
 		N_Bit_Register_ASC_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_bus_width;
 };
@@ -103,7 +98,6 @@ class N_Bit_Register_ASC_AIO : public Device {
 class NxOne_Bit_Mux : public Device {
 	public:
 		NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_input_count;
 		int m_sel_bus_width;
@@ -112,7 +106,6 @@ class NxOne_Bit_Mux : public Device {
 class N_Bit_Decoder : public Device {
 	public:
 		N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_select_bus_width;
 		int m_output_bus_width;
@@ -121,7 +114,6 @@ class N_Bit_Decoder : public Device {
 class NxM_Bit_Mux : public Device {
 	public:
 		NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on = false, std::vector<state_descriptor> input_default_states = {});
-		void ConfigureBusses(std::vector<state_descriptor> input_default_states);
 		void Build(void);
 		int m_d_bus_width;
 		int m_d_bus_count;

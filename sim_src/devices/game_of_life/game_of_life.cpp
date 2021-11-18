@@ -70,7 +70,6 @@ void GameOfLife_Cell_Decider::Build() {
 	ChildConnect("and_2", {"or_1", "input_0"});
 	ChildConnect("and_3", {"or_1", "input_1"});
 	ChildConnect("or_1", {"parent", "alive_out"});
-	MakeProbable();
 }
 
 GameOfLife_Cell_SiblingSelector::GameOfLife_Cell_SiblingSelector(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
@@ -107,7 +106,6 @@ void GameOfLife_Cell_SiblingSelector::Build() {
 	ChildConnect("sibling_counter_decoder", {"out_6", "sibling_mux", "sel_in_6"});
 	ChildConnect("sibling_counter_decoder", {"out_7", "sibling_mux", "sel_in_7"});
 	ChildConnect("sibling_mux", {"d_out", "parent", "selected_sibling"});
-	MakeProbable();
 }
 
 GameOfLife_Cell::GameOfLife_Cell(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
@@ -180,8 +178,6 @@ void GameOfLife_Cell::Build() {
 	ChildConnect("state_ff", {"q", "parent", "sibling_7_out"});
 	
 	ChildMarkOutputNotConnected("state_ff", "not_q");
-	ChildMakeProbable("counter");
-	MakeProbable();
 }
 
 GameOfLife::GameOfLife(Device* parent_device_pointer, std::string name, int x_dimension, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 

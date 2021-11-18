@@ -79,8 +79,6 @@ void JK_FF::Build() {
 	Connect("clk", "nand_2", "input_2");
 	Connect("clk", "not_1");				// Not Gates created with only one in pin "input" so we can omit the target pin name parameter.
 	
-	// Add device to top-level probable list.
-	//MakeProbable();
 	//PrintInPinStates();
 }
 
@@ -139,9 +137,6 @@ void JK_FF_ASPC::Build() {
 	Connect("clk", "nand_1", "input_2");
 	Connect("clk", "nand_2", "input_2");
 	Connect("clk", "not_1");
-	
-	// Add device to top-level probable list.
-	//~MakeProbable();
 }
 
 Four_Bit_Counter::Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -161,9 +156,6 @@ void Four_Bit_Counter::Build() {
 	AddGate("and_0", "and", {"input_0", "input_1"}, false);
 	AddGate("and_1", "and", {"input_0", "input_1"}, false);
 	AddGate("and_2", "and", {"input_0", "input_1"}, false);
-	// As an example, we can make individual gates probable, but only via the parent devices' method...
-	//~ChildMakeProbable("and_0");
-	//~ChildMakeProbable("jk_ff_0");
 	
 	// Connect device terminals to components.
 	Connect("run", "jk_ff_0", "j");
@@ -204,8 +196,6 @@ void Four_Bit_Counter::Build() {
 	ChildMarkOutputNotConnected("jk_ff_2", "not_q");
 	ChildMarkOutputNotConnected("jk_ff_3", "not_q");
 	
-	// Add device to top-level probable list.
-	//~MakeProbable();
 	//PrintInPinStates();
 	//PrintOutPinStates();
 }
@@ -218,19 +208,10 @@ N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, in
 		width = 2;
 	}
 	m_width = width;
-	ConfigureOutputs();
+	CreateBus(m_width, "q_", 2);
 	Build();
 	Stabilise();
  }
-
-void N_Bit_Counter::ConfigureOutputs() {
-	std::vector<std::string> outputs_to_create;
-	for (int index = 0; index < m_width; index ++) {
-		std::string output_identifier = "q_" + std::to_string(index);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateOutPins(outputs_to_create);
-}
 
 void N_Bit_Counter::Build() {
 	// Instantiate and connect components for bit 0.
@@ -265,7 +246,6 @@ void N_Bit_Counter::Build() {
 		std::string ff_identifier = "jk_ff_" + std::to_string(i);
 		ChildMarkOutputNotConnected(ff_identifier, "not_q");
 	}
-	//~MakeProbable();
 }
 
 N_Bit_Counter_AIO::N_Bit_Counter_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -276,19 +256,10 @@ N_Bit_Counter_AIO::N_Bit_Counter_AIO(Device* parent_device_pointer, std::string 
 		width = 2;
 	}
 	m_width = width;
-	ConfigureOutputs();
+	CreateBus(m_width, "q_", 2);
 	Build();
 	Stabilise();
  }
-
-void N_Bit_Counter_AIO::ConfigureOutputs() {
-	std::vector<std::string> outputs_to_create;
-	for (int index = 0; index < m_width; index ++) {
-		std::string output_identifier = "q_" + std::to_string(index);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateOutPins(outputs_to_create);
-}
 
 void N_Bit_Counter_AIO::Build() {
 	for (int i = 0; i < m_width; i ++) {
@@ -354,19 +325,10 @@ N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string 
 		width = 2;
 	}
 	m_width = width;
-	ConfigureOutputs();
+	CreateBus(m_width, "q_", 2);
 	Build();
 	Stabilise();
  }
-
-void N_Bit_Counter_ASC::ConfigureOutputs() {
-	std::vector<std::string> outputs_to_create;
-	for (int index = 0; index < m_width; index ++) {
-		std::string output_identifier = "q_" + std::to_string(index);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateOutPins(outputs_to_create);
-}
 
 void N_Bit_Counter_ASC::Build() {
 	// Instantiate and connect components for bits 0 & 1.
@@ -409,7 +371,6 @@ void N_Bit_Counter_ASC::Build() {
 		std::string ff_identifier = "jk_ff_" + std::to_string(i);
 		ChildMarkOutputNotConnected(ff_identifier, "not_q");
 	}
-	//~MakeProbable();
 }
 
 N_Bit_Counter_C_ASC::N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -420,19 +381,10 @@ N_Bit_Counter_C_ASC::N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::str
 		width = 2;
 	}
 	m_width = width;
-	ConfigureOutputs();
+	CreateBus(m_width, "q_", 2);
 	Build();
 	Stabilise();
  }
-
-void N_Bit_Counter_C_ASC::ConfigureOutputs() {
-	std::vector<std::string> outputs_to_create;
-	for (int index = 0; index < m_width; index ++) {
-		std::string output_identifier = "q_" + std::to_string(index);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateOutPins(outputs_to_create);
-}
 
 void N_Bit_Counter_C_ASC::Build() {
 	// NOTE - If we don't instantiate the flip-flops with the right states on the asynchronous preset and clear
@@ -519,7 +471,6 @@ void N_Bit_Counter_C_ASC::Build() {
 		ChildConnect(new_ff_identifier, {"q", "parent", output_identifier});
 		ChildMarkOutputNotConnected(new_ff_identifier, "not_q");
 	}
-	//~MakeProbable();
 }
 
 One_Bit_Register::One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -566,33 +517,16 @@ void One_Bit_Register::Build() {
 	
 	// Mark unused flip-flop outputs as not connected.
 	ChildMarkOutputNotConnected("jk_ff_0", "not_q");
-	
-	// Add device to top-level probable list.
-	//~MakeProbable();
 }
 
 N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "clk"}, {}, monitor_on, input_default_states) {
 	 m_bus_width = width;
-	 ConfigureBusses(input_default_states);
+	 CreateBus(m_bus_width, "d_in_", 1, input_default_states);
+	 CreateBus(m_bus_width, "d_out_", 2);
 	 Build();
 	 Stabilise();
  }
- 
-void N_Bit_Register::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
-	std::vector<std::string> inputs_to_create;
-	for (int index = 0; index < m_bus_width; index ++) {
-		std::string input_identifier = "d_in_" + std::to_string(index);
-		inputs_to_create.push_back(input_identifier);
-	}
-	std::vector<std::string> outputs_to_create;
-	for (int index = 0; index < m_bus_width; index ++) {
-		std::string output_identifier = "d_out_" + std::to_string(index);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateInPins(inputs_to_create, input_default_states);
-	CreateOutPins(outputs_to_create);
-}
 
 void N_Bit_Register::Build() {
 	// Instantiate components.
@@ -619,32 +553,17 @@ void N_Bit_Register::Build() {
 	}
 	
 	// Add device to top-level probable list.
-	//~MakeProbable();
 	//~PrintInPinStates();
 }
 
 N_Bit_Register_ASC_AIO::N_Bit_Register_ASC_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "not_c", "clk"}, {}, monitor_on, input_default_states) {
 	 m_bus_width = width;
-	 ConfigureBusses(input_default_states);
+	 CreateBus(m_bus_width, "d_in_", 1, input_default_states);
+	 CreateBus(m_bus_width, "d_out_", 2);
 	 Build();
 	 Stabilise();
  }
- 
-void N_Bit_Register_ASC_AIO::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
-	std::vector<std::string> inputs_to_create;
-	for (int index = 0; index < m_bus_width; index ++) {
-		std::string input_identifier = "d_in_" + std::to_string(index);
-		inputs_to_create.push_back(input_identifier);
-	}
-	std::vector<std::string> outputs_to_create;
-	for (int index = 0; index < m_bus_width; index ++) {
-		std::string output_identifier = "d_out_" + std::to_string(index);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateInPins(inputs_to_create, input_default_states);
-	CreateOutPins(outputs_to_create);
-}
 
 void N_Bit_Register_ASC_AIO::Build() {
 	// Shared Not gate to generate not_clr.
@@ -716,27 +635,12 @@ void N_Bit_Register_ASC_AIO::Build() {
 NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "nx1_bit_mux", {}, {"d_out"}, monitor_on, input_default_states) {
 	 m_input_count = input_count;
-	 ConfigureBusses(input_default_states);
+	 CreateBus(m_input_count, "d_in_", 1, input_default_states);
+	 CreateBus(m_input_count, "sel_in_", 1, input_default_states);
 	 Build();
 	 Stabilise();
 	 //~PrintInPinStates();
 	 //~PrintOutPinStates();
-}
-
-void NxOne_Bit_Mux::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
-	std::vector<std::string> inputs_to_create;
-	// Input data bus.
-	for (int index = 0; index < m_input_count; index ++) {
-		std::string input_identifier = "d_in_" + std::to_string(index);
-		inputs_to_create.push_back(input_identifier);
-	}
-	// Input selector bus.
-	//m_sel_bus_width = (int)std::ceil(std::log(m_input_count)/std::log(2));
-	for (int i = 0; i < m_input_count; i ++) {
-		std::string input_identifier = "sel_in_" + std::to_string(i);
-		inputs_to_create.push_back(input_identifier);
-	}
-	CreateInPins(inputs_to_create, input_default_states);
 }
 
 void NxOne_Bit_Mux::Build() {
@@ -760,9 +664,6 @@ void NxOne_Bit_Mux::Build() {
 		std::string or_gate_input_identifier = "input_" + std::to_string(i);
 		ChildConnect(and_gate_identifier, {"or_0", or_gate_input_identifier});
 	}
-	
-	//~// Add device to top-level probable list.
-	//~MakeProbable();
 }
 
 N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -771,28 +672,12 @@ N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, in
 	if (m_select_bus_width < 1) {
 		m_select_bus_width = 1;
 	}
-	ConfigureBusses(input_default_states);
+	CreateBus(m_select_bus_width, "sel_", 1, input_default_states);
+	m_output_bus_width = pow(2, m_select_bus_width);
+	CreateBus(m_output_bus_width, "out_", 2);
 	Build();
 	Stabilise();
-	//~PrintInPinStates();
-	//~PrintOutPinStates();
  }
- 
-void N_Bit_Decoder::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
-	std::vector<std::string> inputs_to_create;
-	for (int index = 0; index < m_select_bus_width; index ++) {
-		std::string input_identifier = "sel_" + std::to_string(index);
-		inputs_to_create.push_back(input_identifier);
-	}
-	m_output_bus_width = pow(2, m_select_bus_width);
-	std::vector<std::string> outputs_to_create;
-	for (int index = 0; index < m_output_bus_width; index ++) {
-		std::string output_identifier = "out_" + std::to_string(index);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateInPins(inputs_to_create, input_default_states);
-	CreateOutPins(outputs_to_create);
-}
 
 void N_Bit_Decoder::Build() {
 	// The N select inputs each need a complement.
@@ -838,9 +723,6 @@ void N_Bit_Decoder::Build() {
 		std::string output_pin_identifier = "out_" + std::to_string(output_index);
 		ChildConnect(and_gate_identifier, {"parent", output_pin_identifier});
 	}
-	//~MakeProbable();
-	//~PrintInPinStates();
-	//~PrintOutPinStates();
 }
 
 NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
@@ -853,35 +735,15 @@ NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bu
 	 if (m_d_bus_count < 2) {
 		 m_d_bus_count = 2;
 	 }
-	 ConfigureBusses(input_default_states);
+	 m_s_bus_width = (int)std::ceil(std::log(m_d_bus_count)/std::log(2));
+	 for (int i = 0; i < m_d_bus_count; i ++) {
+		 CreateBus(m_d_bus_width, "d_in_" + std::to_string(i) + "_", 1, input_default_states);
+	 }
+	 CreateBus(m_s_bus_width, "sel_", 1, input_default_states);
+	 CreateBus(m_d_bus_width, "d_out_", 2);
 	 Build();
 	 Stabilise();
  }
- 
-void NxM_Bit_Mux::ConfigureBusses(std::vector<state_descriptor> input_default_states) {
-	std::vector<std::string> inputs_to_create;
-	// Input data busses.
-	for (int i = 0; i < m_d_bus_count; i ++) {
-		for (int j = 0; j < m_d_bus_width; j ++) {
-			std::string input_identifier = "d_in_" + std::to_string(i) + "_" + std::to_string(j);
-			inputs_to_create.push_back(input_identifier);
-		}
-	}
-	// Input selector bus.
-	m_s_bus_width = (int)std::ceil(std::log(m_d_bus_count)/std::log(2));
-	for (int i = 0; i < m_s_bus_width; i ++) {
-		std::string input_identifier = "sel_" + std::to_string(i);
-		inputs_to_create.push_back(input_identifier);
-	}
-	// Output data bus.
-	std::vector<std::string> outputs_to_create;
-	for (int i = 0; i < m_d_bus_width; i ++) {
-		std::string output_identifier = "d_out_" + std::to_string(i);
-		outputs_to_create.push_back(output_identifier);
-	}
-	CreateInPins(inputs_to_create, input_default_states);
-	CreateOutPins(outputs_to_create);
-}
 
 void NxM_Bit_Mux::Build() {
 	// First we will add an N_Bit_Decoder to decode the input selection.
@@ -924,7 +786,6 @@ void NxM_Bit_Mux::Build() {
 		for (int j = 0; j < m_d_bus_count; j ++) {
 			std::string parent_input_identifier = "d_in_" + std::to_string(j) + "_" + std::to_string(i);
 			std::string mux_input_identifier = "d_in_" + std::to_string(j);
-			//std::cout << parent_input_identifier << " " << mux_name << " " << mux_input_identifier << std::endl;
 			Connect(parent_input_identifier, mux_name, mux_input_identifier);
 		}
 	}
@@ -934,9 +795,6 @@ void NxM_Bit_Mux::Build() {
 		std::string parent_output_identifier = "d_out_" + std::to_string(i);
 		ChildConnect(mux_name, {"d_out", "parent", parent_output_identifier});
 	}
-	
-	// Add device to top-level probable list.
-	//~MakeProbable();
 	//~PrintInPinStates();
 	//~PrintOutPinStates();
 }

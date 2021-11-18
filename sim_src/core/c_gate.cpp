@@ -206,7 +206,10 @@ void Gate::Evaluate() {
 		// Print output pin changes if we are monitoring this gate.
 		if (m_monitor_on || mg_verbose_flag) {
 			std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + KBLD + m_full_name + ":" + m_component_type + " output terminal set to " + BoolToChar(new_state);
-			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
+			if (mg_verbose_flag) {
+				message = "~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message;
+			}
+			m_top_level_sim_pointer->LogMessage(message);
 		}
 	}
 }
@@ -309,17 +312,20 @@ void Gate::ReportUnConnectedPins() {
 	}
 	for (const auto& this_pin : m_pins) {
 		if (this_pin.direction == 1) {
-			// We don't halt on a build error for un-driven input pins of upper-most level Gates.
-			if ((!this_pin.drive[0]) && (m_nesting_level > 1)) {
+			if (!this_pin.drive[0]) {
 				// Log undriven Gate in pin.
 				std::string build_error = "Gate " + m_full_name + " in pin " + this_pin.name + " is not driven by any Component.";
 				m_top_level_sim_pointer->LogError(build_error);
 			}
 		} else if (this_pin.direction == 2) {
-			if (!this_pin.drive[1]) {
-				// Log undriving Gate out pin.
-				std::string build_error = "Gate " + m_full_name + " out pin " + this_pin.name + " drives no Component.";
-				m_top_level_sim_pointer->LogError(build_error);
+			// We don't halt on a build error for un-driven output pins of upper-most level Gates.
+			// (If we don't it's a lot harder to play with them...)
+			if (m_nesting_level > 1) {
+				if (!this_pin.drive[1]) {
+					// Log undriving Gate out pin.
+					std::string build_error = "Gate " + m_full_name + " out pin " + this_pin.name + " drives no Component.";
+					m_top_level_sim_pointer->LogError(build_error);
+				}
 			}
 		}
 	}
@@ -343,7 +349,6 @@ void Gate::PurgeComponent() {
 		//			(as otherwise they would target cleared memory).
 		//			If we are deleting this component because we are in the process of deleting
 		//			the top-level Simulation, we do not need to do this.
-		m_top_level_sim_pointer->PurgeComponentFromProbableComponents(this);
 		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
 		m_top_level_sim_pointer->PurgeComponentFromProbes(this);
 		// Third  - Clear component entry from parent device's m_components.
