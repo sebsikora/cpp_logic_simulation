@@ -315,7 +315,7 @@ class Quad_SR_Latch : public Device {
 
 We then create our device class prototype. Note that apart from the type string and list of pin names passed to the base *Device* constructor the device constructor is the same as for our single SR latch.
 
-In our `Build()` member function, note that we pass the `this` pointer as the parent_device_pointer first argument to each SR latch device constructor.
+In our `Build()` member function, note that we pass the `this` pointer as the `parent_device_pointer` first argument to each SR latch device constructor.
 
 We then use the `Connect()` member function to connect the parent device's in pins to it's child components' in pins, and the `ChildConnect()` member function to connect child components' out pins to the parent device's out pins.
 
