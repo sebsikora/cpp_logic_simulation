@@ -694,8 +694,8 @@ user@home:~/cpp_logic_simulation$
 ```
 
 Great! Our new device exhibits the correct behaviour.
-&nbsp;
-&nbsp;
+\n
+\n
 
 Demos.
 -------------------------
