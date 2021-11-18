@@ -722,7 +722,6 @@ user@home:~/cpp_logic_simulation$
 
 Great! Our new device exhibits the correct behaviour.  
 <br />
-<br />
 
 Demos.
 -------------------------
