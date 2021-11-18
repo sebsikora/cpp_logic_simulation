@@ -744,7 +744,6 @@ Some *MagicDevice* demonstrations are provided here.
 * `simple_ram_demo.cpp` - A RAM IC that stores data in an array - [more](./sim_doc/simple_ram_demo.md)
 * `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)
 <br />
-<br />
 
 Running the demos.
 -------------------------
@@ -779,7 +778,6 @@ Thoughts & limitations.
 -------------------------
 
 * Only logic circuits that are statically-stable state can be simulated.
-<br />
 <br />
 
 License.
