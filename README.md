@@ -129,6 +129,7 @@ CHILDSET: Component test_sim:not_0:not terminal input set to F
   MONITOR: test_sim:not_0:not output terminal set to T
 user@home:~/cpp_logic_simulation$
 ```
+<br />
 
 Great! We can see the output responding to the changing input stimulus as we should expect for an SR latch.
 <br />
