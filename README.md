@@ -545,7 +545,7 @@ class N_Bit_SR_Latch : public Device {
 ```
 <br />
 
-We then create our device class prototype. Note the inclusion of the additional constructor argument (int latch_count). Also note that this time the only in or out pin name we pass up-front to the base *Device* constructor is the common "R_All". As the number of SR latches is variable all of the other latch-specific in and out pins are created via the CreateBus() parent member function.
+We then create our device class prototype. Note the inclusion of the additional constructor argument (int latch_count). Also note that this time the only in or out pin name we pass up-front to the base *Device* constructor is the common "R_All". As the number of SR latches is variable all of the other latch-specific in and out pins are created via the CreateBus() parent member function prior to calling Build().
 
 ```cpp
 // n_bit_sr_latch.cpp
