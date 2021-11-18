@@ -693,9 +693,9 @@ CHILDSET: Component test_sim:n_bit_sr_latch:n_bit_sr_latch terminal R_All set to
 user@home:~/cpp_logic_simulation$
 ```
 
-Great! Our new device exhibits the correct behaviour.
-\n
-\n
+Great! Our new device exhibits the correct behaviour.  
+\n  
+\n  
 
 Demos.
 -------------------------
