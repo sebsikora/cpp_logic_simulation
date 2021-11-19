@@ -11,7 +11,7 @@ Updated 18/11/2021.
 Contents.
 -------------------------
 * [What is it?](#what-is-it)
-* [A basic example](#basic-example) 
+* [A basic example using *Gates*](#a-basic-example-using-gates) 
 * [*Device* creation](#encapsulating-our-circuit-in-a-device)
 * [Nesting *Devices*](#nesting-devices)
 * [Programmatic *Device* creation](#programmatic-device-creation)
@@ -35,8 +35,8 @@ To do anything more interesting than view *Probe* output tables of changing logi
 <br />
 <br />
 
-Basic example.
--------------------------
+A basic example using *Gates*.
+-----------------------------------
 
 Let's dive-in and make something.
 
