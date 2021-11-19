@@ -8,6 +8,13 @@ Updated 18/11/2021.
 <br />
 <br />
 
+Contents.
+-------------------------
+* [this](#basic-example) 
+* [that](#encapsulating-our-circuit-in-a-device)
+* [the-other](#nesting-devices)
+<br />
+
 What is it?
 -------------------------
 
@@ -131,7 +138,7 @@ user@home:~/cpp_logic_simulation$
 ```
 <br />
 
-Great! We can see the output responding to the changing input stimulus as we should expect for an SR latch.
+Great! We can see the output responding to the changing in pin stimulus as we should expect for an SR latch.
 <br />
 <br />
 
@@ -147,13 +154,13 @@ The constructor arguments shown below are the bare-minimum required. We can incl
 ```cpp
 // sr_latch.h
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_core.h"                     // Core simulator functionality
 
-class SR_Latch : public Device {
+class SR_Latch : public Device {        // Our new device inherits from base Device class.
 	public:
-		SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on = false,
-		         std::vector<state_descriptor> input_default_states = {});
-		void Build(void);
+		SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on = false,       // We need to define a constructor
+		         std::vector<state_descriptor> in_pin_default_states = {});
+		void Build(void);                                                                        // And a Build() member function
 };
 ```
 <br />
@@ -165,11 +172,11 @@ Notice that defining the assembly of the internal circuit is very similar to the
 ```cpp
 // sr_latch.cpp
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_core.h"         // Core simulator functionality
 #include "sr_latch.h"       // Our new SR_latch device.
 
 SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
- : Device(parent_device_pointer, name, "sr_latch", {"S", "R"}, {"Out"}, monitor_on, input_default_states) {
+ : Device(parent_device_pointer, name, "sr_latch", {"S", "R"}, {"Out"}, monitor_on, in_pin_default_states) {
 	// Following base class constructor (Device), we call the below overridden Build() method to populate the
 	// specific device, then we call the base Stabilise() method to configure initial internal device component state.
 	Build();
@@ -199,9 +206,9 @@ void SR_Latch::Build() {
 ```
 <br />
 
-We use our newly defined device in much the same way as in the previous example. In this case we use the simulation's `AddComponent()` member function to instantiate an SR latch device and add a pointer to it to our simulation's list of child components.
+We use our newly defined device in much the same way as in the previous example. In this case we instantiate an SR latch device via it's constructor and pass it's pointer as an argument to the simulation's `AddComponent()` member function to and it to our simulation's list of child components.
 
-Note we pass a reference to the top-level simulation as the first argument to the device constructor.
+Note we pass a reference to the top-level simulation `&sim` as the first argument to the device constructor.
 
 We can instantiate the device with desired states applied at it's in pins via the optional `std::vector<state_descriptor> in_pin_default_states` argument. This is not necessary in this case, but is useful in cases where devices require particular in pin states to settle correctly.
 
@@ -337,9 +344,9 @@ Quad_SR_Latch::Quad_SR_Latch(Device* parent_device_pointer, std::string name, bo
 void Quad_SR_Latch::Build() {
 	// Instantiate latches.
 	//
-	AddComponent(new SR_Latch(this, "sr_latch_0"));
-	AddComponent(new SR_Latch(this, "sr_latch_1"));
-	AddComponent(new SR_Latch(this, "sr_latch_2"));
+	AddComponent(new SR_Latch(this, "sr_latch_0"));        // Note we now pass the 'this' pointer
+	AddComponent(new SR_Latch(this, "sr_latch_1"));           as the Device* parent_device_pointer
+	AddComponent(new SR_Latch(this, "sr_latch_2"));           argument to the constructor.
 	AddComponent(new SR_Latch(this, "sr_latch_3"));
 	
 	// Instantiate gates.
@@ -538,7 +545,7 @@ We can instead use a programmatic approach, by which we will create a much more 
 class N_Bit_SR_Latch : public Device {
 	public:
 		N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on = false,
-		              std::vector<state_descriptor> input_default_states = {});
+		              std::vector<state_descriptor> in_pin_default_states = {});
 		void Build(void);
 		int m_latch_count;
 };
@@ -557,15 +564,15 @@ Also note that this time the only in or out pin name we pass up-front to the bas
 #include "n_bit_sr_latch.h"      // Our new device
 
 N_Bit_SR_Latch::N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
- : Device(parent_device_pointer, name, "n_bit_sr_latch", {"R_All"}, {}, monitor_on, input_default_states) {
+ : Device(parent_device_pointer, name, "n_bit_sr_latch", {"R_All"}, {}, monitor_on, in_pin_default_states) {
 	if (latch_count > 0) {
 		m_latch_count = latch_count;
 	} else {
 		m_latch_count = 1;
 	}
-	CreateBus(m_latch_count, "S_", 1, input_default_states);
-	CreateBus(m_latch_count, "R_", 1, input_default_states);
-	CreateBus(m_latch_count, "Out_", 2);
+	CreateBus(m_latch_count, "S_", 1, in_pin_default_states);     // third argument dictates pin direction
+	CreateBus(m_latch_count, "R_", 1, in_pin_default_states);        1 = input, 2 = output. If creating in pin
+	CreateBus(m_latch_count, "Out_", 2);                             bus need to pass through in_pin_default_states.
 	Build();
 	Stabilise();
 }
