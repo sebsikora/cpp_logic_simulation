@@ -746,8 +746,8 @@ Blah blah
 ```cpp
 // n_bit_counter_demo.cpp
 
-#include "c_core.h"			// Core simulator functionality
-#include "devices.h"		// N_Bit_Counter Device
+#include "c_core.h"	        // Core simulator functionality
+#include "devices.h"        // N_Bit_Counter Device
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
@@ -787,6 +787,49 @@ int main () {
 	
 	return 0;
 }
+```
+<br />
+
+Compile and run:
+
+```
+user@home:~/cpp_logic_simulation$ g++ -pthread -Wall -g -O3 -I sim_src/core/ -I sim_src/devices/ -I sim_src/utils/ -I void_thread_pool/ sim_src/core/c_gate.cpp sim_src/core/c_m_engine.cpp sim_src/core/c_probe.cpp sim_src/core/c_sim.cpp sim_src/core/c_clock.cpp sim_src/core/c_comp.cpp sim_src/core/c_device.cpp sim_src/devices/devices.cpp sim_src/devices/quad_sr_latch.cpp sim_src/devices/n_bit_sr_latch.cpp sim_src/devices/sr_latch.cpp sim_src/utils/utils.cpp sim_src/utils/strnatcmp.cpp void_thread_pool/void_thread_pool.cpp demos_src/n_bit_counter_demo.cpp -o n_bit_counter_demo
+user@home:~/cpp_logic_simulation$ ./n_bit_counter_demo
+
+---------------------------- Simulation build started.  ----------------------------
+
+(Simulation verbose output is off)
+
+--------------------------- Simulation build completed.  ---------------------------
+
+----------------------------- Simulation started (16). -----------------------------
+
+(Simulation verbose output is off)
+
+-------------------------------------- Done.  --------------------------------------
+
+---------------------------------- Probed values. ----------------------------------
+
+Probe: counter_out - test_sim:test_counter
+T: 0   F T T
+T: 1   F T T
+T: 2   T T T
+T: 3   T T T
+T: 4   F F F
+T: 5   F F F
+T: 6   T F F
+T: 7   T F F
+T: 8   F T F
+T: 9   F T F
+T: 10   T T F
+T: 11   T T F
+T: 12   F F T
+T: 13   F F T
+T: 14   T F T
+T: 15   T F T
+
+-------------------------------------- Done.  --------------------------------------
+user@home:~/cpp_logic_simulation$
 ```
 <br />
 
