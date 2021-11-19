@@ -746,8 +746,8 @@ So far we have only looked at [asynchronous circuits](https://en.wikipedia.org/w
 ```cpp
 // n_bit_counter_demo.cpp
 
-#include "c_core.h"	        // Core simulator functionality
-#include "devices.h"        // N_Bit_Counter Device
+#include "c_core.h"       // Core simulator functionality
+#include "devices.h"      // N_Bit_Counter Device
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
