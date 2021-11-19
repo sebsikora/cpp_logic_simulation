@@ -741,7 +741,7 @@ Great! Our new device exhibits the correct behaviour.
 *Clocks* and *Probes*.
 -------------------------
 
-Blah blah
+So far we have only looked at [asynchronous circuits](https://en.wikipedia.org/wiki/Asynchronous_circuit). When constructing more complex logic circuits, [synchronous circuits](https://en.wikipedia.org/wiki/Synchronous_circuit) are often used, in which the changing of state of the individual components is synchronised by a common signal, typically referred to as the 'clock'.
 
 ```cpp
 // n_bit_counter_demo.cpp
@@ -781,9 +781,10 @@ int main () {
 	// Add a Probe on the counter's output pins.
 	sim.AddProbe("counter_out", "test_sim:test_counter", out_pins, "clock_0");
 	
-	bool restart = true;
+	bool restart_flag = true;
 	bool print_probe_samples = true;
-	sim.Run(16, restart, verbose, print_probe_samples);
+	int number_of_ticks = 16;
+	sim.Run(number_of_ticks, restart_flag, verbose, print_probe_samples);
 	
 	return 0;
 }
