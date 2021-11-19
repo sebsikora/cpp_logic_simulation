@@ -15,6 +15,7 @@ Contents.
 * [*Device* creation](#encapsulating-our-circuit-in-a-device)
 * [Nesting *Devices*](#nesting-devices)
 * [Programmatic *Device* creation](#programmatic-device-creation)
+* [*Clocks* and *Probes*](#clocks-and-probes)
 * [Demos](#demos)
 * [How to run the demos](#how-to-run-the-demos)
 * [Files](#included-files)
@@ -735,6 +736,13 @@ user@home:~/cpp_logic_simulation$
 <br />
 
 Great! Our new device exhibits the correct behaviour.  
+<br />
+
+*Clocks* and *Probes*.
+-------------------------
+
+Blah blah
+<br />
 <br />
 
 Demos.
