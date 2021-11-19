@@ -10,9 +10,16 @@ Updated 18/11/2021.
 
 Contents.
 -------------------------
-* [this](#basic-example) 
-* [that](#encapsulating-our-circuit-in-a-device)
-* [the-other](#nesting-devices)
+* [What is it?](#what-is-it)
+* [A basic example](#basic-example) 
+* [*Device* creation](#encapsulating-our-circuit-in-a-device)
+* [Nesting *Devices*](#nesting-devices)
+* [Programmatic *Device* creation](#programmatic-device-creation)
+* [Demos](#demos)
+* [How to run the demos](#how-to-run-the-demos)
+* [Files](#files)
+* [Thoughts & limitations](#thoughts--limitations)
+* [License](#license)
 <br />
 
 What is it?
@@ -751,7 +758,7 @@ Some *MagicDevice* demonstrations are provided here.
 * `simple_terminal_demo.cpp` - A simple UART-like IC and accompanying terminal client - [more](./sim_doc/simple_terminal_demo.md)
 <br />
 
-Running the demos.
+How to run the demos.
 -------------------------
 
 cpp_logic_simulation currently requires POSIX support for console io, and as-such cannot be compiled and run natively on Windows. It is possible to compile and run cpp_logic_simulation [on Windows](https://www.staff.ncl.ac.uk/andrey.mokhov/EEE1008/first-c-program.html) using [Cygwin](https://www.cygwin.com/), 'a large collection of GNU and Open Source tools which provide functionality similar to a GNU/Linux distribution on Windows', but that is outside the scope of this README. 
