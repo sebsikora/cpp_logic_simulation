@@ -579,8 +579,8 @@ N_Bit_SR_Latch::N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, 
 		m_latch_count = 1;
 	}
 	CreateBus(m_latch_count, "S_", 1, in_pin_default_states);     // third argument dictates pin direction
-	CreateBus(m_latch_count, "R_", 1, in_pin_default_states);        1 = input, 2 = output. If creating in pin
-	CreateBus(m_latch_count, "Out_", 2);                             bus need to pass through in_pin_default_states.
+	CreateBus(m_latch_count, "R_", 1, in_pin_default_states);     // 1 = input, 2 = output. If creating in pin
+	CreateBus(m_latch_count, "Out_", 2);                          // bus need to pass through in_pin_default_states.
 	Build();
 	Stabilise();
 }
