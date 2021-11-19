@@ -341,8 +341,8 @@ We then use the `Connect()` member function to connect the parent device's in pi
 #include "sr_latch.h"            // Previously defined SR latch device
 #include "quad_sr_latch.h"       // Our new device
 
-Quad_SR_Latch::Quad_SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
- : Device(parent_device_pointer, name, "quad_sr_latch", {"S_0", "S_1", "S_2", "S_3", "R_0", "R_1", "R_2", "R_3", "R_All"}, {"Out_0", "Out_1", "Out_2", "Out_3"}, monitor_on, input_default_states) {
+Quad_SR_Latch::Quad_SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+ : Device(parent_device_pointer, name, "quad_sr_latch", {"S_0", "S_1", "S_2", "S_3", "R_0", "R_1", "R_2", "R_3", "R_All"}, {"Out_0", "Out_1", "Out_2", "Out_3"}, monitor_on, in_pin_default_states) {
 	// Following base class constructor (Device), we call the below overridden Build() method to populate the
 	// specific device, then we call the base Stabilise() method to configure initial internal device component state.
 	Build();
@@ -571,7 +571,7 @@ Also note that this time the only in or out pin name we pass up-front to the bas
 #include "sr_latch.h"            // Previously defined SR latch device
 #include "n_bit_sr_latch.h"      // Our new device
 
-N_Bit_SR_Latch::N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_SR_Latch::N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
  : Device(parent_device_pointer, name, "n_bit_sr_latch", {"R_All"}, {}, monitor_on, in_pin_default_states) {
 	if (latch_count > 0) {
 		m_latch_count = latch_count;
@@ -742,6 +742,55 @@ Great! Our new device exhibits the correct behaviour.
 -------------------------
 
 Blah blah
+
+```cpp
+// n_bit_counter_demo.cpp
+
+#include "c_core.h"			// Core simulator functionality
+#include "devices.h"		// N_Bit_Counter Device
+
+int main () {
+	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
+	bool verbose = false;
+	bool monitor_on = false;
+	
+	// Set the desired bit-width of the counter here.
+	int counter_width = 3;
+	
+	// Instantiate the top-level Device (the Simulation).
+	Simulation sim("test_sim", verbose);
+	
+	// Add the n-bit counter Device. Note the parameterised counter width.
+	sim.AddComponent(new N_Bit_Counter(&sim, "test_counter", counter_width, monitor_on, {{"run", true}}));
+	
+	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
+	sim.Stabilise();
+	
+	// Add a Clock and connect it to the clk input on the counter.
+	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
+	sim.AddClock("clock_0", {false, true}, monitor_on);
+	sim.ClockConnect("clock_0", "test_counter", "clk");
+	
+	// Programmatically generate the required vector of counter output pin names.
+	std::vector<std::string> out_pins = {};
+	for (int i = 0; i < counter_width; i ++) {
+		std::string this_out_pin = "q_" + std::to_string(i);
+		out_pins.push_back(this_out_pin);
+	}
+	
+	// Add a Probe on the counter's output pins.
+	sim.AddProbe("counter_out", "test_sim:test_counter", out_pins, "clock_0");
+	
+	bool restart = true;
+	bool print_probe_samples = true;
+	sim.Run(16, restart, verbose, print_probe_samples);
+	
+	return 0;
+}
+```
+<br />
+
+Blah blah.
 <br />
 <br />
 
