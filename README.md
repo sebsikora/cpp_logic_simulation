@@ -17,7 +17,7 @@ Contents.
 * [Programmatic *Device* creation](#programmatic-device-creation)
 * [Demos](#demos)
 * [How to run the demos](#how-to-run-the-demos)
-* [Files](#files)
+* [Files](#included-files)
 * [Thoughts & limitations](#thoughts--limitations)
 * [License](#license)
 <br />
@@ -776,7 +776,7 @@ If you would like to experiment with creating new *Devices* using the framework,
 <br />
 <br />
 
-Files.
+Included files.
 -------------------------
 * `./sim_src/core/` comprises the class prototypes and definitions that comprise the 'core engine'
 * `./sim_src/devices/` contains example *Devices* constructed using the framework
