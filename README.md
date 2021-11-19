@@ -353,8 +353,8 @@ void Quad_SR_Latch::Build() {
 	// Instantiate latches.
 	//
 	AddComponent(new SR_Latch(this, "sr_latch_0"));        // Note we now pass the 'this' pointer
-	AddComponent(new SR_Latch(this, "sr_latch_1"));           as the Device* parent_device_pointer
-	AddComponent(new SR_Latch(this, "sr_latch_2"));           argument to the constructor.
+	AddComponent(new SR_Latch(this, "sr_latch_1"));        // as the Device* parent_device_pointer
+	AddComponent(new SR_Latch(this, "sr_latch_2"));        // argument to the constructor.
 	AddComponent(new SR_Latch(this, "sr_latch_3"));
 	
 	// Instantiate gates.
