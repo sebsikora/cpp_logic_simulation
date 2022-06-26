@@ -79,7 +79,7 @@ class Component {
 
 	protected:
 		bool m_monitor_on;
-		int m_nesting_level;
+		int m_nesting_level = 0;
 		bool m_device_flag;
 		std::string m_name;
 		std::string m_full_name;
@@ -209,7 +209,6 @@ class Device : public Component {
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 		std::vector<state_descriptor> m_in_pin_default_states;
 		int m_message_branch_id = 0;
-		bool m_solve_children_in_own_threads = false;
 		
 	protected:
 		// Device class protected methods.
@@ -222,6 +221,7 @@ class Device : public Component {
 		bool m_magic_device_flag = false;
 		MagicEngine* m_magic_engine_pointer;
 		std::vector<bool> m_magic_pin_flag;
+		bool m_solve_children_in_own_threads = false;
 };
 
 // Top-level Simulation Device sub-class.
@@ -267,8 +267,8 @@ class Simulation : public Device {
 		void PrintAndClearMessages(void);
 		
 		VoidThreadPool* m_thread_pool_pointer = 0;
-		bool m_use_threaded_solver;
-		int m_threaded_solve_nesting_level;
+		bool m_use_threaded_solver = false;
+		int m_threaded_solve_nesting_level = 0;
 				
 	private:
 		void EnableTerminalRawIO(const bool raw_flag);

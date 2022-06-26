@@ -103,3 +103,6 @@ gol_cell_sibling_selector_demo: demos_src/gol_cell_sibling_selector_demo.cpp $(C
 
 n_x_n_game_of_life_demo: demos_src/n_x_n_game_of_life_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $(GOL_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(GOL_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) $(GOL_SRC) demos_src/$@.cpp -o $@
+
+control_panel_demo: demos_src/control_panel_demo.cpp $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@

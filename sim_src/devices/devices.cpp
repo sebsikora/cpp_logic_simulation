@@ -808,7 +808,7 @@ RLIC::RLIC(Device* parent_device_pointer, std::string name, bool monitor_on, std
  }
 
 void RLIC::Build() {
-	int number_of_inverters = 5001;
+	int number_of_inverters = 63;
 	AddGate("not_0", "not");
 	Connect("in", "not_0");
 	

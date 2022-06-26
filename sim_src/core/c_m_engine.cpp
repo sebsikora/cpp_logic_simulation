@@ -41,8 +41,8 @@ MagicEngine::~MagicEngine() {
 		std::cout << GenerateHeader(header) << std::endl;
 	}
 	// ----------------------------------------
-	// Then purge the magic_engine_descriptor held by the top-level Simulation.
-	m_top_level_sim_pointer->PurgeMagicEngineDescriptorFromSimulation({m_identifier, this});
+	//~// Then purge the magic_engine_descriptor held by the top-level Simulation.
+	//~m_top_level_sim_pointer->PurgeMagicEngineDescriptorFromSimulation({m_identifier, this});
 	// ----------------------------------------
 	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
 		header =  "MAGICENGINE : " + m_identifier + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";

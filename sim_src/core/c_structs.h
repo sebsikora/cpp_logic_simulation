@@ -88,7 +88,7 @@ struct magic_engine_descriptor {
 		return ((this->magic_engine_identifier == rhs.magic_engine_identifier) && (this->magic_engine_pointer == rhs.magic_engine_pointer));
 	}
 	bool operator!=(magic_engine_descriptor const& rhs) const {
-		return ((this->magic_engine_identifier != rhs.magic_engine_identifier) || (this->magic_engine_pointer != rhs.magic_engine_pointer));
+		return ((!(this->magic_engine_identifier == rhs.magic_engine_identifier)) && (!(this->magic_engine_pointer == rhs.magic_engine_pointer)));
 	}
 	std::string magic_engine_identifier;
 	MagicEngine* magic_engine_pointer;

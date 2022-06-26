@@ -48,6 +48,8 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 		m_CUID = 0;						// Top-level simulation always CUID 0.
 		m_nesting_level = 0;			// "" nesting_level 0
 		m_full_name = m_name;
+		// No parent so don't need to call parent->CreateChildFlags().
+		// m_solve_children_in_own_threads will be set in Simulation contructor. 
 	} else {
 		m_top_level_sim_pointer = m_parent_device_pointer->GetTopLevelSimPointer();
 		m_CUID = m_top_level_sim_pointer->GetNewCUID();
@@ -55,10 +57,10 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 		m_nesting_level = m_parent_device_pointer->GetNestingLevel() + 1;
 		m_full_name = m_parent_device_pointer->GetFullName() + ":" + m_name;
 		m_parent_device_pointer->CreateChildFlags();
+		m_solve_children_in_own_threads = (m_top_level_sim_pointer->m_use_threaded_solver && (m_nesting_level == m_top_level_sim_pointer->m_threaded_solve_nesting_level));
 	}
 	m_component_type = device_type;
-	m_monitor_on = monitor_on;
-	m_solve_children_in_own_threads = (m_top_level_sim_pointer->m_use_threaded_solver && (m_nesting_level == m_top_level_sim_pointer->m_threaded_solve_nesting_level));
+	m_monitor_on = monitor_on; 	
 	if (max_propagations == 0) {
 		// If default max_propagations get the value from the top-level simulation.
 		m_max_propagations = m_top_level_sim_pointer->GetTopLevelMaxPropagations();

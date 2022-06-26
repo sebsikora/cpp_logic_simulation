@@ -6,15 +6,15 @@
 #include "sr_latch.h"            // Previously defined SR latch device
 #include "n_bit_sr_latch.h"      // Our new device
 
-N_Bit_SR_Latch::N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
- : Device(parent_device_pointer, name, "n_bit_sr_latch", {"R_All"}, {}, monitor_on, input_default_states) {
+N_Bit_SR_Latch::N_Bit_SR_Latch(Device* parent_device_pointer, std::string name, int latch_count, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+ : Device(parent_device_pointer, name, "n_bit_sr_latch", {"R_All"}, {}, monitor_on, in_pin_default_states) {
 	if (latch_count > 0) {
 		m_latch_count = latch_count;
 	} else {
 		m_latch_count = 1;
 	}
-	CreateBus(m_latch_count, "S_", 1, input_default_states);
-	CreateBus(m_latch_count, "R_", 1, input_default_states);
+	CreateBus(m_latch_count, "S_", 1, in_pin_default_states);
+	CreateBus(m_latch_count, "R_", 1, in_pin_default_states);
 	CreateBus(m_latch_count, "Out_", 2);
 	Build();
 	Stabilise();

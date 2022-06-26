@@ -47,6 +47,7 @@ Simulation::Simulation(std::string const& simulation_name, bool verbose_output_f
 	mg_verbose_destructor_flag = false;					// Set to true to check destructor messages.
 	m_use_threaded_solver = solver_conf.use_threaded_solver;
 	m_threaded_solve_nesting_level = solver_conf.threaded_solve_nesting_level;
+	m_solve_children_in_own_threads = (m_use_threaded_solver && (m_nesting_level == m_threaded_solve_nesting_level));
 	std::string message = "\n" + GenerateHeader("Simulation build started.") + "\n";
 	LogMessage(message);
 	if (mg_verbose_flag == false) {
