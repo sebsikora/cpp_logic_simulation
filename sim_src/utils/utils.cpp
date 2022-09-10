@@ -26,7 +26,7 @@
 #include <iostream>					// std::cout, std::endl.
 #include <cmath>
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
 #include "utils.h"
 
 Converter::Converter(int bit_width) {

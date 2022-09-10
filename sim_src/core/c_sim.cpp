@@ -33,7 +33,12 @@
 #include <unistd.h>					// POSIX bits.
 #include <sys/ioctl.h>				// ioctl().
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_sim.hpp"
+#include "c_clock.hpp"
+#include "c_probe.hpp"
+#include "c_m_engine.hpp"
+
 #include "void_thread_pool.hpp"
 #include "utils.h"
 #include "colors.h"

@@ -1,6 +1,8 @@
-// sr_latch.h
+#ifndef LSIM_SRLATCH_H
+#define LSIM_SRLATCH_H
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_device.hpp"
 
 class SR_Latch : public Device {
 	public:
@@ -9,3 +11,4 @@ class SR_Latch : public Device {
 		void Build(void);
 };
 
+#endif	// LSIM_SRLATCH_H

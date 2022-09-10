@@ -25,7 +25,11 @@
 #include <algorithm>				// std::sort
 #include <cstdlib>					// rand()
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_gate.hpp"
+#include "c_device.hpp"
+#include "c_sim.hpp"
+
 #include "utils.h"
 #include "strnatcmp.h"
 #include "colors.h"

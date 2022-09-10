@@ -24,7 +24,8 @@
 #include <vector>					// std::vector
 #include <algorithm>				// std::sort
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_comp.hpp"
+
 #include "utils.h"
 #include "strnatcmp.h"
 

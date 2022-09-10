@@ -26,7 +26,7 @@
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
 
 std::vector<bool> IntToStates(int value_to_convert, int pin_count);
 bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search);

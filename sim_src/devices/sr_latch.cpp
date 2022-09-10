@@ -1,6 +1,9 @@
 // sr_latch.cpp
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_gate.hpp"
+#include "c_device.hpp"
+
 #include "sr_latch.h"       // Our new SR_latch device.
 
 SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 

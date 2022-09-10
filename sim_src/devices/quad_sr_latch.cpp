@@ -1,6 +1,9 @@
 // quad_sr_latch.cpp
 
-#include "c_core.h"	             // Core simulator functionality
+#include "c_structs.hpp"
+#include "c_gate.hpp"
+#include "c_device.hpp"
+
 #include "sr_latch.h"            // Previously defined SR latch device
 #include "quad_sr_latch.h"       // Our new device
 

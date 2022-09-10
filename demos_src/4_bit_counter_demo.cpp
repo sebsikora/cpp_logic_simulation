@@ -1,4 +1,4 @@
-#include "c_core.h"					// Core simulator functionality
+#include "c_sim.hpp"
 #include "devices.h"				// Four_Bit_Counter Device
 
 int main () {
@@ -20,8 +20,6 @@ int main () {
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();
-	
-	sim->ChildMakeProbable("test_counter");
 	
 	// Add two Probes and connect them to the counter's outputs and clk input.
 	sim->AddProbe("clk_input", "test_sim:test_counter", {"clk"}, "clock_0");

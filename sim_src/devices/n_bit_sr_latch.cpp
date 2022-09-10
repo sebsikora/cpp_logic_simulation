@@ -2,7 +2,10 @@
 #include <string>
 #include <vector>
 
-#include "c_core.h"	             // Core simulator functionality
+#include "c_structs.hpp"
+#include "c_gate.hpp"
+#include "c_device.hpp"
+
 #include "sr_latch.h"            // Previously defined SR latch device
 #include "n_bit_sr_latch.h"      // Our new device
 

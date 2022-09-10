@@ -26,7 +26,8 @@
 #include <vector>					// std::vector
 #include <unordered_map>			// std::unordered_map
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_device.hpp"
 
 class JK_FF : public Device {
 	public:

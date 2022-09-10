@@ -23,7 +23,11 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_probe.hpp"
+#include "c_clock.hpp"
+#include "c_sim.hpp"
+
 #include "utils.h"
 
 Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,

@@ -20,8 +20,8 @@
 */
 
 // Include guard for this header.
-#ifndef LSIM_STRUCTS_H
-#define LSIM_STRUCTS_H
+#ifndef LSIM_CORE_STRUCTS_H
+#define LSIM_CORE_STRUCTS_H
 
 // Includes for this header.
 #include <string>					// std::string.
@@ -123,4 +123,4 @@ struct magic_event {
 	int incantation;
 };
 
-#endif
+#endif	// LSIM_CORE_STRUCTS_H

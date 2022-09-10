@@ -1,6 +1,8 @@
-// n_bit_sr_latch.h
+#ifndef LSIM_NBITSR_H
+#define LSIM_NBITSR_H
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_device.hpp"
 
 class N_Bit_SR_Latch : public Device {
 	public:
@@ -9,3 +11,5 @@ class N_Bit_SR_Latch : public Device {
 		void Build(void);
 		int m_latch_count;
 };
+
+#endif	// LSIM_NBITSR_H

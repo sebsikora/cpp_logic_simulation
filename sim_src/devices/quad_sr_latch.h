@@ -1,6 +1,8 @@
-// quad_sr_latch.h
+#ifndef LSIM_QSRLATCH_H
+#define LSIM_QSRLATCH_H
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_device.hpp"
 
 class Quad_SR_Latch : public Device {
 	public:
@@ -8,3 +10,5 @@ class Quad_SR_Latch : public Device {
 		              std::vector<state_descriptor> input_default_states = {});
 		void Build(void);
 };
+
+#endif	// LSIM_QSRLATCH_H
