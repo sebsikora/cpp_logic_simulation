@@ -250,20 +250,21 @@ operator_pointer Gate::GetOperatorPointer(std::string const& operator_name) {
 
 bool Gate::OperatorAnd(std::vector<pin> const& pins) {
 	bool output = true;
-	for (const auto& this_pin : pins) {
-		if (this_pin.direction == 1) {
-			output &= this_pin.state;
-		}
+	//~for (const auto& this_pin : pins) {
+		//~if (this_pin.direction == 1) {
+			//~output &= this_pin.state;
+		//~}
+	//~}
+	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
+		output &= (*this_pin).state;
 	}
 	return output;
 }
 
 bool Gate::OperatorNand(std::vector<pin> const& pins) {
 	bool output = true;
-	for (const auto& this_pin : pins) {
-		if (this_pin.direction == 1) {
-			output &= this_pin.state;
-		}
+	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
+		output &= (*this_pin).state;
 	}
 	output = !output;
 	return output;
@@ -271,20 +272,16 @@ bool Gate::OperatorNand(std::vector<pin> const& pins) {
 
 bool Gate::OperatorOr(std::vector<pin> const& pins) {
 	bool output = false;
-	for (const auto& this_pin : pins) {
-		if (this_pin.direction == 1) {
-			output |= this_pin.state;
-		}
+	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
+		output |= (*this_pin).state;
 	}
 	return output;
 }
 
 bool Gate::OperatorNor(std::vector<pin> const& pins) {
 	bool output = false;
-	for (const auto& this_pin : pins) {
-		if (this_pin.direction == 1) {
-			output |= this_pin.state;
-		}
+	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
+		output |= (*this_pin).state;
 	}
 	output = !output;
 	return output;
@@ -292,11 +289,12 @@ bool Gate::OperatorNor(std::vector<pin> const& pins) {
 
 bool Gate::OperatorNot(std::vector<pin> const& pins) {
 	bool output = false;
-	for (const auto& this_pin: pins) {
-		if (this_pin.direction == 1) {
-			output = !this_pin.state;
-		}
-	}
+	//~for (const auto& this_pin: pins) {
+		//~if (this_pin.direction == 1) {
+			//~output = !this_pin.state;
+		//~}
+	//~}
+	output = !pins[0].state;
 	return output;
 }
 
