@@ -1,4 +1,4 @@
-#include "c_core.h"			// Core simulator functionality
+#include "c_sim.hpp"
 #include "devices.h"		// JK flip-flop Device
 
 int main () {

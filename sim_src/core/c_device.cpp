@@ -28,7 +28,7 @@
 #include <functional>				// std::bind
 
 #include "c_structs.hpp"
-#include "c_gate.hpp"
+#include "c_gates.hpp"
 #include "c_device.hpp"
 #include "c_sim.hpp"
 #include "c_m_engine.hpp"
@@ -263,11 +263,27 @@ void Device::AddComponent(Component* new_component_pointer) {
 }
 
 void Device::AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on) {
-	AddComponent(new Gate(this, component_name, component_type, in_pin_names, monitor_on));
+	if (component_type == "and") {
+		AddComponent(new AndGate(this, component_name, in_pin_names, monitor_on));
+	} else if (component_type == "nand") {
+		AddComponent(new NandGate(this, component_name, in_pin_names, monitor_on));
+	} else if (component_type == "or") {
+		AddComponent(new OrGate(this, component_name, in_pin_names, monitor_on));
+	} else if (component_type == "nor") {
+		AddComponent(new NorGate(this, component_name, in_pin_names, monitor_on));
+	} else {
+		std::string build_error = "Device " + m_full_name + " tried to instantiate a " + component_type + " Gate but no such Gate is available.";
+		m_top_level_sim_pointer->LogError(build_error);
+	}
 }
 
 void Device::AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on) {
-	AddComponent(new Gate(this, component_name, component_type, {}, monitor_on));
+	if (component_type == "not") {
+		AddComponent(new Inverter(this, component_name, monitor_on));
+	} else {
+		std::string build_error = "Device " + m_full_name + " tried to instantiate a " + component_type + " Gate but specified no in pins.";
+		m_top_level_sim_pointer->LogError(build_error);
+	}
 }
 
 void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation) {

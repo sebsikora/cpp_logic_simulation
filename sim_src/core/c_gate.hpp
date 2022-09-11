@@ -30,18 +30,10 @@
 
 class Device;
 
-// This typedef defines the type 'pointer to a Gate class member function that takes a vector of pin
-// structs as arguments and returns an output bool. This allows us to *dramatically* simplify the code
-// for declaring such function pointers and member functions that take them as arguments and/or return them.
-typedef bool (Gate::*operator_pointer)(std::vector<pin> const&);
-
 // Logic Gate Component sub-class.
 class Gate : public Component {
 	public:
-		Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
-			std::vector<std::string> in_pin_names = {}, bool monitor_on = false
-		);
-		~Gate();
+		virtual ~Gate();
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;
@@ -54,18 +46,18 @@ class Gate : public Component {
 		void PurgeComponent(void) override;
 		void PurgeInboundConnections(Component* target_component_pointer) override;
 		void PurgeOutboundConnections(void) override;
+
+	protected:
+		virtual bool Operate(void) = 0;
+		void Configure(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
+					   std::vector<std::string> in_pin_names, bool monitor_on);
+
+		int m_in_pin_count;
 		
 	private:
 		void Evaluate(void);
-		operator_pointer GetOperatorPointer(std::string const& operator_name);
-		bool OperatorAnd(std::vector<pin> const& pins);
-		bool OperatorNand(std::vector<pin> const& pins);
-		bool OperatorOr(std::vector<pin> const& pins);
-		bool OperatorNor(std::vector<pin> const& pins);
-		bool OperatorNot(std::vector<pin> const& pins);
 		
 		int m_out_pin_port_index;
-		operator_pointer m_operator_function_pointer;
 		std::vector<connection_descriptor> m_connections;
 };
 

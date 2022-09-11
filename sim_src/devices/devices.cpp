@@ -25,7 +25,7 @@
 #include <cmath>					// pow()
 
 #include "c_structs.hpp"
-#include "c_gate.hpp"
+#include "c_gates.hpp"
 #include "c_device.hpp"
 
 #include "devices.h"
@@ -41,7 +41,7 @@ JK_FF::JK_FF(Device* parent_device_pointer, std::string name, bool monitor_on, s
 void JK_FF::Build() {
 	// Instantiate components.
 	// Can do it by directly instantiating the object.
-	AddComponent(new Gate(this, "nand_1", "nand", {"input_0", "input_1", "input_2"}, false));
+	AddComponent(new NandGate(this, "nand_1", {"input_0", "input_1", "input_2"}, false));
 	// Or via a custom method.
 	AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"}, false);
 	AddGate("nand_3", "nand", {"input_0", "input_1"}, false);
@@ -96,7 +96,7 @@ JK_FF_ASPC::JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool mon
 void JK_FF_ASPC::Build() {
 	// Instantiate components.
 	// Can do it by directly instantiating the object.
-	AddComponent(new Gate(this, "nand_1", "nand", {"input_0", "input_1", "input_2"}, false));
+	AddComponent(new NandGate(this, "nand_1", {"input_0", "input_1", "input_2"}, false));
 	// Or via a custom method.
 	AddGate("nand_2", "nand", {"input_0", "input_1", "input_2"}, false);
 	AddGate("nand_3", "nand", {"input_0", "input_1", "input_2"}, false);

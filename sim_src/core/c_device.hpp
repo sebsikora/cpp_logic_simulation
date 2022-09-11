@@ -38,7 +38,7 @@ class Device : public Component {
 			std::vector<std::string> out_pin_names, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {},
 			int max_propagations = 0
 		);
-		~Device();
+		virtual ~Device();
 		
 		// Override Component virtual methods.
 		void Initialise(void) override;

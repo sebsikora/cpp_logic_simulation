@@ -1,6 +1,6 @@
 // sr_latch_demo.cpp
 
-#include "c_core.h" 	// Include core simulation functionality
+#include "c_sim.hpp"
 
 int main () {
 	bool verbose = false;

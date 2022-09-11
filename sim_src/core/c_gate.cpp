@@ -34,8 +34,15 @@
 #include "strnatcmp.h"
 #include "colors.h"
 
-Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
-	std::vector<std::string> in_pin_names, bool monitor_on) {
+Gate::~Gate() {
+	PurgeComponent();
+	if (mg_verbose_destructor_flag) {
+		std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
+	}
+}
+
+void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
+					 std::vector<std::string> in_pin_names, bool monitor_on) {
 	m_device_flag = false;
 	m_name = gate_name;
 	m_parent_device_pointer = parent_device_pointer;
@@ -46,19 +53,15 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 	m_full_name = m_parent_device_pointer->GetFullName() + ":" + m_name;
 	m_parent_device_pointer->CreateChildFlags();
 	m_component_type = gate_type;
-	m_operator_function_pointer = GetOperatorPointer(m_component_type);
 	m_monitor_on = monitor_on;
-	// If a not gate is being instantiated, cap the inputs list to the first input.
-	if (m_component_type == "not") {
-		in_pin_names = {"input"};
-	} else {
-		int number_of_in_pins = in_pin_names.size();
-		if (number_of_in_pins < 2) {
-			// Log build error here.		-- Not enough pins defined for this Gate!
-			std::string build_error = "Gate " + m_full_name + "(" + m_component_type + ") added with only " + std::to_string(number_of_in_pins) + " in pins specified.";
-			m_top_level_sim_pointer->LogError(build_error);
-		}
+	
+	m_in_pin_count = in_pin_names.size();
+	if ((m_component_type != "not") && (m_in_pin_count < 2)) {
+		// Log build error here.		-- Not enough pins defined for this Gate!
+		std::string build_error = "Gate " + m_full_name + "(" + m_component_type + ") added with only " + std::to_string(m_in_pin_count) + " in pins specified.";
+		m_top_level_sim_pointer->LogError(build_error);
 	}
+
 	std::sort(in_pin_names.begin(), in_pin_names.end(), compareNat);
 	int new_pin_port_index = 0;
 	for (const auto& pin_name : in_pin_names) {
@@ -72,13 +75,6 @@ Gate::Gate(Device* parent_device_pointer, std::string const& gate_name, std::str
 	m_out_pin_port_index = new_pin_port_index;
 	pin new_out_pin = {out_pin_name, 2, false, false, new_pin_port_index, {false, false}};
 	m_pins.push_back(new_out_pin);
-}
-
-Gate::~Gate() {
-	PurgeComponent();
-	if (mg_verbose_destructor_flag) {
-		std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
-	}
 }
 
 void Gate::Reset() {
@@ -106,7 +102,7 @@ void Gate::Initialise() {
 	// To ensure that this does not take place, having set the input states of any gate connected to it's inputs, the parent device
 	// calls Initialise() for each remaining child gate to ensure it's output state is sensible with respect to it's initial input 
 	// states and that if it's output state has changed this change will be propagated during the subsequent Solve() call.
-	bool new_state = (this->*m_operator_function_pointer)(m_pins);
+	bool new_state = Operate();
 	m_pins[m_out_pin_port_index].state = new_state;
 	m_pins[m_out_pin_port_index].state_changed = true;
 	m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
@@ -190,12 +186,7 @@ void Gate::Set(const int pin_port_index, const bool state_to_set) {
 }
 
 void Gate::Evaluate() {
-	// The 'this' below is how we call a method function via it's method function pointer. Assuming the pointer and method
-	// are public, we could call it from outside this object via the syntax:
-	// 		([object variable name].*[object variable name].[member pointer variable name])(arguments);
-	// HOWEVER, from inside the object we use the syntax:
-	//		(this->*[member pointer variable name])(arguments);
-	bool new_state = (this->*m_operator_function_pointer)(m_pins);
+	bool new_state = Operate();
 	pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state != new_state) {
 		if (mg_verbose_flag) {
@@ -230,72 +221,6 @@ void Gate::Propagate() {
 			this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, out_pin->state);
 		}
 	}
-}
-
-operator_pointer Gate::GetOperatorPointer(std::string const& operator_name) {
-	operator_pointer pointer;
-	if (operator_name == "and") {
-		pointer = &Gate::OperatorAnd;
-	} else if (operator_name == "nand") {
-		pointer = &Gate::OperatorNand;
-	} else if (operator_name == "or") {
-		pointer = &Gate::OperatorOr;
-	} else if (operator_name == "nor") {
-		pointer = &Gate::OperatorNor;
-	} else if (operator_name == "not") {
-		pointer = &Gate::OperatorNot;
-	}
-	return pointer;
-}
-
-bool Gate::OperatorAnd(std::vector<pin> const& pins) {
-	bool output = true;
-	//~for (const auto& this_pin : pins) {
-		//~if (this_pin.direction == 1) {
-			//~output &= this_pin.state;
-		//~}
-	//~}
-	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
-		output &= (*this_pin).state;
-	}
-	return output;
-}
-
-bool Gate::OperatorNand(std::vector<pin> const& pins) {
-	bool output = true;
-	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
-		output &= (*this_pin).state;
-	}
-	output = !output;
-	return output;
-}
-
-bool Gate::OperatorOr(std::vector<pin> const& pins) {
-	bool output = false;
-	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
-		output |= (*this_pin).state;
-	}
-	return output;
-}
-
-bool Gate::OperatorNor(std::vector<pin> const& pins) {
-	bool output = false;
-	for (auto this_pin = pins.begin(); this_pin != std::prev(pins.end()); ++this_pin) {
-		output |= (*this_pin).state;
-	}
-	output = !output;
-	return output;
-}
-
-bool Gate::OperatorNot(std::vector<pin> const& pins) {
-	bool output = false;
-	//~for (const auto& this_pin: pins) {
-		//~if (this_pin.direction == 1) {
-			//~output = !this_pin.state;
-		//~}
-	//~}
-	output = !pins[0].state;
-	return output;
 }
 
 void Gate::PrintPinStates(int max_levels) {
