@@ -185,7 +185,7 @@ void Gate::Set(const int pin_port_index, const bool state_to_set) {
 	}
 }
 
-void Gate::Evaluate() {
+inline void Gate::Evaluate() {
 	bool new_state = Operate();
 	pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state != new_state) {

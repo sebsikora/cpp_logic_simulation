@@ -10,7 +10,7 @@ AndGate::AndGate(Device* parent_device_pointer, std::string const& gate_name, st
 	Configure(parent_device_pointer, gate_name, "and", in_pin_names, monitor_on);
 }
 
-bool AndGate::Operate(void) {
+inline bool AndGate::Operate(void) {
 	bool output = true;
 	for (int i = 0; i < m_in_pin_count; ++i) {
 		output &= m_pins[i].state;
@@ -22,7 +22,7 @@ NandGate::NandGate(Device* parent_device_pointer, std::string const& gate_name, 
 	Configure(parent_device_pointer, gate_name, "nand", in_pin_names, monitor_on);
 }
 
-bool NandGate::Operate(void) {
+inline bool NandGate::Operate(void) {
 	bool output = true;
 	for (int i = 0; i < m_in_pin_count; ++i) {
 		output &= m_pins[i].state;
@@ -34,7 +34,7 @@ OrGate::OrGate(Device* parent_device_pointer, std::string const& gate_name, std:
 	Configure(parent_device_pointer, gate_name, "or", in_pin_names, monitor_on);
 }
 
-bool OrGate::Operate(void) {
+inline bool OrGate::Operate(void) {
 	bool output = false;
 	for (int i = 0; i < m_in_pin_count; ++i) {
 		output |= m_pins[i].state;
@@ -46,7 +46,7 @@ NorGate::NorGate(Device* parent_device_pointer, std::string const& gate_name, st
 	Configure(parent_device_pointer, gate_name, "nor", in_pin_names, monitor_on);
 }
 
-bool NorGate::Operate(void) {
+inline bool NorGate::Operate(void) {
 	bool output = false;
 	for (int i = 0; i < m_in_pin_count; ++i) {
 		output |= m_pins[i].state;
@@ -58,6 +58,6 @@ Inverter::Inverter(Device* parent_device_pointer, std::string const& gate_name, 
 	Configure(parent_device_pointer, gate_name, "not", {"input"}, monitor_on);
 }
 
-bool Inverter::Operate(void) {
+inline bool Inverter::Operate(void) {
 	return !m_pins[0].state;
 }

@@ -11,7 +11,7 @@ class AndGate : public Gate {
 		virtual ~AndGate() { }
 
 	protected:
-		bool Operate(void) override;
+		virtual bool Operate(void) final override;
 };
 
 class NandGate : public Gate {
@@ -20,7 +20,7 @@ class NandGate : public Gate {
 		virtual ~NandGate() { }
 
 	protected:
-		bool Operate(void) override;
+		virtual bool Operate(void) final override;
 };
 
 class OrGate : public Gate {
@@ -29,7 +29,7 @@ class OrGate : public Gate {
 		virtual ~OrGate() { }
 
 	protected:
-		bool Operate(void) override;
+		virtual bool Operate(void) final override;
 };
 
 class NorGate : public Gate {
@@ -38,7 +38,7 @@ class NorGate : public Gate {
 		virtual ~NorGate() { }
 
 	protected:
-		bool Operate(void) override;
+		virtual bool Operate(void) final override;
 };
 
 class Inverter : public Gate {
@@ -47,7 +47,7 @@ class Inverter : public Gate {
 		virtual ~Inverter() { }
 
 	protected:
-		bool Operate(void) override;
+		virtual bool Operate(void) final override;
 };
 
 #endif	// LSIM_CORE_GATES_HPP

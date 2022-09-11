@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_sim.hpp"
 #include "devices.h"		// Four_Bit_Counter Device
 #include "utils.h"
 
@@ -17,7 +17,6 @@ int main () {
 	
 	// Add a 4-bit counter device.
 	sim->AddComponent(new N_Bit_Counter_AIO(sim, "test_counter", 4, monitor_on, {{"run", true}}));
-	sim->ChildMakeProbable("test_counter");
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();

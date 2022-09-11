@@ -90,6 +90,19 @@ class Device : public Component {
 		void CreateChildFlags(void);
 		bool GetDeletionFlag(void);
 		int GetMessageBranchID(void);
+
+	protected:
+		// Device class protected methods.
+		void Solve(const bool threaded_solve, const int branch_id);
+		void QueueToSolve(const int local_component_identifier);
+		void PropagateInputs(void);
+		
+		int m_max_propagations;
+		bool m_deletion_flag = false;
+		bool m_magic_device_flag = false;
+		MagicEngine* m_magic_engine_pointer;
+		std::vector<bool> m_magic_pin_flag;
+		bool m_solve_children_in_own_threads = false;
 		
 	private:
 		// Device class private methods.
@@ -110,19 +123,6 @@ class Device : public Component {
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 		std::vector<state_descriptor> m_in_pin_default_states;
 		int m_message_branch_id = 0;
-		
-	protected:
-		// Device class protected methods.
-		void Solve(const bool threaded_solve, const int branch_id);
-		void QueueToSolve(const int local_component_identifier);
-		void PropagateInputs(void);
-		
-		int m_max_propagations;
-		bool m_deletion_flag = false;
-		bool m_magic_device_flag = false;
-		MagicEngine* m_magic_engine_pointer;
-		std::vector<bool> m_magic_pin_flag;
-		bool m_solve_children_in_own_threads = false;
 };
 
 #endif	// LSIM_CORE_DEVICE_HPP
