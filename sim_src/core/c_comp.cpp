@@ -25,17 +25,16 @@
 #include <algorithm>				// std::sort
 
 #include "c_comp.hpp"
+#include "c_sim.hpp"
+#include "c_device.hpp"
 
 #include "utils.h"
 #include "strnatcmp.h"
 
-bool Component::mg_verbose_flag;
-bool Component::mg_verbose_destructor_flag;
-
 Component::~Component() {
-	if (mg_verbose_destructor_flag) {
-		std::cout << "Component dtor for " << m_full_name << " @ " << this << std::endl << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	std::cout << "Component dtor for " << m_full_name << " @ " << this << std::endl << std::endl;
+#endif
 }
 
 std::string Component::GetName() {
@@ -43,7 +42,20 @@ std::string Component::GetName() {
 }
 
 std::string Component::GetFullName() {
-	return m_full_name;
+	std::string full_name = "";
+	GenerateFullName(full_name);
+	return full_name;
+}
+
+void Component::GenerateFullName(std::string &workingString) {
+	if (workingString != "") {
+		workingString = m_name + ":" + workingString;
+	} else {
+		workingString = m_name;
+	}
+	if (this != m_top_level_sim_pointer) {
+		m_parent_device_pointer->GenerateFullName(workingString);
+	}
 }
 
 bool Component::GetDeviceFlag() {
@@ -60,10 +72,6 @@ int Component::GetLocalComponentIndex() {
 
 void Component::SetLocalComponentIndex(int new_local_component_index) {
 	m_local_component_index = new_local_component_index;
-}
-
-bool Component::GetMonitorOnFlag(void) {
-	return m_monitor_on;
 }
 
 Simulation* Component::GetTopLevelSimPointer() {

@@ -50,9 +50,9 @@ Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, C
 
 Probe::~Probe() {
 	PurgeProbe();
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		std::cout << "Probe dtor for " << m_name << " @ " << this << std::endl << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	std::cout << "Probe dtor for " << m_name << " @ " << this << std::endl << std::endl;
+#endif
 }
 
 void Probe::Sample(const int index) {
@@ -122,19 +122,19 @@ std::vector<std::vector<bool>> Probe::GetSamples(void) {
 
 void Probe::PurgeProbe() {
 	std::string header;
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		header =  "Purging -> PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) ;
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "Purging -> PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) ;
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
 		// PurgeProbe needs to follow the m_trigger_clock_pointer to first of all remove itself from the trigger Clock's m_probes vector...
 		m_trigger_clock_pointer->PurgeProbeDescriptorFromClock(this);
 		// ...then parent Simulation's m_probes vector.
 		m_top_level_sim_pointer->PurgeProbeDescriptorFromSimulation(this);
 	}
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		header =  "PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged." ;
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged." ;
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	// - It should now be safe to delete this object -
 }

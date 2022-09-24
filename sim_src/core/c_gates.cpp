@@ -2,7 +2,6 @@
 #include <string>
 
 #include "c_gates.hpp"
-#include "c_sim.hpp"
 
 class Device;
 

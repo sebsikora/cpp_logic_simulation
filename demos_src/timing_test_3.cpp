@@ -13,7 +13,7 @@ int main () {
 	int number_of_runs = 50;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", false);
+	Simulation* sim = new Simulation("test_sim");
 	
 	// Add a 4-bit counter device.
 	sim->AddComponent(new N_Bit_Counter_AIO(sim, "test_counter", 4, monitor_on, {{"run", true}}));
@@ -40,16 +40,15 @@ int main () {
 	for (int run_index = 0; run_index < number_of_runs; run_index ++) {
 		std::cout << std::endl << "Run : " << run_index << std::endl;
 		auto t1 = std::chrono::high_resolution_clock::now();
-		sim->Run(49990, true, false, false, true);
+		sim->Run(49990, true, false, true);
 		for (int last_5_index = 0; last_5_index < 5; last_5_index ++) {
-			sim->Run(2, false, false, false, true);
+			sim->Run(2, false, false, true);
 			for (int pin_index = 0; pin_index < 4; pin_index ++) {
 				read_states.emplace_back(counter->GetPinState(counter->GetPinPortIndex(counter_output_names[pin_index])));
 			}
 			last_5_counts.emplace_back(count_converter.StatesToInt(read_states));
 			read_states.clear();
 		}
-		//~sim->Run(50000, true, false, false, true);
 		auto t2 = std::chrono::high_resolution_clock::now();
 		long long microseconds = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 		run_times.emplace_back(microseconds);

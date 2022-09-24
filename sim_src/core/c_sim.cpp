@@ -43,22 +43,20 @@
 #include "utils.h"
 #include "colors.h"
 
-Simulation::Simulation(std::string const& simulation_name, bool verbose_output_flag, solver_configuration solver_conf, int max_propagations)
+Simulation::Simulation(std::string const& simulation_name, solver_configuration solver_conf, int max_propagations)
  : Device(this, simulation_name, "simulation", {}, {}, false, {}, max_propagations) {
 	m_next_new_CUID = 1;
 	m_simulation_running = false;
 	m_global_tick_index = 0;
-	mg_verbose_flag = verbose_output_flag;
-	mg_verbose_destructor_flag = false;					// Set to true to check destructor messages.
 	m_use_threaded_solver = solver_conf.use_threaded_solver;
 	m_threaded_solve_nesting_level = solver_conf.threaded_solve_nesting_level;
 	m_solve_children_in_own_threads = (m_use_threaded_solver && (m_nesting_level == m_threaded_solve_nesting_level));
 	std::string message = "\n" + GenerateHeader("Simulation build started.") + "\n";
 	LogMessage(message);
-	if (mg_verbose_flag == false) {
-		std::string message = "(Simulation verbose output is off)";
-		LogMessage(message);
-	}
+#ifndef VERBOSE_SOLVE
+	message = "(Simulation verbose output is off)";
+	LogMessage(message);
+#endif
 	// Start up the Simulation's solver threadpool.
 	if (m_use_threaded_solver) {
 		m_thread_pool_pointer = new VoidThreadPool(false);
@@ -71,9 +69,9 @@ Simulation::~Simulation() {
 		delete m_thread_pool_pointer;
 	}
 	PurgeComponent();
-	if (mg_verbose_destructor_flag) {
-		std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	std::cout << "Simulation dtor for " << m_full_name << " @ " << this << std::endl;
+#endif
 }
 
 int Simulation::GetNewCUID() {
@@ -112,11 +110,9 @@ char Simulation::CheckForCharacter() {
 	return key_pressed;
 }
 
-void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output_flag, bool print_probes_flag, bool force_no_messages) {
+void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_flag, bool force_no_messages) {
 	bool print_errors_flag = false;
 	if (m_error_messages.size() == 0) {
-		bool previous_verbose_output_flag = mg_verbose_flag;
-		mg_verbose_flag = verbose_output_flag;
 		m_simulation_running = true;
 		if (restart_flag) {
 			if (!force_no_messages) {
@@ -137,10 +133,12 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 		for (const auto& this_probe_descriptor : m_probes) {
 			this_probe_descriptor.probe_pointer->PreallocateSampleMemory(number_of_ticks);
 		}
-		if ((!mg_verbose_flag) && (!force_no_messages)) {
+#ifndef VERBOSE_SOLVE
+		if (!force_no_messages) {
 			std::string message = std::string("\n(Simulation verbose output is off)");
 			std::cout << message << std::endl;
 		}
+#endif
 		// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
 		// ~~~ We need to manually set it back when we are done! ~~~
 		EnableTerminalRawIO(true);
@@ -152,25 +150,28 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			for (const auto& this_magic_engine_descriptor : m_magic_engines) {
 				this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
 			}
-			if ((mg_verbose_flag) && (!force_no_messages)){
+#ifdef VERBOSE_SOLVE
+			if (!force_no_messages) {
 				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index));
 				LogMessage("\n" + message);
 			}
+#endif
 			// Advance all clocks.
 			for (const auto& this_clock_descriptor : m_clocks) {
 				this_clock_descriptor.clock_pointer->Tick();
 			}
 			// Solve top-level simulation state.
-			Solve(false, m_CUID);
+			Solve();
+			
+#ifdef VERBOSE_SOLVE
 			// Print any messages logged this tick.
-			//~if (mg_verbose_flag) {
-				PrintAndClearMessages();
-			//~}
+			PrintAndClearMessages();
+#endif
 			// If any errors have been reported this tick, break here and finish.
 			// Asserted the __ALL_STOP__ internal input of a Device will log an error message and hence stop the simulation.
 			if (m_error_messages.size() > 0) {
 				print_errors_flag = true;
-				m_simulation_running = false;
+				StopSimulation();
 				break;
 			}
 			// Every input_check_count_limit ticks check if user has pressed a key and respond.
@@ -179,7 +180,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 				if (key_pressed == 'q') {
 					// Really we need to choose a more involved key-combination than 'q' here for the stop key...
 					std::cout << std::endl << GenerateHeader("STOP KEY PRESSED") << std::endl << std::endl;
-					m_simulation_running = false;
+					StopSimulation();
 					break;
 				}
 				input_check_count = 0;
@@ -191,7 +192,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			if (number_of_ticks > 0) {
 				tick_count += 1;
 				if (tick_count == number_of_ticks) {
-					m_simulation_running = false;
+					StopSimulation();
 					break;
 				}
 			}
@@ -210,7 +211,6 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool verbose_output
 			}
 			std::cout << GenerateHeader("Done.") << std::endl;
 		}
-		mg_verbose_flag = previous_verbose_output_flag;
 	} else {
 		print_errors_flag = true;
 	}
@@ -359,41 +359,43 @@ void Simulation::LogMessage(std::string const& message) {
 void Simulation::PrintAndClearMessages() {
 	std::unordered_map<int, std::vector<std::string>> message_collations;
 	for (auto& this_message : m_messages) {
-		std::string start_prefix = std::string("~S");	// Solution branch start.
-		std::string end_prefix = std::string("~E");		// Solution branch end.
-		std::string message_to_collate_prefix = std::string("~");		// Prefixed message.
-		if (std::equal(start_prefix.begin(), start_prefix.end(), this_message.begin())) {
-			// Start of messages from a new solution branch.
-			this_message.erase(0, 2);
-			int branch_prefix = std::stoi(this_message);
-			message_collations[branch_prefix].clear();		// operator[] will create an entry via default constructor if none with key branch_prefix.
-			std::cout << std::endl << "Started collating messages from branch " << branch_prefix << std::endl;
-		} else if (std::equal(end_prefix.begin(), end_prefix.end(), this_message.begin())) {
-			// End of this solution branch.
-			this_message.erase(0, 2);
-			int branch_prefix = std::stoi(this_message);
-			std::cout << std::endl << "Finished collating messages from branch " << branch_prefix << std::endl;
-			// Print messages from this branch to the console and then clear the dictionary entry.
-			for (const auto& this_collated_message : message_collations[branch_prefix]) {
-				std::cout << this_collated_message << std::endl;
-			}
-			message_collations.erase(branch_prefix);
-		} else if (std::equal(message_to_collate_prefix.begin(), message_to_collate_prefix.end(), this_message.begin())) {
-			// Message with a branch prefix.
-			this_message.erase(0, 1);
-			int prefix = std::stoi(this_message.substr(0, this_message.find(":", 0)));
-			// operator[] will create an entry under that key if none exists, which can lead to fairly quiet
-			// if not silent failure in the event that anything unexpected gets through.
-			try {
-				message_collations.at(prefix).push_back(this_message);
-			}
-			catch (const std::out_of_range& oor_error) {
-				std::cerr << "Unexpected branch prefix on this message: " << this_message << std::endl;
-			}
-		} else {
-			// No prefix at all, just print the message.
-			std::cout << this_message << std::endl;
-		}
+		std::cout << this_message << std::endl;
+		
+		//~std::string start_prefix = std::string("~S");	// Solution branch start.
+		//~std::string end_prefix = std::string("~E");		// Solution branch end.
+		//~std::string message_to_collate_prefix = std::string("~");		// Prefixed message.
+		//~if (std::equal(start_prefix.begin(), start_prefix.end(), this_message.begin())) {
+			//~// Start of messages from a new solution branch.
+			//~this_message.erase(0, 2);
+			//~int branch_prefix = std::stoi(this_message);
+			//~message_collations[branch_prefix].clear();		// operator[] will create an entry via default constructor if none with key branch_prefix.
+			//~std::cout << std::endl << "Started collating messages from branch " << branch_prefix << std::endl;
+		//~} else if (std::equal(end_prefix.begin(), end_prefix.end(), this_message.begin())) {
+			//~// End of this solution branch.
+			//~this_message.erase(0, 2);
+			//~int branch_prefix = std::stoi(this_message);
+			//~std::cout << std::endl << "Finished collating messages from branch " << branch_prefix << std::endl;
+			//~// Print messages from this branch to the console and then clear the dictionary entry.
+			//~for (const auto& this_collated_message : message_collations[branch_prefix]) {
+				//~std::cout << this_collated_message << std::endl;
+			//~}
+			//~message_collations.erase(branch_prefix);
+		//~} else if (std::equal(message_to_collate_prefix.begin(), message_to_collate_prefix.end(), this_message.begin())) {
+			//~// Message with a branch prefix.
+			//~this_message.erase(0, 1);
+			//~int prefix = std::stoi(this_message.substr(0, this_message.find(":", 0)));
+			//~// operator[] will create an entry under that key if none exists, which can lead to fairly quiet
+			//~// if not silent failure in the event that anything unexpected gets through.
+			//~try {
+				//~message_collations.at(prefix).push_back(this_message);
+			//~}
+			//~catch (const std::out_of_range& oor_error) {
+				//~std::cerr << "Unexpected branch prefix on this message: " << this_message << std::endl;
+			//~}
+		//~} else {
+			//~// No prefix at all, just print the message.
+			//~std::cout << this_message << std::endl;
+		//~}
 	}
 	m_messages.clear();
 }
@@ -430,10 +432,10 @@ std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vec
 
 void Simulation::PurgeComponent() {
 	std::string header;
-	if (mg_verbose_destructor_flag) {
-		header =  "Purging -> SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "Purging -> SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	// Set the Simulation's deletion flag to let child components know that they don't need to tidy-up
 	// after themselves (remove connections from sibling components, remove themselves from Clocks,
 	// Probes, etc).
@@ -450,10 +452,10 @@ void Simulation::PurgeComponent() {
 			delete this_probe_descriptor.probe_pointer;
 		}
 	}
-	if (mg_verbose_destructor_flag) {
-		header =  "SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "SIMULATION : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	// ~Device() will follow - this will take care of deleting all child Components.
 }
 
@@ -503,9 +505,9 @@ void Simulation::PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer)
 			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
 			new_probes.push_back(new_probe_descriptor);
 		} else {
-			if (mg_verbose_destructor_flag) {
+#ifdef VERBOSE_DTORS
 				std::cout << "Purging " << this_probe_descriptor.probe_name << " from Simulation " << m_name << " m_probes." << std::endl;
-			}
+#endif
 		}
 	}
 	m_probes = new_probes;
@@ -537,9 +539,9 @@ void Simulation::PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer)
 			new_clock_descriptor.clock_pointer = this_clock_descriptor.clock_pointer;
 			new_clocks.push_back(new_clock_descriptor);
 		} else {
-			if (mg_verbose_destructor_flag) {
-				std::cout << "Purging " << this_clock_descriptor.clock_name << " from Simulation " << m_name << " m_clocks." << std::endl;
-			}
+#ifdef VERBOSE_DTORS
+			std::cout << "Purging " << this_clock_descriptor.clock_name << " from Simulation " << m_name << " m_clocks." << std::endl;
+#endif
 		}
 	}
 	m_clocks = new_clocks;
@@ -554,9 +556,9 @@ void Simulation::PurgeMagicEngineDescriptorFromSimulation(magic_engine_descripto
 			new_magic_engine_descriptor.magic_engine_pointer = this_magic_engine_descriptor.magic_engine_pointer;
 			new_magic_engines.push_back(new_magic_engine_descriptor);
 		} else {
-			if (mg_verbose_destructor_flag) {
-				std::cout << "Purging " << this_magic_engine_descriptor.magic_engine_identifier << " from Simulation " << m_name << " m_magic_engines." << std::endl;
-			}
+#ifdef VERBOSE_DTORS
+			std::cout << "Purging " << this_magic_engine_descriptor.magic_engine_identifier << " from Simulation " << m_name << " m_magic_engines." << std::endl;
+#endif
 		}
 	}
 	m_magic_engines = new_magic_engines;

@@ -44,9 +44,9 @@ Clock::Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, s
 
 Clock::~Clock() {
 	PurgeClock();
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	std::cout << "Clock dtor for " << m_name << " @ " << this << std::endl << std::endl;
+#endif
 }
 
 std::string Clock::GetName() {
@@ -61,15 +61,13 @@ void Clock::AddToProbeList(std::string const& probe_identifier, Probe* probe_poi
 }
 
 void Clock::Tick(void) {
-	// Print output pin changes.
-	bool verbose_flag = m_top_level_sim_pointer->mg_verbose_flag;
-	if (m_monitor_on || (verbose_flag)) {
-		std::string message = "\nT: " + std::to_string(m_index) + " " + KBLD + KYEL + "CLOCKSET: " + RST + "On tick " + KBLD + std::to_string(m_index) + RST + " " + m_name + ":clock output set to " + BoolToChar(m_toggle_pattern[m_sub_index]);
-		m_top_level_sim_pointer->LogMessage(message);
-	}
+#ifdef VERBOSE_SOLVE
+	std::string message = "\nT: " + std::to_string(m_index) + " " + KBLD + KYEL + "CLOCKSET: " + RST + "On tick " + KBLD + std::to_string(m_index) + RST + " " + m_name + ":clock output set to " + BoolToChar(m_toggle_pattern[m_sub_index]);
+	m_top_level_sim_pointer->LogMessage(message);
+#endif
 	// Change output state and propagate.
 	m_out_pin_state = m_toggle_pattern[m_sub_index];
-	Propagate(verbose_flag);
+	Propagate();
 	m_index ++;
 	m_sub_index ++;
 	if (m_sub_index >= m_toggle_pattern.size()) {
@@ -126,15 +124,9 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 	}
 }
 
-void Clock::Propagate(const bool verbose_flag) {
-	if (verbose_flag) {
-		m_top_level_sim_pointer->LogMessage("~S0");
-	}
+void Clock::Propagate() {
 	for (const auto& this_connection_descriptor : m_connections) {
 		this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, m_out_pin_state);
-	}
-	if (verbose_flag) {
-		m_top_level_sim_pointer->LogMessage("~E0");
 	}
 }
 
@@ -162,9 +154,9 @@ void Clock::PurgeTargetComponentConnections(Component* target_component_pointer)
 			new_connection_descriptor.target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 			new_connections.push_back(new_connection_descriptor);
 		} else {
-			if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-				std::cout << "Purging " << target_component_pointer->GetFullName() << " from Clock " << m_name << " m_connections." << std::endl;
-			}
+#ifdef VERBOSE_DTORS
+			std::cout << "Purging " << target_component_pointer->GetFullName() << " from Clock " << m_name << " m_connections." << std::endl;
+#endif
 		}
 	}
 	m_connections = new_connections;
@@ -172,10 +164,10 @@ void Clock::PurgeTargetComponentConnections(Component* target_component_pointer)
 
 void Clock::PurgeClock(void) {
 	std::string header;
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		header =  "Purging -> CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this));
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "Purging -> CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this));
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
 		// If the Clock has any connections, set their drive in flag to false.
 		// If we are in the process of deleting the top-level Simulation, we do not need to do this as all connected
@@ -184,9 +176,9 @@ void Clock::PurgeClock(void) {
 			Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
 			int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 			target_component_pointer->SetPinDrivenFlag(target_pin_port_index, 0, false);
-			if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-				std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
-			}
+#ifdef VERBOSE_DTORS
+			std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
+#endif
 		}
 		// Make a list of pointers for m_probes, then loop over *these* below. We can modify Probe.PurgeProbe() called by
 		// PurgeChildProbe() below to follow the trigger clock pointer and call PurgeProbeFromClock() below to rebuild
@@ -209,10 +201,10 @@ void Clock::PurgeClock(void) {
 		// Finally we purge the Clock from the parent Simulation's m_clocks vector.
 		m_top_level_sim_pointer->PurgeClockDescriptorFromSimulation(this);
 	}
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		header =  "CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	// - It should now be safe to delete this object -
 }
 
@@ -226,9 +218,9 @@ void Clock::PurgeProbeDescriptorFromClock(Probe* target_probe_pointer) {
 			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
 			new_probes.push_back(new_probe_descriptor);
 		} else {
-			if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-				std::cout << "Purging " << this_probe_descriptor.probe_name << " from Clock " << m_name << " m_probes." << std::endl;
-			}
+#ifdef VERBOSE_DTORS
+			std::cout << "Purging " << this_probe_descriptor.probe_name << " from Clock " << m_name << " m_probes." << std::endl;
+#endif
 		}
 	}
 	m_probes = new_probes;

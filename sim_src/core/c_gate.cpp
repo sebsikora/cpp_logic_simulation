@@ -25,8 +25,8 @@
 #include <algorithm>				// std::sort
 #include <cstdlib>					// rand()
 
-#include "c_structs.hpp"
 #include "c_gate.hpp"
+#include "c_structs.hpp"
 #include "c_device.hpp"
 #include "c_sim.hpp"
 
@@ -36,9 +36,9 @@
 
 Gate::~Gate() {
 	PurgeComponent();
-	if (mg_verbose_destructor_flag) {
-		std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	std::cout << "Gate dtor for " << m_full_name << " @ " << this << std::endl;
+#endif
 }
 
 void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
@@ -53,7 +53,6 @@ void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name
 	m_full_name = m_parent_device_pointer->GetFullName() + ":" + m_name;
 	m_parent_device_pointer->CreateChildFlags();
 	m_component_type = gate_type;
-	m_monitor_on = monitor_on;
 	
 	m_in_pin_count = in_pin_names.size();
 	if ((m_component_type != "not") && (m_in_pin_count < 2)) {
@@ -61,7 +60,6 @@ void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name
 		std::string build_error = "Gate " + m_full_name + "(" + m_component_type + ") added with only " + std::to_string(m_in_pin_count) + " in pins specified.";
 		m_top_level_sim_pointer->LogError(build_error);
 	}
-
 	std::sort(in_pin_names.begin(), in_pin_names.end(), compareNat);
 	int new_pin_port_index = 0;
 	for (const auto& pin_name : in_pin_names) {
@@ -71,6 +69,7 @@ void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name
 		m_pins.push_back(new_in_pin);
 		new_pin_port_index ++;
 	}
+	
 	std::string out_pin_name = "output";
 	m_out_pin_port_index = new_pin_port_index;
 	pin new_out_pin = {out_pin_name, 2, false, false, new_pin_port_index, {false, false}};
@@ -176,10 +175,10 @@ void Gate::Connect(std::vector<std::string> connection_parameters) {
 void Gate::Set(const int pin_port_index, const bool state_to_set) {
 	pin* this_pin = &m_pins[pin_port_index];
 	if (this_pin->state != state_to_set) {
-		if (mg_verbose_flag) {
-			std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
-			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
-		}
+#ifdef VERBOSE_SOLVE
+		std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
+		m_top_level_sim_pointer->LogMessage(message);
+#endif
 		this_pin->state = state_to_set;
 		Evaluate();
 	}
@@ -189,33 +188,25 @@ inline void Gate::Evaluate() {
 	bool new_state = Operate();
 	pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state != new_state) {
-		if (mg_verbose_flag) {
-			std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " output terminal set to " + BoolToChar(new_state);
-			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
-		}
+#ifdef VERBOSE_SOLVE
+		std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Gate " + KBLD + m_full_name + RST + " output terminal set to " + BoolToChar(new_state);
+		m_top_level_sim_pointer->LogMessage(message);
+#endif
 		// If the gate output has changed add it to the parent Devices propagate_next list, UNLESS this gate
 		// is already queued-up to propagate this tick.
 		out_pin->state = new_state;
 		out_pin->state_changed = true;
 		m_parent_device_pointer->QueueToPropagate(m_local_component_index);
-		// Print output pin changes if we are monitoring this gate.
-		if (m_monitor_on || mg_verbose_flag) {
-			std::string message = std::string(KBLD) + KRED + "  MONITOR: " + RST + KBLD + m_full_name + ":" + m_component_type + " output terminal set to " + BoolToChar(new_state);
-			if (mg_verbose_flag) {
-				message = "~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message;
-			}
-			m_top_level_sim_pointer->LogMessage(message);
-		}
 	}
 }
 
 void Gate::Propagate() {
 	pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state_changed) {
-		if (mg_verbose_flag) {
-			std::string message = std::string(KBLD) + KYEL + "->" + RST + " Gate " + KBLD + m_full_name + RST + " propagating output = " + BoolToChar(out_pin->state);
-			m_top_level_sim_pointer->LogMessage("~" + std::to_string(m_parent_device_pointer->GetMessageBranchID()) + ": " + message);
-		}
+#ifdef VERBOSE_SOLVE
+		std::string message = std::string(KBLD) + KYEL + "->" + RST + " Gate " + KBLD + m_full_name + RST + " propagating output = " + BoolToChar(out_pin->state);
+		m_top_level_sim_pointer->LogMessage(message);
+#endif
 		out_pin->state_changed = false;
 		for (const auto& this_connection_descriptor : m_connections) {
 			this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, out_pin->state);
@@ -233,10 +224,10 @@ void Gate::PrintPinStates(int max_levels) {
 }
 
 void Gate::ReportUnConnectedPins() {
-	if (mg_verbose_flag) {
-		std::string message = "Checking pins for " + m_full_name + " m_local_component_index = " + std::to_string(m_local_component_index);
-		m_top_level_sim_pointer->LogMessage(message);
-	}
+#ifdef VERBOSE_SOLVE
+	std::string message = "Checking pins for " + m_full_name + " m_local_component_index = " + std::to_string(m_local_component_index);
+	m_top_level_sim_pointer->LogMessage(message);
+#endif
 	for (const auto& this_pin : m_pins) {
 		if (this_pin.direction == 1) {
 			if (!this_pin.drive[0]) {
@@ -260,10 +251,10 @@ void Gate::ReportUnConnectedPins() {
 
 void Gate::PurgeComponent() {
 	std::string header;
-	if (mg_verbose_destructor_flag) {
-		header =  "Purging -> GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "Purging -> GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this));
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	if (!(m_parent_device_pointer->GetDeletionFlag())) {
 		// First  - Ask parent device to purge all local references to this Gate...
 		//			If we are deleting this Component because we are in the process of deleting
@@ -281,10 +272,10 @@ void Gate::PurgeComponent() {
 		// Third  - Clear component entry from parent device's m_components.
 		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
 	}
-	if (mg_verbose_destructor_flag) {
-		header =  "GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "GATE : " + m_full_name + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	// - It should now be safe to delete this object -
 }
 
@@ -298,17 +289,17 @@ void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 			new_connections.push_back(this_connection_descriptor);
 		} else {
 			connections_removed ++;
-			if (mg_verbose_destructor_flag) {
-				std::cout << "Gate " << m_full_name << " removed an out connection to "
-					<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
-					<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
-			}
+#ifdef VERBOSE_DTORS
+			std::cout << "Gate " << m_full_name << " removed an out connection to "
+				<< this_connection_descriptor.target_component_pointer->GetFullName() << " in pin "
+				<< this_connection_descriptor.target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << std::endl;
+#endif
 		}
 	}
 	if ((new_connections.size() == 0) && (connections_removed > 0)) {
-		if (mg_verbose_destructor_flag) {
-			std::cout << "Gate " + m_full_name + " out pin drive out set to false." << std::endl;
-		}
+#ifdef VERBOSE_DTORS
+		std::cout << "Gate " + m_full_name + " out pin drive out set to false." << std::endl;
+#endif
 		SetPinDrivenFlag(m_out_pin_port_index, 1, false);
 	}
 	m_connections = new_connections;
@@ -325,10 +316,10 @@ void Gate::PurgeOutboundConnections() {
 		} else if (pin_direction == 2) {
 			direction = " out";
 		}
-		if (mg_verbose_destructor_flag) {
-			std::cout << "Component " << target_component_pointer->GetFullName() << direction << " pin "
-				<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
-		}
+#ifdef VERBOSE_DTORS
+		std::cout << "Component " << target_component_pointer->GetFullName() << direction << " pin "
+			<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+#endif
 		target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
 	}
 }

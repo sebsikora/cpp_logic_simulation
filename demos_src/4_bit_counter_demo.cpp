@@ -3,12 +3,11 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
 	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", verbose, {false, 1});
+	Simulation* sim = new Simulation("test_sim", {false, 1});
 	
 	// Add a 4-bit counter device.
 	sim->AddComponent(new Four_Bit_Counter(sim, "test_counter", monitor_on, {{"run", true}}));
@@ -30,7 +29,7 @@ int main () {
 	//~sim->ChildSet("test_counter", "run", false);
 	//~sim->Run(2, false, verbose, false);
 	//~sim->ChildSet("test_counter", "run", true);
-	sim->Run(33, true, verbose, print_probe_samples);
+	sim->Run(33, true, print_probe_samples);
 	//~std::cout << static_cast<Device*>(sim->SearchForComponentPointer("test_sim:test_counter"))->GetNestingLevel() << std::endl;
 	delete sim;
 	

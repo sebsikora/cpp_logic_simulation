@@ -39,8 +39,8 @@ class VoidThreadPool;
 // Top-level Simulation Device sub-class.
 class Simulation : public Device {
 	public:
-		Simulation(std::string const& simulation_name, bool verbose_output_flag = false, solver_configuration solver_conf = {false, 0}, int max_propagations = 10);
-		~Simulation();
+		Simulation(std::string const& simulation_name, solver_configuration solver_conf = {false, 0}, int max_propagations = 10);
+		virtual ~Simulation();
 		
 		// Override Component virtual methods.
 		void PurgeComponent(void) override;
@@ -48,7 +48,7 @@ class Simulation : public Device {
 		// Override Device virtual methods.
 		void Build(void) override;
 		
-		void Run(int number_of_ticks = 0, bool restart_flag = true, bool verbose_debug_flag = false, bool print_probes_flag = false, bool force_no_messages = false);
+		void Run(int number_of_ticks = 0, bool restart_flag = true, bool print_probes_flag = false, bool force_no_messages = false);
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
 		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,

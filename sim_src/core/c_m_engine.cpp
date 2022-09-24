@@ -40,19 +40,19 @@ MagicEngine::MagicEngine(Device* parent_device_pointer) {
 
 MagicEngine::~MagicEngine() {
 	std::string header;
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		header =  "Purging -> MAGICENGINE : " + m_identifier + " @ " + PointerToString(static_cast<void*>(this));
-		std::cout << GenerateHeader(header) << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "Purging -> MAGICENGINE : " + m_identifier + " @ " + PointerToString(static_cast<void*>(this));
+	std::cout << GenerateHeader(header) << std::endl;
+#endif
 	// ----------------------------------------
 	//~// Then purge the magic_engine_descriptor held by the top-level Simulation.
 	//~m_top_level_sim_pointer->PurgeMagicEngineDescriptorFromSimulation({m_identifier, this});
 	// ----------------------------------------
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		header =  "MAGICENGINE : " + m_identifier + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
-		std::cout << GenerateHeader(header) << std::endl;
-		std::cout << "MagicEngine dtor for " << m_identifier << " @ " << this << std::endl << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	header =  "MAGICENGINE : " + m_identifier + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
+	std::cout << GenerateHeader(header) << std::endl;
+	std::cout << "MagicEngine dtor for " << m_identifier << " @ " << this << std::endl << std::endl;
+#endif
 }
 
 void MagicEngine::AddMagicEventTrap(magic_event new_magic_event) {

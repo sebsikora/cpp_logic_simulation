@@ -39,7 +39,7 @@ class Clock {
 		
 		std::string GetName(void);
 		void Connect(std::string const& target_component_name, std::string const& target_pin_name);
-		void Propagate(const bool verbose_flag);
+		void Propagate(void);
 		void Tick(void);
 		void Reset(void);
 		void AddToProbeList(std::string const& probe_identifier, Probe* probe_pointer);

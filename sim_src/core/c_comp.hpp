@@ -48,10 +48,9 @@ class Component {
 		virtual void PurgeInboundConnections(Component* target_component_pointer) = 0;
 		virtual void PurgeOutboundConnections(void) = 0;
 		
-		bool GetMonitorOnFlag(void);
 		std::string GetName(void);
-		bool GetDeviceFlag(void);
 		std::string GetFullName(void);
+		bool GetDeviceFlag(void);
 		std::string GetComponentType(void);
 		int GetLocalComponentIndex(void);
 		void SetLocalComponentIndex(int new_local_component_index);
@@ -68,12 +67,10 @@ class Component {
 		void SetPinDrivenFlag(int pin_port_index, bool drive_mode, bool state_to_set);
 		void PrintInPinStates(void);
 		void PrintOutPinStates(void);
-		
-		static bool mg_verbose_flag;
-		static bool mg_verbose_destructor_flag;
 
 	protected:
-		bool m_monitor_on;
+		void GenerateFullName(std::string &workingString);
+		
 		int m_nesting_level = 0;
 		bool m_device_flag;
 		std::string m_name;
