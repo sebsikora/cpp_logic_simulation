@@ -235,7 +235,7 @@ void Device::Initialise() {
 			this_pin.state_changed = true;
 		}
 	}
-	m_parent_device_pointer->QueueToPropagatePrimary(m_local_component_index);
+	m_parent_device_pointer->QueueToPropagatePrimary(this);
 }
 
 void Device::AddComponent(Component* new_component_pointer) {
@@ -589,15 +589,13 @@ void Device::Solve() {
 		// ------------------------------------------------------------------------------------------------------
 		if (!m_solve_children_in_own_threads) {
 			// Regular Solve() for all pending child Devices.
-			for (const auto& this_local_device_index : m_solve_this_tick) {
-				Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index]);
-				this_device_pointer->Solve();
+			for (const auto& this_device : m_solve_this_tick) {
+				this_device->Solve();
 			}
 		} else {	// Experimental multi-threading support -----------------------------------------------------------------------------
 			// Threaded Solve() for all pending child Devices.
-			for (const auto& this_local_device_index : m_solve_this_tick) {
-				Device* this_device_pointer = static_cast<Device*>(m_components[this_local_device_index]);
-				m_top_level_sim_pointer->m_thread_pool_pointer->AddJob(std::bind(&Device::Solve, this_device_pointer));
+			for (const auto& this_device : m_solve_this_tick) {
+				m_top_level_sim_pointer->m_thread_pool_pointer->AddJob(std::bind(&Device::Solve, this_device));
 			}
 			// Wait until all Device Solve() threads finish.
 			m_top_level_sim_pointer->m_thread_pool_pointer->WaitForAllJobs();
@@ -619,7 +617,7 @@ void Device::Solve() {
 		m_top_level_sim_pointer->CheckProbeTriggers();
 	} else {
 		if (m_queued_for_propagation) {
-			m_parent_device_pointer->QueueToPropagateSecondary(m_local_component_index);
+			m_parent_device_pointer->QueueToPropagateSecondary(this);
 		}
 	}
 }
@@ -627,28 +625,28 @@ void Device::Solve() {
 inline void Device::SubTick() {
 	// ------------------------------------------
 	std::swap(m_propagate_this_tick, m_propagate_next_tick);
-	for (const auto& this_entry : m_propagate_this_tick) {
-		m_components[this_entry]->Propagate();
+	for (const auto& this_component : m_propagate_this_tick) {
+		this_component->Propagate();
 	}
 	m_propagate_this_tick.clear();
 	// ------------------------------------------
 }
 
-void Device::QueueToPropagatePrimary(const int propagation_identifier) {
-	m_propagate_next_tick.emplace_back(propagation_identifier);
+void Device::QueueToPropagatePrimary(Component* component_pointer) {
+	m_propagate_next_tick.emplace_back(component_pointer);
 }
 
-void Device::QueueToPropagateSecondary(const int propagation_identifier) {
+void Device::QueueToPropagateSecondary(Component* component_pointer) {
 	if (!m_solve_children_in_own_threads) {
-		m_propagate_next_tick.emplace_back(propagation_identifier);
+		m_propagate_next_tick.emplace_back(component_pointer);
 	} else {
 		std::unique_lock<std::mutex> lock(m_propagation_lock);
-		m_propagate_next_tick.emplace_back(propagation_identifier);
+		m_propagate_next_tick.emplace_back(component_pointer);
 	}
 }
 
-void Device::QueueToSolve(const int local_component_identifier) {
-	m_solve_this_tick.emplace_back(local_component_identifier);
+void Device::QueueToSolve(Device* device_pointer) {
+	m_solve_this_tick.emplace_back(device_pointer);
 } 
 
 void Device::PropagateInputs() {
@@ -703,7 +701,7 @@ void Device::Set(const int pin_port_index, const bool state_to_set) {
 			this_pin->state_changed = true;
 			if (!m_solve_this_tick_flag) {
 				m_solve_this_tick_flag = true;
-				m_parent_device_pointer->QueueToSolve(m_local_component_index);
+				m_parent_device_pointer->QueueToSolve(this);
 			}
 		}
 	} else if (this_pin->type == pin::pin_type::OUT) {

@@ -102,7 +102,7 @@ void Gate::Initialise() {
 	bool new_state = Operate();
 	m_pins[m_out_pin_port_index].state = new_state;
 	m_pins[m_out_pin_port_index].state_changed = true;
-	m_parent_device_pointer->QueueToPropagatePrimary(m_local_component_index);
+	m_parent_device_pointer->QueueToPropagatePrimary(this);
 }
 
 void Gate::Connect(std::vector<std::string> connection_parameters) {	
@@ -196,7 +196,7 @@ inline void Gate::Evaluate() {
 		out_pin->state_changed = true;
 		if (!m_queued_for_propagation) {
 			m_queued_for_propagation = true;
-			m_parent_device_pointer->QueueToPropagatePrimary(m_local_component_index);
+			m_parent_device_pointer->QueueToPropagatePrimary(this);
 		}
 	}
 }

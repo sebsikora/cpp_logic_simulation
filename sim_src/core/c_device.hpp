@@ -78,8 +78,8 @@ class Device : public Component {
 		int GetNewLocalComponentIndex(void);
 		int GetLocalComponentCount(void);
 		int GetInPinCount(void);
-		void QueueToPropagatePrimary(const int propagation_identifier);
-		void QueueToPropagateSecondary(const int propagation_identifier);
+		void QueueToPropagatePrimary(Component* component_pointer);
+		void QueueToPropagateSecondary(Component* component_pointer);
 		void PrintInternalPinStates(int max_levels);
 		void MarkInnerTerminalsDisconnected(void);
 		Component* SearchForComponentPointer(std::string const& target_component_full_name);
@@ -92,7 +92,7 @@ class Device : public Component {
 	protected:
 		// Device class protected methods.
 		void Solve(void);
-		void QueueToSolve(const int local_component_identifier);
+		void QueueToSolve(Device* device_pointer);
 		void PropagateInputs(void);
 		
 		int m_max_propagations;
@@ -108,10 +108,10 @@ class Device : public Component {
 		
 		std::vector<Component*> m_components;
 		std::mutex m_propagation_lock;
-		std::vector<int> m_propagate_next_tick = {};
-		std::vector<int> m_propagate_this_tick = {};
+		std::vector<Component*> m_propagate_next_tick = {};
+		std::vector<Component*> m_propagate_this_tick = {};
 		bool m_solve_this_tick_flag = false;
-		std::vector<int> m_solve_this_tick = {};
+		std::vector<Device*> m_solve_this_tick = {};
 		std::vector<std::vector<connection_descriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
