@@ -1,7 +1,7 @@
 /*
 	
     This file is part of cpp_logic_simulation, a simple C++ framework for the simulation of digital logic circuits.
-    Copyright (C) 2021 Dr Seb N.F. Sikora
+    Copyright (C) 2022 Dr Seb N.F. Sikora
     seb.nf.sikora@protonmail.com
 	
     cpp_logic_simulation is free software: you can redistribute it and/or modify
@@ -75,8 +75,6 @@ class Device : public Component {
 		void Stabilise(void);
 		Component* GetChildComponentPointer(std::string const& target_child_component_name);
 		int GetNestingLevel(void);
-		int GetNewLocalComponentIndex(void);
-		int GetLocalComponentCount(void);
 		int GetInPinCount(void);
 		void QueueToPropagatePrimary(Component* component_pointer);
 		void QueueToPropagateSecondary(Component* component_pointer);

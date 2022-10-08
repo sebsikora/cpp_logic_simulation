@@ -1,7 +1,7 @@
 /*
 	
     This file is part of cpp_logic_simulation, a simple C++ framework for the simulation of digital logic circuits.
-    Copyright (C) 2021 Dr Seb N.F. Sikora
+    Copyright (C) 2022 Dr Seb N.F. Sikora
     seb.nf.sikora@protonmail.com
 	
     cpp_logic_simulation is free software: you can redistribute it and/or modify
@@ -64,14 +64,6 @@ bool Component::GetDeviceFlag() {
 
 std::string Component::GetComponentType() {
 	return m_component_type;
-}
-
-int Component::GetLocalComponentIndex() {
-	return m_local_component_index;
-}
-
-void Component::SetLocalComponentIndex(int new_local_component_index) {
-	m_local_component_index = new_local_component_index;
 }
 
 Simulation* Component::GetTopLevelSimPointer() {

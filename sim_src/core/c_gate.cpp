@@ -1,7 +1,7 @@
 /*
 	
     This file is part of cpp_logic_simulation, a simple C++ framework for the simulation of digital logic circuits.
-    Copyright (C) 2021 Dr Seb N.F. Sikora
+    Copyright (C) 2022 Dr Seb N.F. Sikora
     seb.nf.sikora@protonmail.com
 	
     cpp_logic_simulation is free software: you can redistribute it and/or modify
@@ -48,7 +48,6 @@ void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name
 	m_parent_device_pointer = parent_device_pointer;
 	m_top_level_sim_pointer = m_parent_device_pointer->GetTopLevelSimPointer();
 	m_CUID = m_top_level_sim_pointer->GetNewCUID();
-	m_local_component_index = m_parent_device_pointer->GetNewLocalComponentIndex();
 	m_nesting_level = m_parent_device_pointer->GetNestingLevel() + 1;
 	m_component_type = gate_type;
 	
@@ -227,7 +226,7 @@ void Gate::PrintPinStates(int max_levels) {
 
 void Gate::ReportUnConnectedPins() {
 #ifdef VERBOSE_SOLVE
-	std::string message = "Checking pins for " + GetFullName() + " m_local_component_index = " + std::to_string(m_local_component_index);
+	std::string message = "Checking pins for " + GetFullName();
 	m_top_level_sim_pointer->LogMessage(message);
 #endif
 	for (const auto& this_pin : m_pins) {

@@ -1,7 +1,7 @@
 /*
 	
     This file is part of cpp_logic_simulation, a simple C++ framework for the simulation of digital logic circuits.
-    Copyright (C) 2021 Dr Seb N.F. Sikora
+    Copyright (C) 2022 Dr Seb N.F. Sikora
     seb.nf.sikora@protonmail.com
 	
     cpp_logic_simulation is free software: you can redistribute it and/or modify
@@ -56,7 +56,6 @@ Device::Device(Device* parent_device_pointer, std::string const& device_name, st
 	} else {
 		m_top_level_sim_pointer = m_parent_device_pointer->GetTopLevelSimPointer();
 		m_CUID = m_top_level_sim_pointer->GetNewCUID();
-		m_local_component_index = m_parent_device_pointer->GetNewLocalComponentIndex();
 		m_nesting_level = m_parent_device_pointer->GetNestingLevel() + 1;
 		m_solve_children_in_own_threads = (m_top_level_sim_pointer->m_use_threaded_solver && (m_nesting_level == m_top_level_sim_pointer->m_threaded_solve_nesting_level));
 	}
@@ -740,15 +739,6 @@ int Device::GetNestingLevel() {
 	return m_nesting_level;
 }
 
-int Device::GetNewLocalComponentIndex() {
-	int current_component_count = m_components.size();
-	return current_component_count;
-}
-
-int Device::GetLocalComponentCount() {
-	return m_components.size();
-}
-
 int Device::GetInPinCount() {
 	int acc = 0;
 	int pin_count = (int)m_pins.size();
@@ -787,14 +777,13 @@ void Device::PrintPinStates(int max_levels) {
 void Device::PrintInternalPinStates(int max_levels) {
 	for (const auto& this_component : m_components) {
 		int this_level = max_levels;
-		Component* component_pointer = this_component;
-		component_pointer->PrintPinStates(this_level);
+		this_component->PrintPinStates(this_level);
 	}
 }
 
 void Device::ReportUnConnectedPins() {
 #ifdef VERBOSE_SOLVE
-		std::string message = "Checking pins for Device " + GetFullName() + " local component id = " + std::to_string(m_local_component_index);
+		std::string message = "Checking pins for Device " + GetFullName();
 		m_top_level_sim_pointer->LogMessage(message);
 #endif
 	for (const auto& this_pin : m_pins) {
@@ -1051,22 +1040,11 @@ void Device::PurgeChildComponent(std::string const& target_component_name) {
 
 void Device::PurgeChildComponentIdentifiers(Component* target_component_pointer) {
 	// Create a new m_components vector, omitting the Component to purge. 
-	size_t index = 0;
-	size_t removal_index = 0;
 	std::vector<Component*> new_m_components = {};
 	for (const auto& this_component : m_components) {
 		if (this_component != target_component_pointer) {
 			new_m_components.push_back(this_component);
-		} else {
-			// Note the index of the purged component. 
-			removal_index = index;
 		}
-		index ++;
 	}
 	m_components = new_m_components;
-	// Once we have finished the new m_components list, we need to decrement m_local_component_id
-	// for the components at this index and above as their position in the new m_components has shifted down one.
-	for (size_t i = removal_index; i < m_components.size(); i ++) {
-		m_components[i]->SetLocalComponentIndex(i);
-	}
 }
