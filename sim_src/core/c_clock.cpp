@@ -93,15 +93,15 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 		bool target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
 		if (target_pin_exists) {
 			int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-			int target_pin_direction = target_component_pointer->GetPinDirection(target_pin_port_index);
-			std::vector<bool> target_pin_already_connected = target_component_pointer->CheckIfPinDriven(target_pin_port_index);
-			if (!target_pin_already_connected[0]) {		// Target pin drive-in must be false.
-				if (target_pin_direction == 1) {		// Can only connect Clock to an in pin.
+			int target_pin_type = target_component_pointer->GetPinType(target_pin_port_index);
+			pin::drive_state* target_pin_already_connected = target_component_pointer->CheckIfPinDriven(target_pin_port_index);
+			if (!target_pin_already_connected->in) {		// Target pin drive-in must be false.
+				if (target_pin_type == pin::pin_type::IN) {		// Can only connect Clock to an in pin.
 					connection_descriptor new_connection_descriptor;
 					new_connection_descriptor.target_component_pointer = target_component_pointer;
 					new_connection_descriptor.target_pin_port_index = target_pin_port_index;
 					m_connections.push_back(new_connection_descriptor);
-					target_component_pointer->SetPinDrivenFlag(target_pin_port_index, false, true);
+					target_component_pointer->SetPinDrivenFlag(target_pin_port_index, pin::drive_mode::DRIVE_IN, true);
 				} else {
 					// Log build error here.		-- Target pin is not an in pin.
 					std::string build_error = "Clock " + m_name + " tried to connect to " + target_component_name + " in pin " + target_pin_name + " but it is not an in pin.";
@@ -175,7 +175,7 @@ void Clock::PurgeClock(void) {
 		for (const auto& this_connection_descriptor : m_connections) {
 			Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
 			int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
-			target_component_pointer->SetPinDrivenFlag(target_pin_port_index, 0, false);
+			target_component_pointer->SetPinDrivenFlag(target_pin_port_index, pin::drive_mode::DRIVE_IN, false);
 #ifdef VERBOSE_DTORS
 			std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
 #endif

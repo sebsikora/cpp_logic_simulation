@@ -51,7 +51,6 @@ void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name
 	m_local_component_index = m_parent_device_pointer->GetNewLocalComponentIndex();
 	m_nesting_level = m_parent_device_pointer->GetNestingLevel() + 1;
 	m_full_name = m_parent_device_pointer->GetFullName() + ":" + m_name;
-	m_parent_device_pointer->CreateChildFlags();
 	m_component_type = gate_type;
 	
 	m_in_pin_count = in_pin_names.size();
@@ -65,14 +64,14 @@ void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name
 	for (const auto& pin_name : in_pin_names) {
 		// Assign random states to Gate inputs.
 		bool temp_bool = rand() > (RAND_MAX / 2);
-		pin new_in_pin = {pin_name, 1, temp_bool, false, new_pin_port_index, {false, false}};
+		pin new_in_pin = {pin_name, pin::pin_type::IN, temp_bool, false, new_pin_port_index, {false, false}};
 		m_pins.push_back(new_in_pin);
 		new_pin_port_index ++;
 	}
 	
 	std::string out_pin_name = "output";
 	m_out_pin_port_index = new_pin_port_index;
-	pin new_out_pin = {out_pin_name, 2, false, false, new_pin_port_index, {false, false}};
+	pin new_out_pin = {out_pin_name, pin::pin_type::OUT, false, false, new_pin_port_index, {false, false}};
 	m_pins.push_back(new_out_pin);
 }
 
@@ -83,7 +82,7 @@ void Gate::Reset() {
 		m_top_level_sim_pointer->Reset();
 	} else {
 		for (auto& this_pin : m_pins) {
-			if (this_pin.direction == 1) {
+			if (this_pin.type == pin::pin_type::IN) {
 				bool temp_bool = rand() > (RAND_MAX / 2);
 				this_pin.state = temp_bool;
 			} else {
@@ -104,7 +103,7 @@ void Gate::Initialise() {
 	bool new_state = Operate();
 	m_pins[m_out_pin_port_index].state = new_state;
 	m_pins[m_out_pin_port_index].state_changed = true;
-	m_parent_device_pointer->AppendChildPropagationIdentifier(m_local_component_index);
+	m_parent_device_pointer->QueueToPropagatePrimary(m_local_component_index);
 }
 
 void Gate::Connect(std::vector<std::string> connection_parameters) {	
@@ -140,11 +139,11 @@ void Gate::Connect(std::vector<std::string> connection_parameters) {
 					}
 				}
 				if (no_existing_connection) {
-					std::vector<bool> target_pin_already_driven = target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index);
-					if (!target_pin_already_driven[0]) {
+					pin::drive_state target_pin_already_driven = *(target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index));
+					if (!target_pin_already_driven.in) {
 						m_connections.push_back(new_connection_descriptor);
-						target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, false, true);
-						m_pins[m_out_pin_port_index].drive[1] = true;
+						target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, pin::drive_mode::DRIVE_IN, true);
+						m_pins[m_out_pin_port_index].drive.out = true;
 					} else {
 						// Log build error here.		-- This target pin is already driven by another pin.
 						std::string build_error = "Gate " + m_full_name + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
@@ -193,14 +192,18 @@ inline void Gate::Evaluate() {
 		m_top_level_sim_pointer->LogMessage(message);
 #endif
 		// If the gate output has changed add it to the parent Devices propagate_next list, UNLESS this gate
-		// is already queued-up to propagate this tick.
+		// is already queued-up to propagate.
 		out_pin->state = new_state;
 		out_pin->state_changed = true;
-		m_parent_device_pointer->QueueToPropagate(m_local_component_index);
+		if (!m_queued_for_propagation) {
+			m_queued_for_propagation = true;
+			m_parent_device_pointer->QueueToPropagatePrimary(m_local_component_index);
+		}
 	}
 }
 
 void Gate::Propagate() {
+	m_queued_for_propagation = false;
 	pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state_changed) {
 #ifdef VERBOSE_SOLVE
@@ -229,17 +232,17 @@ void Gate::ReportUnConnectedPins() {
 	m_top_level_sim_pointer->LogMessage(message);
 #endif
 	for (const auto& this_pin : m_pins) {
-		if (this_pin.direction == 1) {
-			if (!this_pin.drive[0]) {
+		if (this_pin.type == pin::pin_type::IN) {
+			if (!this_pin.drive.in) {
 				// Log undriven Gate in pin.
 				std::string build_error = "Gate " + m_full_name + " in pin " + this_pin.name + " is not driven by any Component.";
 				m_top_level_sim_pointer->LogError(build_error);
 			}
-		} else if (this_pin.direction == 2) {
+		} else if (this_pin.type == pin::pin_type::OUT) {
 			// We don't halt on a build error for un-driven output pins of upper-most level Gates.
 			// (If we don't it's a lot harder to play with them...)
 			if (m_nesting_level > 1) {
-				if (!this_pin.drive[1]) {
+				if (!this_pin.drive.out) {
 					// Log undriving Gate out pin.
 					std::string build_error = "Gate " + m_full_name + " out pin " + this_pin.name + " drives no Component.";
 					m_top_level_sim_pointer->LogError(build_error);
@@ -300,7 +303,7 @@ void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 #ifdef VERBOSE_DTORS
 		std::cout << "Gate " + m_full_name + " out pin drive out set to false." << std::endl;
 #endif
-		SetPinDrivenFlag(m_out_pin_port_index, 1, false);
+		SetPinDrivenFlag(m_out_pin_port_index, pin::drive_mode::DRIVE_OUT, false);
 	}
 	m_connections = new_connections;
 }
@@ -309,17 +312,17 @@ void Gate::PurgeOutboundConnections() {
 	// Loop over onward connection from out pin and reset destination pins drive-in state.
 	for (const auto& this_connection_descriptor : m_connections) {
 		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
-		int pin_direction = target_component_pointer->GetPinDirection(this_connection_descriptor.target_pin_port_index);
-		std::string direction = "";
-		if (pin_direction == 1) {
-			direction = " in";
-		} else if (pin_direction == 2) {
-			direction = " out";
+		pin::pin_type type = target_component_pointer->GetPinType(this_connection_descriptor.target_pin_port_index);
+		std::string type_string = "";
+		if (type == pin::pin_type::IN) {
+			type_string = " in";
+		} else if (type == pin::pin_type::OUT) {
+			type_string = " out";
 		}
 #ifdef VERBOSE_DTORS
-		std::cout << "Component " << target_component_pointer->GetFullName() << direction << " pin "
+		std::cout << "Component " << target_component_pointer->GetFullName() << type_string << " pin "
 			<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
 #endif
-		target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, 0, false);
+		target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, pin::drive_mode::DRIVE_IN, false);
 	}
 }

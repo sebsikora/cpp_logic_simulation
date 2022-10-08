@@ -58,7 +58,7 @@ class Device : public Component {
 		// Device class public methods.
 		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
-		void CreateBus(int pin_count, std::string const& pin_name_prefix, int pin_direction, std::vector<state_descriptor> in_pin_default_states = {});
+		void CreateBus(int pin_count, std::string const& pin_name_prefix, pin::pin_type type, std::vector<state_descriptor> in_pin_default_states = {});
 		void SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states);
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on = false);
@@ -78,8 +78,8 @@ class Device : public Component {
 		int GetNewLocalComponentIndex(void);
 		int GetLocalComponentCount(void);
 		int GetInPinCount(void);
-		void AppendChildPropagationIdentifier(const int propagation_identifier);
-		void QueueToPropagate(const int propagation_identifier);
+		void QueueToPropagatePrimary(const int propagation_identifier);
+		void QueueToPropagateSecondary(const int propagation_identifier);
 		void PrintInternalPinStates(int max_levels);
 		void MarkInnerTerminalsDisconnected(void);
 		Component* SearchForComponentPointer(std::string const& target_component_full_name);
@@ -87,7 +87,6 @@ class Device : public Component {
 		void PurgeChildComponent(std::string const& target_component_name);
 		void PurgeAllChildComponents(void);
 		void PurgeChildComponentIdentifiers(Component* target_component_pointer);
-		void CreateChildFlags(void);
 		bool GetDeletionFlag(void);
 
 	protected:
@@ -111,10 +110,7 @@ class Device : public Component {
 		std::vector<int> m_devices;
 		std::mutex m_propagation_lock;
 		std::vector<int> m_propagate_next_tick = {};
-		std::vector<bool> m_propagate_next_tick_flags = {};
 		std::vector<int> m_propagate_this_tick = {};
-		std::vector<bool> m_propagate_this_tick_flags = {};
-		bool m_buffered_propagation = false;
 		bool m_solve_this_tick_flag = false;
 		std::vector<int> m_solve_this_tick = {};
 		std::vector<std::vector<connection_descriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.

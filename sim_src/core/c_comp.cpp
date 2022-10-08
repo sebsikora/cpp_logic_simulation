@@ -89,7 +89,7 @@ std::string Component::GetPinName(int pin_port_index) {
 std::vector<std::string> Component::GetSortedInPinNames() {
 	std::vector<std::string> sorted_in_pin_names = {};
 	for (const auto& this_pin : m_pins) {
-		if ((this_pin.direction == 1) || (this_pin.direction == 3)) {
+		if ((this_pin.type == pin::pin_type::IN) || (this_pin.type == pin::pin_type::HIDDEN_IN)) {
 			sorted_in_pin_names.push_back(this_pin.name);
 		}
 	}
@@ -100,7 +100,7 @@ std::vector<std::string> Component::GetSortedInPinNames() {
 std::vector<std::string> Component::GetSortedOutPinNames() {
 	std::vector<std::string> sorted_out_pin_names = {};
 	for (const auto& this_pin : m_pins) {
-		if ((this_pin.direction == 2) || (this_pin.direction == 4)) {
+		if ((this_pin.type == pin::pin_type::OUT) || (this_pin.type == pin::pin_type::HIDDEN_OUT)) {
 			sorted_out_pin_names.push_back(this_pin.name);
 		}
 	}
@@ -108,19 +108,19 @@ std::vector<std::string> Component::GetSortedOutPinNames() {
 	return sorted_out_pin_names;
 }
 
-int Component::GetPinDirection(int pin_port_index) {
-	return m_pins[pin_port_index].direction;
+pin::pin_type Component::GetPinType(int pin_port_index) {
+	return m_pins[pin_port_index].type;
 }
 
-int Component::GetPinDirection(std::string const& pin_name) {
-	int pin_direction = 0;
+pin::pin_type Component::GetPinType(std::string const& pin_name) {
+	pin::pin_type type = pin::pin_type::NONE;
 	for (const auto& this_pin: m_pins) {
 		if (this_pin.name == pin_name) {
-			pin_direction = this_pin.direction;
+			type = this_pin.type;
 			break;
 		}
 	}
-	return pin_direction;
+	return type;
 }
 
 int Component::GetPinPortIndex(std::string const& pin_name) {
@@ -145,15 +145,17 @@ bool Component::CheckIfPinExists(std::string const& target_pin_name) {
 	return pin_exists;
 }
 
-std::vector<bool> Component::CheckIfPinDriven(int pin_port_index) {
-	return m_pins[pin_port_index].drive;
+pin::drive_state* Component::CheckIfPinDriven(int pin_port_index) {
+	return &m_pins[pin_port_index].drive;
 }
 
-void Component::SetPinDrivenFlag(int pin_port_index, bool drive_mode, bool state_to_set) {
-	if (!drive_mode) {
-		m_pins[pin_port_index].drive[0] = state_to_set;
+void Component::SetPinDrivenFlag(int pin_port_index, pin::drive_mode mode, bool state_to_set) {
+	if (mode == pin::drive_mode::DRIVE_IN) {
+		m_pins[pin_port_index].drive.in = state_to_set;
+	} else if (mode == pin::drive_mode::DRIVE_OUT) {
+		m_pins[pin_port_index].drive.out = state_to_set;
 	} else {
-		m_pins[pin_port_index].drive[1] = state_to_set;
+		// TODO - Report an error here
 	}
 }
 
@@ -161,7 +163,7 @@ void Component::PrintInPinStates() {
 	std::cout << m_name << ": [ ";
 	for (const auto& in_pin_name: GetSortedInPinNames()) {
 		int in_pin_port_index = GetPinPortIndex(in_pin_name);
-		if (m_pins[in_pin_port_index].direction == 1) {
+		if (m_pins[in_pin_port_index].type == pin::pin_type::IN) {
 			std::cout << m_pins[in_pin_port_index].name;
 			if (m_pins[in_pin_port_index].state) {
 				std::cout << ": T ";
@@ -177,7 +179,7 @@ void Component::PrintOutPinStates() {
 	std::cout << m_name << ": [ ";
 	for (const auto& out_pin_name: GetSortedOutPinNames()) {
 		int out_pin_port_index = GetPinPortIndex(out_pin_name);
-		if (m_pins[out_pin_port_index].direction == 2) {
+		if (m_pins[out_pin_port_index].type == pin::pin_type::OUT) {
 			std::cout << m_pins[out_pin_port_index].name;
 			if (m_pins[out_pin_port_index].state) {
 				std::cout << ": T ";

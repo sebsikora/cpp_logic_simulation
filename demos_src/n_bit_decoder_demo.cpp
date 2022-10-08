@@ -1,29 +1,23 @@
 #include <cmath>
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_sim.hpp"		// Core simulator functionality
 #include "devices.h"		// N_Bit_Register Device
 
 int main () {
-	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
-	bool monitor_on = false;
-	bool print_probe_samples = true;
-	
 	// Set the select bus width of the decoder here.
 	int select_bus_width = 3;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", verbose);
+	Simulation* sim = new Simulation("test_sim");
 	
 	// Add the n-bit register Device. Note the parameterised decoder select bus width width.
-	sim->AddComponent(new N_Bit_Decoder(sim, "test_decoder", select_bus_width, monitor_on));
-	sim->ChildMakeProbable("test_decoder");
+	sim->AddComponent(new N_Bit_Decoder(sim, "test_decoder", select_bus_width));
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
 	sim->Stabilise();
 	
 	// Clock to trigger probes.
-	sim->AddClock("clock_0", {false, true}, monitor_on);
+	sim->AddClock("clock_0", {false, true}, false);
 	
 	// Programmatically generate select input and output pins identifiers.
 	std::vector<std::string> out_pins = {};
@@ -55,13 +49,11 @@ int main () {
 			}
 		}
 		if (first_tick) {
-			sim->Run(1, true, verbose, false);
+			sim->Run(1, true);
 			first_tick = false;
 		} else {
-			sim->Run(1, false, verbose, false);
+			sim->Run(1, false);
 		}
 	}
-	sim->Run(1, false, verbose, print_probe_samples);
+	sim->Run(1, false, true);
 }
-
-

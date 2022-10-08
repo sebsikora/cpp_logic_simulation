@@ -38,18 +38,28 @@ class MagicEngine;
 
 // Define data structures.
 struct pin {
-	enum pinType {
-		IN = 0,
+	enum pin_type {
+		NONE = 0,
+		IN,
 		OUT,
 		HIDDEN_IN,
 		HIDDEN_OUT
 	};
+	enum drive_mode {
+		DRIVE_IN = 0,
+		DRIVE_OUT
+	};
+	struct drive_state {
+		 bool in;
+		 bool out;
+	};
+	
 	std::string name;
-	int direction;
+	pin_type type;
 	bool state;
 	bool state_changed = false;
 	int port_index;
-	std::vector<bool> drive;
+	drive_state drive;
 };
 
 struct component_descriptor {

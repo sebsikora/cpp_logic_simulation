@@ -211,7 +211,7 @@ N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, in
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", 2);
+	CreateBus(m_width, "q_", pin::pin_type::OUT);
 	Build();
 	Stabilise();
  }
@@ -259,7 +259,7 @@ N_Bit_Counter_AIO::N_Bit_Counter_AIO(Device* parent_device_pointer, std::string 
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", 2);
+	CreateBus(m_width, "q_", pin::pin_type::OUT);
 	Build();
 	Stabilise();
  }
@@ -328,7 +328,7 @@ N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string 
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", 2);
+	CreateBus(m_width, "q_", pin::pin_type::OUT);
 	Build();
 	Stabilise();
  }
@@ -384,7 +384,7 @@ N_Bit_Counter_C_ASC::N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::str
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", 2);
+	CreateBus(m_width, "q_", pin::pin_type::OUT);
 	Build();
 	Stabilise();
  }
@@ -525,8 +525,8 @@ void One_Bit_Register::Build() {
 N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "clk"}, {}, monitor_on, input_default_states) {
 	 m_bus_width = width;
-	 CreateBus(m_bus_width, "d_in_", 1, input_default_states);
-	 CreateBus(m_bus_width, "d_out_", 2);
+	 CreateBus(m_bus_width, "d_in_", pin::pin_type::IN, input_default_states);
+	 CreateBus(m_bus_width, "d_out_", pin::pin_type::OUT);
 	 Build();
 	 Stabilise();
  }
@@ -562,8 +562,8 @@ void N_Bit_Register::Build() {
 N_Bit_Register_ASC_AIO::N_Bit_Register_ASC_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "not_c", "clk"}, {}, monitor_on, input_default_states) {
 	 m_bus_width = width;
-	 CreateBus(m_bus_width, "d_in_", 1, input_default_states);
-	 CreateBus(m_bus_width, "d_out_", 2);
+	 CreateBus(m_bus_width, "d_in_", pin::pin_type::IN, input_default_states);
+	 CreateBus(m_bus_width, "d_out_", pin::pin_type::OUT);
 	 Build();
 	 Stabilise();
  }
@@ -638,8 +638,8 @@ void N_Bit_Register_ASC_AIO::Build() {
 NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
  : Device(parent_device_pointer, name, "nx1_bit_mux", {}, {"d_out"}, monitor_on, input_default_states) {
 	 m_input_count = input_count;
-	 CreateBus(m_input_count, "d_in_", 1, input_default_states);
-	 CreateBus(m_input_count, "sel_in_", 1, input_default_states);
+	 CreateBus(m_input_count, "d_in_", pin::pin_type::IN, input_default_states);
+	 CreateBus(m_input_count, "sel_in_", pin::pin_type::IN, input_default_states);
 	 Build();
 	 Stabilise();
 	 //~PrintInPinStates();
@@ -675,9 +675,9 @@ N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, in
 	if (m_select_bus_width < 1) {
 		m_select_bus_width = 1;
 	}
-	CreateBus(m_select_bus_width, "sel_", 1, input_default_states);
+	CreateBus(m_select_bus_width, "sel_", pin::pin_type::IN, input_default_states);
 	m_output_bus_width = pow(2, m_select_bus_width);
-	CreateBus(m_output_bus_width, "out_", 2);
+	CreateBus(m_output_bus_width, "out_", pin::pin_type::OUT);
 	Build();
 	Stabilise();
  }
@@ -686,7 +686,7 @@ void N_Bit_Decoder::Build() {
 	// The N select inputs each need a complement.
 	for (int i = 0; i < m_select_bus_width; i ++) {
 		std::string not_gate_identifier = "not_" + std::to_string(i);
-		AddGate(not_gate_identifier, "not", {}, false);
+		AddGate(not_gate_identifier, "not");
 		std::string sel_input_identifier = "sel_" + std::to_string(i);
 		Connect(sel_input_identifier, not_gate_identifier);
 	}
@@ -700,7 +700,7 @@ void N_Bit_Decoder::Build() {
 	// Next, add the N**2 x N-input AND Gates...
 	for (int output_index = 0; output_index < m_output_bus_width; output_index ++) {
 		std::string and_gate_identifier = "and_" + std::to_string(output_index);
-		AddGate(and_gate_identifier, "and", input_terminal_identifiers, false);
+		AddGate(and_gate_identifier, "and", input_terminal_identifiers);
 		// ...then, determine which AND Gate inputs should be connected directly to the select bus inputs, and
 		// which to their complements.
 		//
@@ -740,10 +740,10 @@ NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bu
 	 }
 	 m_s_bus_width = (int)std::ceil(std::log(m_d_bus_count)/std::log(2));
 	 for (int i = 0; i < m_d_bus_count; i ++) {
-		 CreateBus(m_d_bus_width, "d_in_" + std::to_string(i) + "_", 1, input_default_states);
+		 CreateBus(m_d_bus_width, "d_in_" + std::to_string(i) + "_", pin::pin_type::IN, input_default_states);
 	 }
-	 CreateBus(m_s_bus_width, "sel_", 1, input_default_states);
-	 CreateBus(m_d_bus_width, "d_out_", 2);
+	 CreateBus(m_s_bus_width, "sel_", pin::pin_type::IN, input_default_states);
+	 CreateBus(m_d_bus_width, "d_out_", pin::pin_type::OUT);
 	 Build();
 	 Stabilise();
  }
