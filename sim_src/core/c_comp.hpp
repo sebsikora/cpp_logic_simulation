@@ -74,7 +74,6 @@ class Component {
 		int m_nesting_level = 0;
 		bool m_device_flag;
 		std::string m_name;
-		std::string m_full_name;
 		int m_CUID;
 		int m_local_component_index = 0;
 		std::string m_component_type;

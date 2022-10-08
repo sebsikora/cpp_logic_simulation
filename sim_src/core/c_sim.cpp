@@ -120,8 +120,8 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 				std::cout << std::endl << message << std::endl;
 			}
 			m_global_tick_index = 0;
-			for (const auto& this_clock_descriptor : m_clocks) {
-				this_clock_descriptor.clock_pointer->Reset();
+			for (const auto& this_clock : m_clocks) {
+				this_clock->Reset();
 			}
 		} else {
 			if (!force_no_messages) {
@@ -130,8 +130,8 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 			}
 		}
 		// Preallocate vectors for storage of Probe samples.
-		for (const auto& this_probe_descriptor : m_probes) {
-			this_probe_descriptor.probe_pointer->PreallocateSampleMemory(number_of_ticks);
+		for (const auto& this_probe : m_probes) {
+			this_probe->PreallocateSampleMemory(number_of_ticks);
 		}
 #ifndef VERBOSE_SOLVE
 		if (!force_no_messages) {
@@ -157,8 +157,8 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 			}
 #endif
 			// Advance all clocks.
-			for (const auto& this_clock_descriptor : m_clocks) {
-				this_clock_descriptor.clock_pointer->Tick();
+			for (const auto& this_clock : m_clocks) {
+				this_clock->Tick();
 			}
 			// Solve top-level simulation state.
 			Solve();
@@ -205,8 +205,8 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 		// Print probe samples.
 		if (print_probes_flag) {
 			std::cout << std::endl << GenerateHeader("Probed values.") << std::endl << std::endl;
-			for (const auto& this_probe_descriptor : m_probes) {
-				this_probe_descriptor.probe_pointer->PrintSamples();
+			for (const auto& this_probe : m_probes) {
+				this_probe->PrintSamples();
 				std::cout << std::endl;
 			}
 			std::cout << GenerateHeader("Done.") << std::endl;
@@ -221,17 +221,14 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 
 void Simulation::AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on) {
 	bool found = false;
-	for (const auto& this_clock_descriptor : m_clocks) {
-		if (this_clock_descriptor.clock_name == clock_name) {
+	for (const auto& this_clock : m_clocks) {
+		if (this_clock->GetName() == clock_name) {
 			found = true;
 			break;
 		}
 	}
 	if (!found) {
-		clock_descriptor new_clock_descriptor;
-		new_clock_descriptor.clock_name = clock_name;
-		new_clock_descriptor.clock_pointer = new Clock(this, clock_name, toggle_pattern, monitor_on);
-		m_clocks.push_back(new_clock_descriptor);
+		m_clocks.emplace_back(new Clock(this, clock_name, toggle_pattern, monitor_on));
 	} else {
 		// Log error - Component is not on probable components list.
 		std::string build_error = "Clock " + clock_name + " can not be be created as another clock by this name already exists.";
@@ -261,18 +258,15 @@ void Simulation::AddProbe(std::string const& probe_name, std::string const& targ
 		if (pins_exist) {
 			Clock* trigger_clock_pointer = 0;
 			bool trigger_clock_exists = false;
-			for (const auto& this_clock_descriptor : m_clocks) {
-				if (this_clock_descriptor.clock_name == trigger_clock_name) {
+			for (const auto& this_clock : m_clocks) {
+				if (this_clock->GetName() == trigger_clock_name) {
 					trigger_clock_exists = true;
-					trigger_clock_pointer = this_clock_descriptor.clock_pointer;
+					trigger_clock_pointer = this_clock;
 					break;
 				}
 			}
 			if (trigger_clock_exists) {
-				probe_descriptor new_probe;
-				new_probe.probe_name = probe_name;
-				new_probe.probe_pointer = new Probe(m_top_level_sim_pointer, probe_name, target_component_pointer, target_pin_names, trigger_clock_pointer, probe_conf);
-				m_probes.push_back(new_probe);
+				m_probes.emplace_back(new Probe(m_top_level_sim_pointer, probe_name, target_component_pointer, target_pin_names, trigger_clock_pointer, probe_conf));
 			} else {
 				// Log error - Trigger clock does not exist.
 				std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because trigger clock " + trigger_clock_pointer->GetName() + " does not exist.";
@@ -303,9 +297,9 @@ int Simulation::GetTopLevelMaxPropagations() {
 
 Clock* Simulation::GetClockPointer(std::string const& target_clock_name) {
 	Clock* clock_pointer = 0;
-	for (const auto& this_clock_descriptor : m_clocks) {
-		if (this_clock_descriptor.clock_name == target_clock_name) {
-			clock_pointer = this_clock_descriptor.clock_pointer;
+	for (const auto& this_clock : m_clocks) {
+		if (this_clock->GetName() == target_clock_name) {
+			clock_pointer = this_clock;
 			break;
 		}
 	}
@@ -331,9 +325,9 @@ void Simulation::StopSimulation() {
 }
 
 void Simulation::CheckProbeTriggers() {
-	for (const auto& this_clock_descriptor : m_clocks) {
-		if (this_clock_descriptor.clock_pointer->GetTickedFlag()) {
-			this_clock_descriptor.clock_pointer->TriggerProbes();
+	for (const auto& this_clock : m_clocks) {
+		if (this_clock->GetTickedFlag()) {
+			this_clock->TriggerProbes();
 		}
 	}
 }
@@ -415,14 +409,14 @@ void Simulation::PrintErrorMessages(void) {
 std::vector<std::vector<std::vector<bool>>> Simulation::GetProbedStates(std::vector<std::string> const& probe_names) {
 	std::vector<std::vector<std::vector<bool>>> probed_states;
 	if (probe_names[0] == "all") {
-		for (const auto& this_probe_descriptor : m_probes) {
-			probed_states.emplace_back(this_probe_descriptor.probe_pointer->GetSamples());	
+		for (const auto& this_probe : m_probes) {
+			probed_states.emplace_back(this_probe->GetSamples());	
 		}
 	} else {
 		for (const auto& this_probe_name : probe_names) {
-			for (const auto& this_probe_descriptor : m_probes) {
-				if (this_probe_descriptor.probe_name == this_probe_name) {
-					probed_states.emplace_back(this_probe_descriptor.probe_pointer->GetSamples());
+			for (const auto& this_probe : m_probes) {
+				if (this_probe->GetName() == this_probe_name) {
+					probed_states.emplace_back(this_probe->GetSamples());
 				}
 			}
 		}
@@ -442,14 +436,14 @@ void Simulation::PurgeComponent() {
 	m_deletion_flag = true;
 	//	Simulation has no external inputs or outputs to handle (as it is top-level).
 	// 	Next we need to purge all Clocks.
-	for (const auto& this_clock_descriptor : m_clocks) {
-		delete this_clock_descriptor.clock_pointer;
+	for (const auto& this_clock : m_clocks) {
+		delete this_clock;
 	}
 	if (m_deletion_flag) {
 		// If the simulation's deletion flag is set, the Clock destructor will *not* handle deletion of Probes,
 		// so we need to do it here.
-		for (const auto& this_probe_descriptor : m_probes) {
-			delete this_probe_descriptor.probe_pointer;
+		for (const auto& this_probe : m_probes) {
+			delete this_probe;
 		}
 	}
 #ifdef VERBOSE_DTORS
@@ -460,18 +454,17 @@ void Simulation::PurgeComponent() {
 }
 
 void Simulation::PurgeComponentFromClocks(Component* target_component_pointer) {
-	for (const auto& this_clock_descriptor : m_clocks) {
-		Clock* this_clock_pointer = this_clock_descriptor.clock_pointer;
-		this_clock_pointer->PurgeTargetComponentConnections(target_component_pointer);
+	for (const auto& this_clock : m_clocks) {
+		this_clock->PurgeTargetComponentConnections(target_component_pointer);
 	}
 }
 
 void Simulation::PurgeComponentFromProbes(Component* target_component_pointer) {
 	// If the component has associated Probes here, nuke them.
 	std::vector<Probe*> probe_pointers = {};
-	for (const auto& this_probe_descriptor : m_probes) {
-		if (this_probe_descriptor.probe_pointer->GetTargetComponentPointer() == target_component_pointer) {
-			probe_pointers.push_back(this_probe_descriptor.probe_pointer);
+	for (const auto& this_probe : m_probes) {
+		if (this_probe->GetTargetComponentPointer() == target_component_pointer) {
+			probe_pointers.push_back(this_probe);
 		}
 	}
 	for (const auto& this_probe_pointer : probe_pointers) {
@@ -482,9 +475,9 @@ void Simulation::PurgeComponentFromProbes(Component* target_component_pointer) {
 void Simulation::PurgeChildProbe(std::string const& target_probe_name) {
 	// -- IF TARGET PROBE EXISTS IN M_PROBES, FETCH THE POINTER AND USE IT TO NUKE THE PROBE'S DESCRIPTOR BY CALLING PROBE.PURGEPROBE() --
 	Probe* target_probe_pointer = 0;
-	for (const auto& this_probe_descriptor : m_probes) {
-		if (this_probe_descriptor.probe_name == target_probe_name) {
-			target_probe_pointer = this_probe_descriptor.probe_pointer;
+	for (const auto& this_probe : m_probes) {
+		if (this_probe->GetName() == target_probe_name) {
+			target_probe_pointer = this_probe;
 			break;
 		}
 	}
@@ -497,16 +490,13 @@ void Simulation::PurgeChildProbe(std::string const& target_probe_name) {
 
 void Simulation::PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer) {
 	// Rebuild m_probes omitting target Probe's probe_descriptor...
-	std::vector<probe_descriptor> new_probes = {};
-	for (const auto& this_probe_descriptor : m_probes) {
-		if (this_probe_descriptor.probe_pointer != target_probe_pointer) {
-			probe_descriptor new_probe_descriptor;
-			new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
-			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
-			new_probes.push_back(new_probe_descriptor);
+	std::vector<Probe*> new_probes = {};
+	for (const auto& this_probe : m_probes) {
+		if (this_probe != target_probe_pointer) {
+			new_probes.emplace_back(this_probe);
 		} else {
 #ifdef VERBOSE_DTORS
-				std::cout << "Purging " << this_probe_descriptor.probe_name << " from Simulation " << m_name << " m_probes." << std::endl;
+				std::cout << "Purging " << this_probe->GetName() << " from Simulation " << m_name << " m_probes." << std::endl;
 #endif
 		}
 	}
@@ -516,9 +506,9 @@ void Simulation::PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer)
 void Simulation::PurgeChildClock(std::string const& target_clock_name) {
 	// -- IF TARGET CLOCK EXISTS IN M_CLOCKS, FETCH THE POINTER AND USE IT TO NUKE THE CLOCK'S DESCRIPTOR BY CALLING CLOCK.PURGECLOCK() --
 	Clock* target_clock_pointer = 0;
-	for (const auto& this_clock_descriptor : m_clocks) {
-		if (this_clock_descriptor.clock_name == target_clock_name) {
-			target_clock_pointer = this_clock_descriptor.clock_pointer;
+	for (const auto& this_clock : m_clocks) {
+		if (this_clock->GetName() == target_clock_name) {
+			target_clock_pointer = this_clock;
 			break;
 		}
 	}
@@ -531,13 +521,10 @@ void Simulation::PurgeChildClock(std::string const& target_clock_name) {
 
 void Simulation::PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer) {
 	// Rebuild m_clocks omitting target Clock's clock_descriptor...
-	std::vector<clock_descriptor> new_clocks = {};
-	for (const auto& this_clock_descriptor : m_clocks) {
-		if (this_clock_descriptor.clock_pointer != target_clock_pointer) {
-			clock_descriptor new_clock_descriptor;
-			new_clock_descriptor.clock_name = this_clock_descriptor.clock_name;
-			new_clock_descriptor.clock_pointer = this_clock_descriptor.clock_pointer;
-			new_clocks.push_back(new_clock_descriptor);
+	std::vector<Clock*> new_clocks = {};
+	for (const auto& this_clock : m_clocks) {
+		if (this_clock != target_clock_pointer) {
+			new_clocks.emplace_back(this_clock);
 		} else {
 #ifdef VERBOSE_DTORS
 			std::cout << "Purging " << this_clock_descriptor.clock_name << " from Simulation " << m_name << " m_clocks." << std::endl;

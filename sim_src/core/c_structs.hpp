@@ -62,12 +62,6 @@ struct pin {
 	drive_state drive;
 };
 
-struct component_descriptor {
-	std::string component_name;
-	std::string component_full_name;
-	Component* component_pointer;
-};
-
 struct state_descriptor {
 	std::string identifier;
 	bool state;
@@ -87,16 +81,6 @@ struct probe_configuration {
 struct connection_descriptor {
 	Component* target_component_pointer;
 	int target_pin_port_index;
-};
-
-struct clock_descriptor {
-	std::string clock_name;
-	Clock* clock_pointer;
-};
-
-struct probe_descriptor {
-	std::string probe_name;
-	Probe* probe_pointer;
 };
 
 struct magic_engine_descriptor {

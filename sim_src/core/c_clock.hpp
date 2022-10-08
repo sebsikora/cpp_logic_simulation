@@ -59,7 +59,7 @@ class Clock {
 		std::vector<bool> m_state_history;
 		size_t m_index;
 		size_t m_sub_index;
-		std::vector<probe_descriptor> m_probes;
+		std::vector<Probe*> m_probes;
 		bool m_ticked_flag;
 };
 

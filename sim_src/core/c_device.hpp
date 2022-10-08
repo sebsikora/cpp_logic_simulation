@@ -106,8 +106,7 @@ class Device : public Component {
 		// Device class private methods.
 		void SubTick(void);
 		
-		std::vector<component_descriptor> m_components;
-		std::vector<int> m_devices;
+		std::vector<Component*> m_components;
 		std::mutex m_propagation_lock;
 		std::vector<int> m_propagate_next_tick = {};
 		std::vector<int> m_propagate_this_tick = {};

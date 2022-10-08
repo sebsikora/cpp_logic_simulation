@@ -86,8 +86,8 @@ class Simulation : public Device {
 		void EnableTerminalRawIO(const bool raw_flag);
 		char CheckForCharacter(void);
 		
-		std::vector<probe_descriptor> m_probes;
-		std::vector<clock_descriptor> m_clocks;
+		std::vector<Probe*> m_probes;
+		std::vector<Clock*> m_clocks;
 		std::vector<magic_engine_descriptor> m_magic_engines;
 		std::vector<std::string> m_error_messages;
 		std::vector<std::string> m_messages;

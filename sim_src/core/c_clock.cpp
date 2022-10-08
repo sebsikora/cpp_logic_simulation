@@ -54,10 +54,7 @@ std::string Clock::GetName() {
 }
 
 void Clock::AddToProbeList(std::string const& probe_identifier, Probe* probe_pointer) {
-	probe_descriptor this_probe;
-	this_probe.probe_name = probe_identifier;
-	this_probe.probe_pointer = probe_pointer;
-	m_probes.push_back(this_probe);
+	m_probes.emplace_back(probe_pointer);
 }
 
 void Clock::Tick(void) {
@@ -82,8 +79,8 @@ void Clock::Reset(void) {
 	m_ticked_flag = false;
 	m_state_history.clear();
 	m_out_pin_state = m_toggle_pattern[0];
-	for (const auto& this_probe_descriptor : m_probes) {
-		this_probe_descriptor.probe_pointer->Reset();
+	for (const auto& this_probe : m_probes) {
+		this_probe->Reset();
 	}
 }
 
@@ -138,8 +135,8 @@ void Clock::TriggerProbes() {
 	// Add new state to state history and then trigger all associated probes.
 	if (m_probes.size() > 0) {
 		m_state_history.emplace_back(m_out_pin_state);
-		for (const auto& this_probe_descriptor : m_probes) {
-			this_probe_descriptor.probe_pointer->Sample(m_index - 1);
+		for (const auto& this_probe : m_probes) {
+			this_probe->Sample(m_index - 1);
 		}
 	}
 	m_ticked_flag = false;
@@ -184,17 +181,14 @@ void Clock::PurgeClock(void) {
 		// PurgeChildProbe() below to follow the trigger clock pointer and call PurgeProbeFromClock() below to rebuild
 		// this Clock's m_probes vector, omitting the target Probe.
 		{
-			std::vector<probe_descriptor> m_probes_copy = {};
-			for (const auto& this_probe_descriptor : m_probes) {
-				probe_descriptor new_probe_descriptor;
-				new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
-				new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
-				m_probes_copy.push_back(new_probe_descriptor);
+			std::vector<Probe*> m_probes_copy = {};
+			for (const auto& this_probe : m_probes) {
+				m_probes_copy.emplace_back(this_probe);
 			}
 			// PurgeProbe() will purge the relevant probe_descriptor from both this Clock's m_probes and the
 			// parent Simulation's m_probes.
-			for (const auto& this_probe_descriptor : m_probes_copy) {
-				delete this_probe_descriptor.probe_pointer;
+			for (const auto& this_probe : m_probes_copy) {
+				delete this_probe;
 			}
 			m_probes = m_probes_copy;
 		}
@@ -210,16 +204,13 @@ void Clock::PurgeClock(void) {
 
 void Clock::PurgeProbeDescriptorFromClock(Probe* target_probe_pointer) {
 	// Purge target probe's probe_descriptor from Clock's m_probes here...
-	std::vector<probe_descriptor> new_probes = {};
-	for (const auto& this_probe_descriptor : m_probes) {
-		if (this_probe_descriptor.probe_pointer != target_probe_pointer) {
-			probe_descriptor new_probe_descriptor;
-			new_probe_descriptor.probe_name = this_probe_descriptor.probe_name;
-			new_probe_descriptor.probe_pointer = this_probe_descriptor.probe_pointer;
-			new_probes.push_back(new_probe_descriptor);
+	std::vector<Probe*> new_probes = {};
+	for (const auto& this_probe : m_probes) {
+		if (this_probe != target_probe_pointer) {
+			new_probes.emplace_back(this_probe);
 		} else {
 #ifdef VERBOSE_DTORS
-			std::cout << "Purging " << this_probe_descriptor.probe_name << " from Clock " << m_name << " m_probes." << std::endl;
+			std::cout << "Purging " << this_probe->GetName() << " from Clock " << m_name << " m_probes." << std::endl;
 #endif
 		}
 	}

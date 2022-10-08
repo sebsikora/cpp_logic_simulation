@@ -120,6 +120,10 @@ std::vector<std::vector<bool>> Probe::GetSamples(void) {
 	return m_samples;
 }
 
+std::string Probe::GetName() {
+	return m_name;
+}
+
 void Probe::PurgeProbe() {
 	std::string header;
 #ifdef VERBOSE_DTORS

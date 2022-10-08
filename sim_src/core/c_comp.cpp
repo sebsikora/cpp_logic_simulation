@@ -33,7 +33,7 @@
 
 Component::~Component() {
 #ifdef VERBOSE_DTORS
-	std::cout << "Component dtor for " << m_full_name << " @ " << this << std::endl << std::endl;
+	std::cout << "Component dtor for " << GetFullName() << " @ " << this << std::endl << std::endl;
 #endif
 }
 

@@ -46,6 +46,7 @@ class Probe {
 		void PrintSamples(void);
 		std::vector<std::vector<bool>> GetSamples(void);
 		void PurgeProbe(void);
+		std::string GetName(void);
 		
 	private:
 		Simulation* m_top_level_sim_pointer;
