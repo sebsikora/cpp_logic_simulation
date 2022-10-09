@@ -3,10 +3,9 @@
 #include "c_sim.hpp"
 
 int main () {
-	bool verbose = false;
 	bool monitor_on = true;
 	
-	Simulation sim("test_sim", verbose);
+	Simulation sim("test_sim");
 	
 	sim.AddGate("or_0", "or", {"input_0", "input_1"}, monitor_on);
 	sim.AddGate("and_0", "and", {"input_0", "input_1"}, monitor_on);

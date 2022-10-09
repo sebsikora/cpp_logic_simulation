@@ -31,7 +31,7 @@ class AndGate : public Gate {
 		AndGate(Device* parent_device_pointer, std::string const& gate_name, std::vector<std::string> in_pin_names, bool monitor_on = false);
 		virtual ~AndGate() { }
 
-	protected:
+	private:
 		virtual bool Operate(void) final override;
 };
 
@@ -40,7 +40,7 @@ class NandGate : public Gate {
 		NandGate(Device* parent_device_pointer, std::string const& gate_name, std::vector<std::string> in_pin_names, bool monitor_on = false);
 		virtual ~NandGate() { }
 
-	protected:
+	private:
 		virtual bool Operate(void) final override;
 };
 
@@ -49,7 +49,7 @@ class OrGate : public Gate {
 		OrGate(Device* parent_device_pointer, std::string const& gate_name, std::vector<std::string> in_pin_names, bool monitor_on = false);
 		virtual ~OrGate() { }
 
-	protected:
+	private:
 		virtual bool Operate(void) final override;
 };
 
@@ -58,7 +58,7 @@ class NorGate : public Gate {
 		NorGate(Device* parent_device_pointer, std::string const& gate_name, std::vector<std::string> in_pin_names, bool monitor_on = false);
 		virtual ~NorGate() { }
 
-	protected:
+	private:
 		virtual bool Operate(void) final override;
 };
 
@@ -67,7 +67,7 @@ class Inverter : public Gate {
 		Inverter(Device* parent_device_pointer, std::string const& gate_name, bool monitor_on = false);
 		virtual ~Inverter() { }
 
-	protected:
+	private:
 		virtual bool Operate(void) final override;
 };
 

@@ -182,3 +182,8 @@ void Component::PrintOutPinStates() {
 	}
 	std::cout << "]" << std::endl << std::endl;
 }
+
+void Component::SolveBackwardsFromParent() {
+	m_parent_device_pointer->Solve();
+	m_parent_device_pointer->SolveBackwardsFromParent();
+}

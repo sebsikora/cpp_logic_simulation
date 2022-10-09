@@ -1,4 +1,5 @@
 CPPC=g++
+#CPPFLAGS=-Wall -g -O3 -DVERBOSE_SOLVE
 CPPFLAGS=-Wall -g -O3
 CPPLIBS=-pthread
 

@@ -44,6 +44,7 @@ class Simulation : public Device {
 		
 		// Override Component virtual methods.
 		void PurgeComponent(void) override;
+		void SolveBackwardsFromParent(void) override {};
 
 		// Override Device virtual methods.
 		void Build(void) override;

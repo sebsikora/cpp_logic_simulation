@@ -54,6 +54,7 @@ class Device : public Component {
 		
 		// Device class virtual methods.
 		virtual void Build(void) = 0;
+		virtual void Solve(void);
 
 		// Device class public methods.
 		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states);
@@ -86,15 +87,13 @@ class Device : public Component {
 		void PurgeAllChildComponents(void);
 		void PurgeChildComponentIdentifiers(Component* target_component_pointer);
 		bool GetDeletionFlag(void);
+		void SetDeletionFlag(bool flag);
 
 	protected:
 		// Device class protected methods.
-		void Solve(void);
 		void QueueToSolve(Device* device_pointer);
-		void PropagateInputs(void);
 		
 		int m_max_propagations;
-		bool m_deletion_flag = false;
 		bool m_magic_device_flag = false;
 		MagicEngine* m_magic_engine_pointer;
 		std::vector<bool> m_magic_pin_flag;
@@ -102,6 +101,7 @@ class Device : public Component {
 		
 	private:
 		// Device class private methods.
+		void PropagateInputs(void);
 		void SubTick(void);
 		
 		std::vector<Component*> m_components;
@@ -114,6 +114,7 @@ class Device : public Component {
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 		std::vector<state_descriptor> m_in_pin_default_states;
+		bool m_deletion_flag = false;
 };
 
 #endif	// LSIM_CORE_DEVICE_HPP

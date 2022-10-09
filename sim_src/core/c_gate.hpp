@@ -48,13 +48,13 @@ class Gate : public Component {
 		void PurgeOutboundConnections(void) override;
 
 	protected:
-		virtual bool Operate(void) = 0;
 		void Configure(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
 					   std::vector<std::string> in_pin_names, bool monitor_on);
 
 		int m_in_pin_count;
 		
 	private:
+		virtual bool Operate(void) = 0;
 		void Evaluate(void);
 		
 		int m_out_pin_port_index;

@@ -329,13 +329,8 @@ void Device::ChildSet(std::string const& target_child_component_name, std::strin
 #endif
 		target_component_pointer->Set(target_pin_port_index, logical_state);
 		
-		// If this is a 1st-level device, if the simulation is not running the user would need to call Solve() after every
-		// 'manual' pin change to make sure that 1st-level device state is propagated. Instead, we check for them here if
-		// the simulation is not running and call Solve() at the end of the Set() call.
-		if (!(m_top_level_sim_pointer->IsSimulationRunning())) {
-			m_top_level_sim_pointer->Solve();
-			m_top_level_sim_pointer->PrintAndClearMessages();
-		}
+		target_component_pointer->SolveBackwardsFromParent();
+		m_top_level_sim_pointer->PrintAndClearMessages();
 	}
 }
 
@@ -877,6 +872,10 @@ Component* Device::SearchForComponentPointer(std::string const& target_component
 
 bool Device::GetDeletionFlag(void) {
 	return m_deletion_flag;
+}
+
+void Device::SetDeletionFlag(bool flag) {
+	m_deletion_flag = flag;
 }
 
 void Device::PurgeComponent() {

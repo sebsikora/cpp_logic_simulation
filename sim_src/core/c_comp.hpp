@@ -47,6 +47,8 @@ class Component {
 		virtual void PurgeComponent(void) = 0;
 		virtual void PurgeInboundConnections(Component* target_component_pointer) = 0;
 		virtual void PurgeOutboundConnections(void) = 0;
+
+		virtual void SolveBackwardsFromParent(void);
 		
 		std::string GetName(void);
 		std::string GetFullName(void);

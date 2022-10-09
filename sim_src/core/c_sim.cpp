@@ -433,13 +433,13 @@ void Simulation::PurgeComponent() {
 	// Set the Simulation's deletion flag to let child components know that they don't need to tidy-up
 	// after themselves (remove connections from sibling components, remove themselves from Clocks,
 	// Probes, etc).
-	m_deletion_flag = true;
+	SetDeletionFlag(true);
 	//	Simulation has no external inputs or outputs to handle (as it is top-level).
 	// 	Next we need to purge all Clocks.
 	for (const auto& this_clock : m_clocks) {
 		delete this_clock;
 	}
-	if (m_deletion_flag) {
+	if (GetDeletionFlag()) {
 		// If the simulation's deletion flag is set, the Clock destructor will *not* handle deletion of Probes,
 		// so we need to do it here.
 		for (const auto& this_probe : m_probes) {
