@@ -25,7 +25,9 @@
 #include <string>					// std::string.
 #include <vector>					// std::vector
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_device.hpp"					// Core simulator functionality
+#include "c_m_engine.hpp"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 class SimpleRam : public Device {

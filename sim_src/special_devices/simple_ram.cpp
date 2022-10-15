@@ -25,7 +25,8 @@
 #include <cmath>					// pow()
 #include <fstream>					// std::ifstream
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_structs.hpp"
+#include "c_device.hpp"					// Core simulator functionality
 #include "simple_ram.h"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -40,9 +41,9 @@ SimpleRam::SimpleRam(Device* parent_device_pointer, std::string device_name, int
 }
 
 SimpleRam::~SimpleRam() {
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		std::cout << "SimpleRam dtor for " << m_full_name << " @ " << this << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	std::cout << "SimpleRam dtor for " << GetFullName() << " @ " << this << std::endl;
+#endif
 }
 
 void SimpleRam::Build() {
@@ -99,9 +100,9 @@ SimpleRam_MagicEngine::SimpleRam_MagicEngine(Device* parent_device_pointer, int 
 SimpleRam_MagicEngine::~SimpleRam_MagicEngine() {
 	// Shut down the MagicEngine (close any open files, etc...).
 	ShutDownMagic();
-	if (m_top_level_sim_pointer->mg_verbose_destructor_flag) {
-		std::cout << "SimpleRam_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
-	}
+#ifdef VERBOSE_DTORS
+	std::cout << "SimpleRam_MagicEngine dtor for " << m_identifier << " @ " << this << std::endl;
+#endif
 }
 
 void SimpleRam_MagicEngine::UpdateMagic() {

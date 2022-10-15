@@ -44,39 +44,13 @@ class SimpleRamRedux : public Device {
 		// Data.
 		std::vector<unsigned int> m_data;
 		
-		int m_address_bus_start_index;
-		int m_address_bus_end_index;
-		int m_data_bus_in_start_index;
-		int m_data_bus_in_end_index;
-		int m_data_bus_out_start_index;
-		int m_data_bus_out_end_index;
+		std::vector<int> m_address_bus_indices;
+		std::vector<int> m_data_bus_in_indices;
+		std::vector<int> m_data_bus_out_indices;
 		
 		int m_read_pin_index;
 		int m_write_pin_index;
 		int m_clk_pin_index;
 };
 
-// -----------------------------------------------------------------------------------------------------------------------------------------------------
-//~class SimpleRam_MagicEngine : public MagicEngine {
-	//~public:
-		//~// Constructor.
-		//~SimpleRam_MagicEngine(Device* parent_device_pointer, int address_bus_width, int data_bus_width);
-		//~~SimpleRam_MagicEngine();
-		//~// Methods common to base MagicEngine class.
-		//~void InvokeMagic(int incantation) override;
-		//~void UpdateMagic(void) override;
-		//~void ShutDownMagic(void) override;
-		//~// Methods particular to SimpleRom_MagicEngine sub-class.
-		//~void ZeroMemory(int address_bus_width, int data_bus_width);
-		//~void GetPinPortIndices(int address_bus_width, int data_bus_width);
-		//~// Data particular to this sub-class.
-		//~std::vector<int> m_powers_of_two;
-		//~std::vector<size_t> m_data;
-		//~int m_address_bus_width;
-		//~int m_data_bus_width;
-		//~std::vector<int> m_address_bus_pin_port_indices;
-		//~std::vector<int> m_data_in_bus_pin_port_indices;
-		//~std::vector<int> m_data_out_bus_pin_port_indices;
-//~};
-
-#endif
+#endif // LSIM_S_RAM_H

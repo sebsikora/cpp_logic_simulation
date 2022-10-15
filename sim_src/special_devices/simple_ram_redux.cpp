@@ -59,14 +59,18 @@ void SimpleRamRedux::Configure(int address_bus_width, int data_bus_width, std::v
 	m_read_pin_index = GetPinPortIndex("read");
 	m_write_pin_index = GetPinPortIndex("write");
 
-	m_address_bus_start_index = GetPinPortIndex(address_bus_prefix + "0");
-	m_address_bus_end_index = GetPinPortIndex(address_bus_prefix + std::to_string(address_bus_width - 1));
+	m_address_bus_indices.resize(address_bus_width, 0);
+	m_data_bus_in_indices.resize(data_bus_width, 0);
+	m_data_bus_out_indices.resize(data_bus_width, 0);
 
-	m_data_bus_in_start_index = GetPinPortIndex(data_bus_in_prefix + "0");
-	m_data_bus_in_end_index = GetPinPortIndex(data_bus_in_prefix + std::to_string(data_bus_width - 1));
+	for (int i = 0; i < address_bus_width; i++) {
+		m_address_bus_indices[i] = GetPinPortIndex(address_bus_prefix + std::to_string(i));
+	}
 
-	m_data_bus_out_start_index = GetPinPortIndex(data_bus_out_prefix + "0");
-	m_data_bus_out_end_index = GetPinPortIndex(data_bus_out_prefix + std::to_string(data_bus_width - 1));
+	for (int i = 0; i < data_bus_width; i++) {
+		m_data_bus_in_indices[i] = GetPinPortIndex(data_bus_in_prefix + std::to_string(i));
+		m_data_bus_out_indices[i] = GetPinPortIndex(data_bus_out_prefix + std::to_string(i));
+	}
 }
 
 void SimpleRamRedux::Build() {
@@ -80,25 +84,25 @@ void SimpleRamRedux::Solve() {
 	if ((m_pins[m_clk_pin_index].state_changed) && (!m_pins[m_clk_pin_index].state)) {
 
 		unsigned int address = 0;
-		for (int i = m_address_bus_start_index; i < m_address_bus_end_index; ++i) {
-			if (m_pins[i].state) {
-				address |= (1u << (i - m_address_bus_start_index));
+		for (size_t i = 0; i < m_address_bus_indices.size(); i++) {
+			if (m_pins[m_address_bus_indices[i]].state) {
+				address |= (1u << i);
 			}
 		}
 
 		if ((m_pins[m_read_pin_index].state) && (!m_pins[m_write_pin_index].state)) {
 			// READ
 			unsigned int data_read = m_data[address];
-			for (int i = m_data_bus_out_start_index; i < m_data_bus_out_end_index; ++i) {
+			for (size_t i = 0; i < m_data_bus_out_indices.size(); i++) {
 				//~bool state_to_set = ((data_read >> (i - m_data_bus_out_start_index)) && 1u) ? true : false;
-				Set(i, ((data_read >> (i - m_data_bus_out_start_index)) && 1u));
+				Set(m_data_bus_out_indices[i], ((data_read >> i) & 1u));
 			}
 		} else if ((!m_pins[m_read_pin_index].state) && (m_pins[m_write_pin_index].state)) {
 			// WRITE
 			unsigned int data_to_write = 0;
-			for (int i = m_data_bus_in_start_index; i < m_data_bus_in_end_index; ++i) {
-				if (m_pins[i].state) {
-					data_to_write |= (1u << (i - m_data_bus_in_start_index));
+			for (size_t i = 0; i < m_data_bus_in_indices.size(); i++) {
+				if (m_pins[m_data_bus_in_indices[i]].state) {
+					data_to_write |= (1u << i);
 				}
 			}
 			m_data[address] = data_to_write;

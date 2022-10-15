@@ -12,6 +12,7 @@ UTIL_INC=-I sim_src/utils/
 TP_INC=-I void_thread_pool/
 GOL_INC=-I sim_src/devices/game_of_life/
 MD_INC=-I sim_src/magic_devices/
+SD_INC=-I sim_src/special_devices/
 
 CORE_SRC:=$(wildcard sim_src/core/*.cpp)
 DEVICES_SRC:=$(wildcard sim_src/devices/*.cpp)
@@ -19,6 +20,7 @@ UTILS_SRC:=$(wildcard sim_src/utils/*.cpp)
 TP_SRC:=$(wildcard void_thread_pool/*.cpp)
 GOL_SRC:=$(wildcard sim_src/devices/game_of_life/*.cpp)
 MD_SRC:=$(wildcard sim_src/magic_devices/*.cpp)
+SD_SRC:=$(wildcard sim_src/special_devices/*.cpp)
 
 sr_latch_demo: demos_src/sr_latch_demo.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
@@ -86,8 +88,14 @@ really_long_inverter_chain: demos_src/really_long_inverter_chain.cpp $(CORE_SRC)
 simple_rom_demo: demos_src/simple_rom_demo.cpp $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
-simple_ram_demo: demos_src/simple_ram_demo.cpp $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
-	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
+simple_ram_redux_demo: demos_src/simple_ram_demo.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(SD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
+
+simple_ram_redux_speed_test: demos_src/simple_ram_redux_speed_test.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(SD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
+
+simple_ram_speed_test: demos_src/simple_ram_speed_test.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
+	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(SD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
 simple_terminal_demo: demos_src/simple_terminal_demo.cpp sim_src/simple_terminal_client/terminal_client.c $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CC) $(CLIBS) sim_src/simple_terminal_client/terminal_client.c -o sim_src/simple_terminal_client/terminal_client
