@@ -33,7 +33,6 @@
 class Component;
 class Clock;
 class Probe;
-class MagicEngine;
 class VoidThreadPool;
 
 // Top-level Simulation Device sub-class.
@@ -55,7 +54,6 @@ class Simulation : public Device {
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,
 			std::string const& trigger_clock_name, probe_configuration probe_conf = {1, 0, {"F", "T"}}
 		);
-		void AddToMagicEngines(std::string const& magic_engine_identifier, MagicEngine* magic_engine_pointer);
 		int GetTopLevelMaxPropagations(void);
 		int GetNewCUID(void);
 		Clock* GetClockPointer(std::string const& target_clock_name);
@@ -72,7 +70,6 @@ class Simulation : public Device {
 		void PurgeProbeDescriptorFromSimulation(Probe* target_probe_pointer);
 		void PurgeChildClock(std::string const& target_clock_name);
 		void PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer);
-		void PurgeMagicEngineDescriptorFromSimulation(magic_engine_descriptor target_descriptor);
 		void PurgeGlobalComponent(std::string const& target_component_full_name);
 		bool GetSearchingFlag(void);
 		void SetSearchingFlag(bool value);
@@ -89,7 +86,6 @@ class Simulation : public Device {
 		
 		std::vector<Probe*> m_probes;
 		std::vector<Clock*> m_clocks;
-		std::vector<magic_engine_descriptor> m_magic_engines;
 		std::vector<std::string> m_error_messages;
 		std::vector<std::string> m_messages;
 		termios m_old_term_io_settings;

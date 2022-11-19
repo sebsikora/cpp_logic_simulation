@@ -30,7 +30,7 @@
 
 std::vector<bool> IntToStates(int value_to_convert, int pin_count);
 bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search);
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, magic_event> const& map_to_search);
+//~bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, magic_event> const& map_to_search);
 void StaggerPrint(int level, int width);
 void StaggerPrint(int width);
 std::string GenerateHeader(std::string header_message);

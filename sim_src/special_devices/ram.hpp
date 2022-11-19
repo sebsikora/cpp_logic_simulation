@@ -19,8 +19,8 @@
 
 */
 
-#ifndef LSIM_S_RAM_H
-#define LSIM_S_RAM_H
+#ifndef LSIM_RAM_H
+#define LSIM_RAM_H
 
 #include <string>					// std::string.
 #include <vector>					// std::vector
@@ -28,11 +28,11 @@
 #include "c_device.hpp"					// Core simulator functionality
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-class SimpleRamRedux : public Device {
+class Ram : public Device {
 	public:
 		// Constructor.
-		SimpleRamRedux(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
-		~SimpleRamRedux();
+		Ram(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
+		~Ram();
 		// Methods common to base Device class.
 		void Build(void) override;
 		void Solve(void) override;
@@ -42,7 +42,7 @@ class SimpleRamRedux : public Device {
 		void Configure(int address_bus_width, int data_bus_width, std::vector<state_descriptor> in_pin_default_states);
 
 		// Data.
-		std::vector<unsigned int> m_data;
+		std::vector<unsigned long> m_data;
 		
 		std::vector<int> m_address_bus_indices;
 		std::vector<int> m_data_bus_in_indices;
@@ -53,4 +53,4 @@ class SimpleRamRedux : public Device {
 		int m_clk_pin_index;
 };
 
-#endif // LSIM_S_RAM_H
+#endif // LSIM_RAM_H

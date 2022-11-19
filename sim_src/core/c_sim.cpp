@@ -37,7 +37,6 @@
 #include "c_sim.hpp"
 #include "c_clock.hpp"
 #include "c_probe.hpp"
-#include "c_m_engine.hpp"
 
 #include "void_thread_pool.hpp"
 #include "utils.h"
@@ -146,10 +145,6 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 		int input_check_count = 0, input_check_count_limit = 1000;
 		// And we're live - Spin main simulation loop.
 		while (true) {
-			// Update all magic device engines.
-			for (const auto& this_magic_engine_descriptor : m_magic_engines) {
-				this_magic_engine_descriptor.magic_engine_pointer->UpdateMagic();
-			}
 #ifdef VERBOSE_SOLVE
 			if (!force_no_messages) {
 				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index));
@@ -282,13 +277,6 @@ void Simulation::AddProbe(std::string const& probe_name, std::string const& targ
 		std::string build_error = "Probe " + probe_name + " can not be added to the top-level Simulation because target Component " + target_component_full_name + " does not exist";
 		LogError(build_error);
 	}
-}
-
-void Simulation::AddToMagicEngines(std::string const& magic_engine_identifier, MagicEngine* magic_engine_pointer) {
-	magic_engine_descriptor new_magic_engine_descriptor;
-	new_magic_engine_descriptor.magic_engine_identifier = magic_engine_identifier;
-	new_magic_engine_descriptor.magic_engine_pointer = magic_engine_pointer;
-	m_magic_engines.push_back(new_magic_engine_descriptor);
 }
 
 int Simulation::GetTopLevelMaxPropagations() {
@@ -532,23 +520,6 @@ void Simulation::PurgeClockDescriptorFromSimulation(Clock* target_clock_pointer)
 		}
 	}
 	m_clocks = new_clocks;
-}
-
-void Simulation::PurgeMagicEngineDescriptorFromSimulation(magic_engine_descriptor target_descriptor) {
-	std::vector<magic_engine_descriptor> new_magic_engines = {};
-	for (const auto& this_magic_engine_descriptor : m_magic_engines) {
-		if (this_magic_engine_descriptor != target_descriptor) {
-			magic_engine_descriptor new_magic_engine_descriptor;
-			new_magic_engine_descriptor.magic_engine_identifier = this_magic_engine_descriptor.magic_engine_identifier;
-			new_magic_engine_descriptor.magic_engine_pointer = this_magic_engine_descriptor.magic_engine_pointer;
-			new_magic_engines.push_back(new_magic_engine_descriptor);
-		} else {
-#ifdef VERBOSE_DTORS
-			std::cout << "Purging " << this_magic_engine_descriptor.magic_engine_identifier << " from Simulation " << m_name << " m_magic_engines." << std::endl;
-#endif
-		}
-	}
-	m_magic_engines = new_magic_engines;
 }
 
 void Simulation::PurgeGlobalComponent(std::string const& target_component_full_name) {

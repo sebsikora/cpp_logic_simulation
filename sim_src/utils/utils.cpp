@@ -80,14 +80,14 @@ bool IsStringInVector(std::string const& string_to_find, std::vector<std::string
 	return false;
 }
 
-bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, magic_event> const& map_to_search) {
-	for (const auto& entry: map_to_search) {
-		if (key_to_find == entry.first) {
-			return true;
-		}
-	}
-	return false;
-}
+//~bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, magic_event> const& map_to_search) {
+	//~for (const auto& entry: map_to_search) {
+		//~if (key_to_find == entry.first) {
+			//~return true;
+		//~}
+	//~}
+	//~return false;
+//~}
 
 void StaggerPrint(int level, int width) {
 	std::cout << " ";

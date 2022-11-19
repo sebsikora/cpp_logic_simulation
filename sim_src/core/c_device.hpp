@@ -29,8 +29,6 @@
 #include "c_structs.hpp"
 #include "c_comp.hpp"
 
-class MagicEngine;
-
 // Compound-logic Device Component sub-class. 
 class Device : public Component {
 	public:
@@ -64,8 +62,6 @@ class Device : public Component {
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on = false);
 		void AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on = false);
-		void AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change,
-			std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation);
 		void ChildConnect(std::string const& target_child_component_name, std::vector<std::string> const& connection_parameters);
 		void ChildSet(std::string const& target_child_component_name, std::string const& target_pin_name, bool logical_state);
 		void ChildPrintPinStates(std::string const& target_child_component_name, int max_levels);
@@ -94,9 +90,6 @@ class Device : public Component {
 		void QueueToSolve(Device* device_pointer);
 		
 		int m_max_propagations;
-		bool m_magic_device_flag = false;
-		MagicEngine* m_magic_engine_pointer;
-		std::vector<bool> m_magic_pin_flag;
 		bool m_solve_children_in_own_threads = false;
 		
 	private:
@@ -115,6 +108,9 @@ class Device : public Component {
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
 		std::vector<state_descriptor> m_in_pin_default_states;
 		bool m_deletion_flag = false;
+
+		std::vector<int> m_in_pin_port_indices;
+		std::vector<int> m_out_pin_port_indices;
 };
 
 #endif	// LSIM_CORE_DEVICE_HPP

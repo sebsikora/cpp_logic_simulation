@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "c_sim.hpp"			// Core simulator functionality
-#include "simple_ram.h"		// SimpleRam MagicDevice
+#include "ram.hpp"		// SimpleRam MagicDevice
 #include "utils.h"
 
 int main () {
@@ -16,7 +16,7 @@ int main () {
 	int address_bus_width = 16;
 	int number_of_runs = 10;
 	
-	sim.AddComponent(new SimpleRam(&sim, "test_ram", address_bus_width, data_bus_width, false, {{"write", true}, {"read", false}}));
+	sim.AddComponent(new Ram(&sim, "test_ram", address_bus_width, data_bus_width, false, {{"write", true}, {"read", false}}));
 	sim.Stabilise();
 	
 	// Add a Clock and connect it to the clk input on the register.

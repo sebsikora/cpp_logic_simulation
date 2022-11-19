@@ -1,12 +1,12 @@
 #include "c_sim.hpp"			// Core simulator functionality
-#include "simple_ram_redux.hpp"		// SimpleRam MagicDevice
+#include "ram.hpp"		// SimpleRam MagicDevice
 
 int main () {
 	// Instantiate the top-level Device (the Simulation).
 	Simulation sim("test_sim");
 	
 	// Add the SimpleRam MagicDevice and call stabilise.
-	sim.AddComponent(new SimpleRamRedux(&sim, "test_ram", 8, 8, false, {{"write", true}, {"read", false}}));
+	sim.AddComponent(new Ram(&sim, "test_ram", 8, 8, false, {{"write", true}, {"read", false}}));
 	sim.Stabilise();
 	
 	// Add a Clock and connect it to the clk input on the register.
@@ -91,6 +91,12 @@ int main () {
 	sim.ChildSet("test_ram", "a_6", false);
 	sim.ChildSet("test_ram", "a_7", false);
 	// Run the simulation for two ticks to get the T -> F clock transition to read the word.
+	sim.Run(2, false);
+
+	// Set read pin low.
+	sim.ChildSet("test_ram", "read", false);
+	// Run the simulation for two ticks to get the T -> F clock transition.
+	// We should see the data out bus go low.
 	sim.Run(2, false, true);
 	
 	return 0;

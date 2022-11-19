@@ -1,6 +1,7 @@
 // sr_latch_demo.cpp
 
 #include "c_sim.hpp"
+#include "c_monitor.hpp"
 
 int main () {
 	bool monitor_on = true;
@@ -10,6 +11,8 @@ int main () {
 	sim.AddGate("or_0", "or", {"input_0", "input_1"}, monitor_on);
 	sim.AddGate("and_0", "and", {"input_0", "input_1"}, monitor_on);
 	sim.AddGate("not_0", "not", monitor_on);
+
+	sim.AddComponent(new Monitor(&sim, "sr-latch-output", {"in"}, true));
 	
 	sim.Connect("false", "or_0", "input_1");
 	sim.Connect("false", "not_0");
@@ -17,6 +20,8 @@ int main () {
 	sim.ChildConnect("or_0", {"and_0", "input_0"});
 	sim.ChildConnect("not_0", {"and_0", "input_1"});
 	sim.ChildConnect("and_0", {"or_0", "input_0"});
+	
+	sim.ChildConnect("or_0", {"sr-latch-output", "in"});
 	
 	sim.Stabilise();
 	

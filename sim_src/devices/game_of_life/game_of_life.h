@@ -25,7 +25,7 @@
 #include <string>					// std::string.
 #include <vector>					// std::vector
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_device.hpp"					// Core simulator functionality
 
 class GameOfLife_Cell_Decider : public Device {
 	public:

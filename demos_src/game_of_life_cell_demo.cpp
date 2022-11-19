@@ -1,19 +1,19 @@
 #include <vector>
 #include <string>
+#include <iostream>
 
-#include "c_core.h"			// Core simulator functionality
+#include "c_sim.hpp"			// Core simulator functionality
 #include "devices.h"
 #include "game_of_life.h"
 #include "utils.h"
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
-	bool monitor_on = false;
 	bool print_probe_samples = true;
+	bool monitor_on = false;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim", verbose);
+	Simulation* sim = new Simulation("test_sim");
 	
 	sim->AddComponent(new GameOfLife_Cell(sim, "test_cell", monitor_on, {{"not_clear_cycle", true}, {"not_clear_state", true}, {"not_preset_state", true}}));
 	
@@ -64,7 +64,7 @@ int main () {
 			sim->ChildSet("test_cell", sibling_input_name, sibling_states[sibling_count_index][pin_index]);
 		}
 		// Now run for 18 ticks to integrate the sibling inputs and get the new Cell state.
-		sim->Run(18, true, verbose, print_probe_samples, false);
+		sim->Run(18, true, print_probe_samples, false);
 	}
 	
 	// Now we sweep through all possible sibling states with an initial 'alive' state.
@@ -84,7 +84,7 @@ int main () {
 			sim->ChildSet("test_cell", sibling_input_name, sibling_states[sibling_count_index][pin_index]);
 		}
 		// Now run for 18 ticks to integrate the sibling inputs and get the new Cell state.
-		sim->Run(18, true, verbose, print_probe_samples, false);
+		sim->Run(18, true, print_probe_samples, false);
 	}
 
 	delete sim;

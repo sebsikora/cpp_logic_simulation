@@ -35,10 +35,10 @@
 #include "colors.h"
 
 Gate::~Gate() {
-	PurgeComponent();
 #ifdef VERBOSE_DTORS
 	std::cout << "Gate dtor for " << GetFullName() << " @ " << this << std::endl;
 #endif
+	PurgeComponent();
 }
 
 void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,

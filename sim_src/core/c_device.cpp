@@ -31,7 +31,6 @@
 #include "c_structs.hpp"
 #include "c_gates.hpp"
 #include "c_sim.hpp"
-#include "c_m_engine.hpp"
 
 #include "utils.h"
 #include "strnatcmp.h"
@@ -91,6 +90,7 @@ void Device::CreateInPins(std::vector<std::string> const& pin_names, std::vector
 		pin new_in_pin = {pin_name, pin::pin_type::IN, false, false, new_pin_port_index, {false, false}};
 		SetPin(new_in_pin, pin_default_states);
 		m_pins.push_back(new_in_pin);
+		m_in_pin_port_indices.push_back(new_pin_port_index);
 		m_ports.push_back({});
 		new_pin_port_index ++;
 	}
@@ -104,6 +104,7 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 		pin new_out_pin = {pin_name, pin::pin_type::OUT, false, false, new_pin_port_index, {false, false}};
 		SetPin(new_out_pin, {});
 		m_pins.push_back(new_out_pin);
+		m_out_pin_port_indices.push_back(new_pin_port_index);
 		m_ports.push_back({});
 		new_pin_port_index ++;
 	}
@@ -261,45 +262,6 @@ void Device::AddGate(std::string const& component_name, std::string const& compo
 		AddComponent(new Inverter(this, component_name, monitor_on));
 	} else {
 		std::string build_error = "Device " + GetFullName() + " tried to instantiate a " + component_type + " Gate but specified no in pins.";
-		m_top_level_sim_pointer->LogError(build_error);
-	}
-}
-
-void Device::AddMagicEventTrap(std::string const& target_pin_name, std::vector<bool> const& state_change, std::vector<human_writable_magic_event_co_condition> const& hw_co_conditions, int incantation) {
-	if (m_magic_device_flag == true) {
-		// Convert the human-writable  kind of magic event co-condition (strings for terminal identifiers) to the kind pin-indexed kind.
-		std::vector<magic_event_co_condition> co_conditions = {};
-		for (size_t i = 0; i  < hw_co_conditions.size(); i ++) {
-			magic_event_co_condition this_co_condition;
-			this_co_condition.pin_port_index = GetPinPortIndex(hw_co_conditions[i].pin_name);
-			this_co_condition.pin_state = hw_co_conditions[i].pin_state;
-			co_conditions.push_back(this_co_condition);
-		}
-		magic_event new_magic_event;
-		new_magic_event.target_pin_port_index = GetPinPortIndex(target_pin_name);
-		new_magic_event.state_change = state_change;
-		new_magic_event.co_conditions = co_conditions;
-		new_magic_event.incantation = incantation;
-		// Ensure that m_magic_pin_flag is set for this pin.  ---------------------------------------------------------
-		// If this is the first time this has been done we need to initialise at-least enough entries for all in pins.
-		if (m_magic_pin_flag.size() == 0) {
-			int max_in_pin_port_index = 0;
-			for (const auto& this_pin : m_pins) {
-				if (this_pin.type == pin::pin_type::IN) {
-					if (this_pin.port_index > max_in_pin_port_index) {
-						max_in_pin_port_index = this_pin.port_index;
-					}
-				}
-			}
-			for (int pin_index = 0; pin_index < max_in_pin_port_index + 1; pin_index ++) {
-				m_magic_pin_flag.push_back(false);
-			}
-		}
-		m_magic_pin_flag[new_magic_event.target_pin_port_index] = true;
-		// -----------------------------------------------------------------------------------------------------------
-		m_magic_engine_pointer->AddMagicEventTrap(new_magic_event);
-	} else {
-		std::string build_error =  "Device " + GetFullName() + " is not magic! Cannot add magic event trap.";
 		m_top_level_sim_pointer->LogError(build_error);
 	}
 }
@@ -643,36 +605,100 @@ void Device::QueueToSolve(Device* device_pointer) {
 	m_solve_this_tick.emplace_back(device_pointer);
 } 
 
+//~void Device::PropagateInputs() {
+	//~for (auto& this_pin : m_pins) {
+		//~if ((this_pin.type == pin::pin_type::IN) || (this_pin.type == pin::pin_type::HIDDEN_IN)) {
+			//~if (this_pin.state_changed) {
+//~#ifdef VERBOSE_SOLVE
+				//~std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating input " + this_pin.name + " = " + BoolToChar(this_pin.state);
+				//~m_top_level_sim_pointer->LogMessage("\n" + message);
+//~#endif
+				//~this_pin.state_changed = false;
+				//~for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
+					//~this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
+				//~}
+			//~}
+		//~}
+	//~}
+//~}
+
+//~void Device::PropagateInputs() {
+	//~for (auto& this_pin_port_index : m_in_pin_port_indices) {
+		//~if (m_pins[this_pin_port_index].state_changed) {
+//~#ifdef VERBOSE_SOLVE
+			//~std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating input " + m_pins[this_pin_port_index].name + " = " + BoolToChar(m_pins[this_pin_port_index].state);
+			//~m_top_level_sim_pointer->LogMessage("\n" + message);
+//~#endif
+			//~m_pins[this_pin_port_index].state_changed = false;
+			//~for (const auto& this_connection_descriptor : m_ports[this_pin_port_index]) {
+				//~this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, m_pins[this_pin_port_index].state);
+			//~}
+		//~}
+	//~}
+//~}
+
 void Device::PropagateInputs() {
-	for (auto& this_pin : m_pins) {
-		if ((this_pin.type == pin::pin_type::IN) || (this_pin.type == pin::pin_type::HIDDEN_IN)) {
-			if (this_pin.state_changed) {
+	for (auto& this_pin_port_index : m_in_pin_port_indices) {
+		pin* this_pin = &m_pins[this_pin_port_index];
+		if (this_pin->state_changed) {
 #ifdef VERBOSE_SOLVE
-				std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating input " + this_pin.name + " = " + BoolToChar(this_pin.state);
-				m_top_level_sim_pointer->LogMessage("\n" + message);
+			std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating input " + this_pin->name + " = " + BoolToChar(this_pin->state);
+			m_top_level_sim_pointer->LogMessage("\n" + message);
 #endif
-				this_pin.state_changed = false;
-				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
-					this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
-				}
+			this_pin->state_changed = false;
+			for (const auto& this_connection_descriptor : m_ports[this_pin->port_index]) {
+				this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin->state);
 			}
 		}
 	}
 }
 
+//~void Device::Propagate() {
+	//~m_queued_for_propagation = false;
+	//~for (auto& this_pin : m_pins) {
+		//~if (this_pin.type == pin::pin_type::OUT) {
+			//~if (this_pin.state_changed) {
+//~#ifdef VERBOSE_SOLVE
+				//~std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating output " + this_pin.name + " = " + BoolToChar(this_pin.state);
+				//~m_top_level_sim_pointer->LogMessage(message);
+//~#endif
+				//~this_pin.state_changed = false;
+				//~for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
+					//~this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
+				//~}
+			//~}
+		//~}
+	//~}
+//~}
+
+//~void Device::Propagate() {
+	//~m_queued_for_propagation = false;
+	//~for (auto this_pin_port_index : m_out_pin_port_indices) {
+		//~if (m_pins[this_pin_port_index].state_changed) {
+//~#ifdef VERBOSE_SOLVE
+			//~std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating output " + m_pins[this_pin_port_index].name + " = " + BoolToChar(m_pins[this_pin_port_index].state);
+			//~m_top_level_sim_pointer->LogMessage(message);
+//~#endif
+			//~m_pins[this_pin_port_index].state_changed = false;
+			//~for (const auto& this_connection_descriptor : m_ports[this_pin_port_index]) {
+				//~this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, m_pins[this_pin_port_index].state);
+			//~}
+		//~}
+	//~}
+//~}
+
 void Device::Propagate() {
 	m_queued_for_propagation = false;
-	for (auto& this_pin : m_pins) {
-		if (this_pin.type == pin::pin_type::OUT) {
-			if (this_pin.state_changed) {
+	for (auto this_pin_port_index : m_out_pin_port_indices) {
+		pin* this_pin = &m_pins[this_pin_port_index];
+		if (this_pin->state_changed) {
 #ifdef VERBOSE_SOLVE
-				std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating output " + this_pin.name + " = " + BoolToChar(this_pin.state);
-				m_top_level_sim_pointer->LogMessage(message);
+			std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating output " + this_pin->name + " = " + BoolToChar(this_pin->state);
+			m_top_level_sim_pointer->LogMessage(message);
 #endif
-				this_pin.state_changed = false;
-				for (const auto& this_connection_descriptor : m_ports[this_pin.port_index]) {
-					this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin.state);
-				}
+			this_pin->state_changed = false;
+			for (const auto& this_connection_descriptor : m_ports[this_pin->port_index]) {
+				this_connection_descriptor.target_component_pointer->Set(this_connection_descriptor.target_pin_port_index, this_pin->state);
 			}
 		}
 	}
@@ -686,11 +712,6 @@ void Device::Set(const int pin_port_index, const bool state_to_set) {
 			std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Device " + KBLD + GetFullName() + RST + " input terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
 			m_top_level_sim_pointer->LogMessage(message);
 #endif
-			if (m_magic_device_flag == true) {
-				if (m_magic_pin_flag[pin_port_index]) {
-					m_magic_engine_pointer->CheckMagicEventTrap(pin_port_index, state_to_set);
-				}
-			}
 			this_pin->state = state_to_set;
 			this_pin->state_changed = true;
 			if (!m_solve_this_tick_flag) {
@@ -906,12 +927,8 @@ void Device::PurgeComponent() {
 		m_top_level_sim_pointer->PurgeComponentFromClocks(this);
 		m_top_level_sim_pointer->PurgeComponentFromProbes(this);
 	}
-	// Fourth - If this is a magic Device, purge it's magic Device engine.
-	if (m_magic_device_flag) {
-		delete m_magic_engine_pointer;
-	}
 	if (!(m_parent_device_pointer->GetDeletionFlag())) {
-		// Fifth  - Clear component entry from parent device's m_components.
+		// Fourth - Clear component entry from parent device's m_components.
 		//			If we are deleting this Component because we are in the process of deleting
 		//			it's parent, we do not need to do this.
 		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);

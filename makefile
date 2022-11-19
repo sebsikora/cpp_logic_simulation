@@ -85,16 +85,13 @@ timing_test_3: demos_src/timing_test_3.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SR
 really_long_inverter_chain: demos_src/really_long_inverter_chain.cpp $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(DEVICE_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(DEVICES_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
-simple_rom_demo: demos_src/simple_rom_demo.cpp $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)
-	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(MD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
-
-simple_ram_redux_demo: demos_src/simple_ram_demo.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
+ram_demo: demos_src/ram_demo.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(SD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
-simple_ram_redux_speed_test: demos_src/simple_ram_redux_speed_test.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
+rom_demo: demos_src/rom_demo.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(SD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
-simple_ram_speed_test: demos_src/simple_ram_speed_test.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
+ram_speed_test: demos_src/ram_speed_test.cpp $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC)
 	$(CPPC) $(CPPLIBS) $(CPPFLAGS) $(CORE_INC) $(SD_INC) $(UTIL_INC) $(TP_INC) $(CORE_SRC) $(SD_SRC) $(UTILS_SRC) $(TP_SRC) demos_src/$@.cpp -o $@
 
 simple_terminal_demo: demos_src/simple_terminal_demo.cpp sim_src/simple_terminal_client/terminal_client.c $(CORE_SRC) $(MD_SRC) $(UTILS_SRC) $(TP_SRC)

@@ -23,7 +23,7 @@
 #include <iostream>					// std::cout, std::endl.
 #include <vector>					// std::vector
 
-#include "c_core.h"					// Core simulator functionality
+#include "c_device.hpp"					// Core simulator functionality
 #include "devices.h"
 #include "game_of_life.h"
 
