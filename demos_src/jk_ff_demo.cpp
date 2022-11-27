@@ -20,7 +20,7 @@ int main () {
 
 	//~// Add a Clock and connect it to the clk input on the jk flip-flop.
 	//~// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
-	sim.AddClock("clock_0", {false, true}, false);
+	sim.AddClock("clock_0", {false, true}, true);
 	sim.ClockConnect("clock_0", "test_ff", "clk");
 	
 	//~// Add two Probes and connect them to the jk flip-flop's outputs and clk input.
@@ -33,7 +33,7 @@ int main () {
 	sim.ChildSet("test_ff", "k", true);
 	
 	//~// Run the simulation for ten ticks.
-	sim.Run(3, true, print_probe_samples);
+	sim.Run(6, true, print_probe_samples);
 	
 	return 0;
 }

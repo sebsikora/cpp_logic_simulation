@@ -4,25 +4,13 @@ project(cpp_logic_simulation_demos)
 
 add_definitions(-std=c++14 -Wall -g -O3)
 
-set(DEMOS_DIR demos_src)
+set(DEMOS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/demos_src)
 
-set(CORE_DIR sim_src/core)
-set(DEVICE_DIR sim_src/devices)
-set(GOL_DIR sim_src/devices/game_of_life)
-set(THREAD_POOL_DIR void_thread_pool)
-set(UTILS_DIR sim_src/utils)
-
-add_subdirectory(${THREAD_POOL_DIR})
-
-set(CORE_SOURCES ${CORE_DIR}/c_clock.cpp
-				 ${CORE_DIR}/c_comp.cpp
-				 ${CORE_DIR}/c_device.cpp
-				 ${CORE_DIR}/c_gate.cpp
-				 ${CORE_DIR}/c_gates.cpp
-				 ${CORE_DIR}/c_probe.cpp
-				 ${CORE_DIR}/c_sim.cpp
-				 ${CORE_DIR}/c_monitor.cpp
-)
+set(CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sim_src/core)
+set(DEVICE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sim_src/devices)
+set(GOL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sim_src/devices/game_of_life)
+set(THREAD_POOL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/void_thread_pool)
+set(UTILS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sim_src/utils)
 
 set(DEVICE_SOURCES ${DEVICE_DIR}/devices.cpp
 				   ${DEVICE_DIR}/n_bit_sr_latch.cpp
@@ -37,18 +25,20 @@ set(UTILS_SOURCES ${UTILS_DIR}/strnatcmp.cpp
 				  ${UTILS_DIR}/utils.cpp
 )
 
-set(COMMON_SOURCES ${CORE_SOURCES}
-				   ${DEVICE_SOURCES}
+set(COMMON_SOURCES ${DEVICE_SOURCES}
 				   ${UTILS_SOURCES}
 )
 
-set(COMMON_INCLUDE_DIRS ${CORE_DIR}
+set(COMMON_INCLUDE_DIRS ${CORE_DIR}/include
 						${DEVICE_DIR}
 						${THREAD_POOL_DIR}
 						${UTILS_DIR}
 )
 
-link_libraries(thread_pool)
+add_subdirectory(${THREAD_POOL_DIR})
+add_subdirectory(${CORE_DIR})
+
+link_libraries(core_simulator)	# All the demos need to link to the simulator library...
 
 add_executable(jk_ff_demo ${COMMON_SOURCES} ${DEMOS_DIR}/jk_ff_demo.cpp)
 add_executable(4_bit_counter ${COMMON_SOURCES} ${DEMOS_DIR}/4_bit_counter_demo.cpp)
