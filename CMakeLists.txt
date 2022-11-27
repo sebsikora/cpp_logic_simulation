@@ -28,6 +28,7 @@ set(DEVICE_SOURCES ${DEVICE_DIR}/devices.cpp
 				   ${DEVICE_DIR}/n_bit_sr_latch.cpp
 				   ${DEVICE_DIR}/quad_sr_latch.cpp
 				   ${DEVICE_DIR}/sr_latch.cpp
+				   ${DEVICE_DIR}/jk_ff_static.cpp
 )
 
 set(GOL_SOURCES ${GOL_DIR}/game_of_life.cpp)
@@ -49,9 +50,13 @@ set(COMMON_INCLUDE_DIRS ${CORE_DIR}
 
 link_libraries(thread_pool)
 
+add_executable(jk_ff_demo ${COMMON_SOURCES} ${DEMOS_DIR}/jk_ff_demo.cpp)
 add_executable(4_bit_counter ${COMMON_SOURCES} ${DEMOS_DIR}/4_bit_counter_demo.cpp)
+add_executable(4_bit_counter_static ${COMMON_SOURCES} ${DEMOS_DIR}/4_bit_counter_static_demo.cpp)
 add_executable(sr_latch_demo ${COMMON_SOURCES} ${DEMOS_DIR}/sr_latch_demo.cpp)
 add_executable(sr_latch_demo_2 ${COMMON_SOURCES} ${DEMOS_DIR}/sr_latch_demo_2.cpp)
+add_executable(timing_test_3_static ${COMMON_SOURCES} ${DEMOS_DIR}/timing_test_3_static.cpp)
+add_executable(timing_test_3 ${COMMON_SOURCES} ${DEMOS_DIR}/timing_test_3.cpp)
 add_executable(game_of_life_cell_demo ${COMMON_SOURCES} ${GOL_SOURCES} ${DEMOS_DIR}/game_of_life_cell_demo.cpp)
 
 include_directories(${COMMON_INCLUDE_DIRS})

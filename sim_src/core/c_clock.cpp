@@ -24,6 +24,7 @@
 #include <vector>					// std::vector
 
 #include "c_structs.hpp"
+#include "c_monitor.hpp"
 #include "c_clock.hpp"
 #include "c_sim.hpp"
 #include "c_probe.hpp"
@@ -40,6 +41,15 @@ Clock::Clock(Simulation* top_level_sim_pointer, std::string const& clock_name, s
 	m_index = 0;
 	m_sub_index = 0;
 	m_ticked_flag = false;
+
+	if (m_monitor_on) {
+		m_monitor = new Monitor(m_top_level_sim_pointer, GetName() + ":monitor", {"clk"}, true);
+		ConnectionDescriptor m;
+		m.target_component_pointer = m_monitor;
+		m.target_pin_port_index = m_monitor->GetPinPortIndex("clk");
+		m_connections.push_back(m);
+		m_monitor->SetPinDrivenFlag(m.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
+	}
 }
 
 Clock::~Clock() {
@@ -91,14 +101,14 @@ void Clock::Connect(std::string const& target_component_name, std::string const&
 		if (target_pin_exists) {
 			int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
 			int target_pin_type = target_component_pointer->GetPinType(target_pin_port_index);
-			pin::drive_state* target_pin_already_connected = target_component_pointer->CheckIfPinDriven(target_pin_port_index);
-			if (!target_pin_already_connected->in) {		// Target pin drive-in must be false.
-				if (target_pin_type == pin::pin_type::IN) {		// Can only connect Clock to an in pin.
-					connection_descriptor new_connection_descriptor;
+			Pin::Driven* target_pin_already_connected = target_component_pointer->CheckIfPinDriven(target_pin_port_index);
+			if (!target_pin_already_connected->in) {		// Target pin driven-in must be false.
+				if (target_pin_type == Pin::Type::IN) {		// Can only connect Clock to an in pin.
+					ConnectionDescriptor new_connection_descriptor;
 					new_connection_descriptor.target_component_pointer = target_component_pointer;
 					new_connection_descriptor.target_pin_port_index = target_pin_port_index;
 					m_connections.push_back(new_connection_descriptor);
-					target_component_pointer->SetPinDrivenFlag(target_pin_port_index, pin::drive_mode::DRIVE_IN, true);
+					target_component_pointer->SetPinDrivenFlag(target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
 				} else {
 					// Log build error here.		-- Target pin is not an in pin.
 					std::string build_error = "Clock " + m_name + " tried to connect to " + target_component_name + " in pin " + target_pin_name + " but it is not an in pin.";
@@ -131,6 +141,10 @@ bool Clock::GetTickedFlag() {
 	return m_ticked_flag;
 }
 
+Component* Clock::GetMonitor() {
+	return m_monitor;
+}
+
 void Clock::TriggerProbes() {
 	// Add new state to state history and then trigger all associated probes.
 	if (m_probes.size() > 0) {
@@ -143,10 +157,10 @@ void Clock::TriggerProbes() {
 }
 
 void Clock::PurgeTargetComponentConnections(Component* target_component_pointer) {
-	std::vector<connection_descriptor> new_connections = {};
+	std::vector<ConnectionDescriptor> new_connections = {};
 	for (const auto& this_connection_descriptor : m_connections) {
 		if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
-			connection_descriptor new_connection_descriptor;
+			ConnectionDescriptor new_connection_descriptor;
 			new_connection_descriptor.target_component_pointer = this_connection_descriptor.target_component_pointer;
 			new_connection_descriptor.target_pin_port_index = this_connection_descriptor.target_pin_port_index;
 			new_connections.push_back(new_connection_descriptor);
@@ -160,21 +174,26 @@ void Clock::PurgeTargetComponentConnections(Component* target_component_pointer)
 }
 
 void Clock::PurgeClock(void) {
-	std::string header;
 #ifdef VERBOSE_DTORS
+	std::string header;
 	header =  "Purging -> CLOCK : " + m_name + " @ " + PointerToString(static_cast<void*>(this));
 	std::cout << GenerateHeader(header) << std::endl;
 #endif
+	// Delete monitor if present.
+	if (m_monitor != nullptr) {
+		delete m_monitor;			// Monitor's destructor will clear any corresponding local
+	}								// connection references.
+
 	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
-		// If the Clock has any connections, set their drive in flag to false.
+		// If the Clock has any connections, set their driven in flag to false.
 		// If we are in the process of deleting the top-level Simulation, we do not need to do this as all connected
 		// components will be deleted in any case.
 		for (const auto& this_connection_descriptor : m_connections) {
 			Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
 			int target_pin_port_index = this_connection_descriptor.target_pin_port_index;
-			target_component_pointer->SetPinDrivenFlag(target_pin_port_index, pin::drive_mode::DRIVE_IN, false);
+			target_component_pointer->SetPinDrivenFlag(target_pin_port_index, Pin::DriveDirection::DRIVE_IN, false);
 #ifdef VERBOSE_DTORS
-			std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " drive in set to false." << std::endl;
+			std::cout << "Component " << target_component_pointer->GetFullName() << " in pin " << target_component_pointer->GetPinName(target_pin_port_index) << " driven in set to false." << std::endl;
 #endif
 		}
 		// Make a list of pointers for m_probes, then loop over *these* below. We can modify Probe.PurgeProbe() called by

@@ -71,24 +71,6 @@ std::vector<bool> IntToStates(int value_to_convert, int pin_count) {
 	return converted_value;
 }
 
-bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search) {
-	for (const auto& entry: vector_to_search) {
-		if (string_to_find == entry) {
-			return true;
-		}
-	}
-	return false;
-}
-
-//~bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, magic_event> const& map_to_search) {
-	//~for (const auto& entry: map_to_search) {
-		//~if (key_to_find == entry.first) {
-			//~return true;
-		//~}
-	//~}
-	//~return false;
-//~}
-
 void StaggerPrint(int level, int width) {
 	std::cout << " ";
 	for (int i = 0; i < level; i ++) {
@@ -116,7 +98,6 @@ char BoolToChar(bool logical_state) {
 std::string GenerateHeader(std::string header_message) {
 	std::string header = "\x1B[1m";
 	int message_length = header_message.size();
-	//~bool is_odd;
 	if ((message_length % 2) != 0) {	// length is odd.
 		header_message += " ";
 		message_length += 1;
@@ -143,17 +124,4 @@ std::string PointerToString(void* pointer){
 	std::stringstream ss;
 	ss << pointer;
 	return ss.str();
-}
-
-std::vector<bool> IsStringInStateDescriptorVector(std::string const& string_to_find, std::vector<state_descriptor> state_descriptor_vector_to_search) {
-	bool found = false;
-	bool value = false;
-	for (const auto& this_state_descriptor : state_descriptor_vector_to_search) {
-		if (this_state_descriptor.identifier == string_to_find) {
-			found = true;
-			value = this_state_descriptor.state;
-			break;
-		}
-	}
-	return {found, value};
 }

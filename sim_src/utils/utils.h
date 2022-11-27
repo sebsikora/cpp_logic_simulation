@@ -29,14 +29,11 @@
 #include "c_structs.hpp"
 
 std::vector<bool> IntToStates(int value_to_convert, int pin_count);
-bool IsStringInVector(std::string const& string_to_find, std::vector<std::string> const& vector_to_search);
-//~bool IsStringInMapKeys(std::string const& key_to_find, std::unordered_map<std::string, magic_event> const& map_to_search);
 void StaggerPrint(int level, int width);
 void StaggerPrint(int width);
 std::string GenerateHeader(std::string header_message);
 char BoolToChar(bool logical_state);
 std::string PointerToString(void* pointer);
-std::vector<bool> IsStringInStateDescriptorVector(std::string const& string_to_find, std::vector<state_descriptor> state_descriptor_vector_to_search);
 
 class Converter {
 	public:

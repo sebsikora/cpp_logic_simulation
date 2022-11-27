@@ -38,7 +38,7 @@ class VoidThreadPool;
 // Top-level Simulation Device sub-class.
 class Simulation : public Device {
 	public:
-		Simulation(std::string const& simulation_name, solver_configuration solver_conf = {false, 0}, int max_propagations = 10);
+		Simulation(std::string const& simulation_name, SolverConfiguration solver_conf = {false, 0}, int max_propagations = 10);
 		virtual ~Simulation();
 		
 		// Override Component virtual methods.
@@ -52,12 +52,13 @@ class Simulation : public Device {
 		void AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on);
 		void ClockConnect(std::string const& target_clock_name, std::string const& target_component_name, std::string const& target_terminal_name);
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,
-			std::string const& trigger_clock_name, probe_configuration probe_conf = {1, 0, {"F", "T"}}
+			std::string const& trigger_clock_name, ProbeConfiguration probe_conf = {1, 0, {'F', 'T'}}
 		);
 		int GetTopLevelMaxPropagations(void);
 		int GetNewCUID(void);
 		Clock* GetClockPointer(std::string const& target_clock_name);
 		bool IsSimulationRunning(void);
+		int GetGlobalTickIndex(void);
 		void StopSimulation(void);
 		void CheckProbeTriggers(void);
 		void LogError(std::string const& error_message);
@@ -74,7 +75,7 @@ class Simulation : public Device {
 		bool GetSearchingFlag(void);
 		void SetSearchingFlag(bool value);
 		void PrintErrorMessages(void);
-		void PrintAndClearMessages(void);
+		void PrintAndClearMessages(bool force_no_messages);
 		
 		VoidThreadPool* m_thread_pool_pointer = 0;
 		bool m_use_threaded_solver = false;

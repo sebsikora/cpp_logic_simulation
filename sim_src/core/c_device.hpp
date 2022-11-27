@@ -33,7 +33,7 @@
 class Device : public Component {
 	public:
 		Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names,
-			std::vector<std::string> out_pin_names, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {},
+			std::vector<std::string> out_pin_names, bool monitor_on = false, std::vector<StateDescriptor> in_pin_default_states = {},
 			int max_propagations = 0
 		);
 		virtual ~Device();
@@ -55,10 +55,10 @@ class Device : public Component {
 		virtual void Solve(void);
 
 		// Device class public methods.
-		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states);
+		void CreateInPins(std::vector<std::string> const& pin_names, std::vector<StateDescriptor> pin_default_states);
 		void CreateOutPins(std::vector<std::string> const& pin_names);
-		void CreateBus(int pin_count, std::string const& pin_name_prefix, pin::pin_type type, std::vector<state_descriptor> in_pin_default_states = {});
-		void SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states);
+		void CreateBus(int pin_count, std::string const& pin_name_prefix, Pin::Type type, std::vector<StateDescriptor> in_pin_default_states = {});
+		void SetPin(Pin& target_pin, std::vector<StateDescriptor> pin_default_states);
 		void AddComponent(Component* new_component_pointer);
 		void AddGate(std::string const& component_name, std::string const& component_type, std::vector<std::string> const& in_pin_names, bool monitor_on = false);
 		void AddGate(std::string const& component_name, std::string const& component_type, bool monitor_on = false);
@@ -103,10 +103,10 @@ class Device : public Component {
 		std::vector<Component*> m_propagate_this_tick = {};
 		bool m_solve_this_tick_flag = false;
 		std::vector<Device*> m_solve_this_tick = {};
-		std::vector<std::vector<connection_descriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.
+		std::vector<std::vector<ConnectionDescriptor>> m_ports; 			// Maps in- and out-pins to connection descriptors.
 		const std::vector<std::string> m_hidden_in_pins = {"true", "false"};
 		const std::vector<std::string> m_hidden_out_pins = {"all_stop"};
-		std::vector<state_descriptor> m_in_pin_default_states;
+		std::vector<StateDescriptor> m_in_pin_default_states;
 		bool m_deletion_flag = false;
 
 		std::vector<int> m_in_pin_port_indices;

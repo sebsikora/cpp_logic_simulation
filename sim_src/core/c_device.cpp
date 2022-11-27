@@ -22,12 +22,13 @@
 #include <string>					// std::string
 #include <iostream>					// std::cout, std::endl
 #include <vector>					// std::vector
-#include <algorithm>				// std::sort, std::swap
+#include <algorithm>				// std::sort, std::swap, std::find
 #include <thread>					// std::thread
 #include <mutex>					// std::mutex, std::unique_lock
 #include <functional>				// std::bind
 
 #include "c_device.hpp"
+#include "c_monitor.hpp"
 #include "c_structs.hpp"
 #include "c_gates.hpp"
 #include "c_sim.hpp"
@@ -41,9 +42,10 @@ bool backwards_comp (int i, int j) {
 }
 
 Device::Device(Device* parent_device_pointer, std::string const& device_name, std::string const& device_type, std::vector<std::string> in_pin_names,
-	std::vector<std::string> out_pin_names, bool monitor_on, std::vector<state_descriptor> in_pin_default_states, int max_propagations
+	std::vector<std::string> out_pin_names, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states, int max_propagations
 	) {
 	m_device_flag = true;
+	m_monitor_on = monitor_on;
 	m_name = device_name;
 	m_parent_device_pointer = parent_device_pointer;
 	if (m_parent_device_pointer == this) {
@@ -82,12 +84,12 @@ Device::~Device() {
 #endif
 }
 
-void Device::CreateInPins(std::vector<std::string> const& pin_names, std::vector<state_descriptor> pin_default_states) {
+void Device::CreateInPins(std::vector<std::string> const& pin_names, std::vector<StateDescriptor> pin_default_states) {
 	// Determine number of existing in and out pins.
 	int new_pin_port_index = m_pins.size();
 	// Create new inputs.
 	for (const auto& pin_name: pin_names) {
-		pin new_in_pin = {pin_name, pin::pin_type::IN, false, false, new_pin_port_index, {false, false}};
+		Pin new_in_pin = {pin_name, Pin::Type::IN, false, false, new_pin_port_index, {false, false}};
 		SetPin(new_in_pin, pin_default_states);
 		m_pins.push_back(new_in_pin);
 		m_in_pin_port_indices.push_back(new_pin_port_index);
@@ -101,7 +103,7 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 	int new_pin_port_index = m_pins.size();
 	// Create new outputs.
 	for (const auto& pin_name : pin_names) {
-		pin new_out_pin = {pin_name, pin::pin_type::OUT, false, false, new_pin_port_index, {false, false}};
+		Pin new_out_pin = {pin_name, Pin::Type::OUT, false, false, new_pin_port_index, {false, false}};
 		SetPin(new_out_pin, {});
 		m_pins.push_back(new_out_pin);
 		m_out_pin_port_indices.push_back(new_pin_port_index);
@@ -110,15 +112,15 @@ void Device::CreateOutPins(std::vector<std::string> const& pin_names) {
 	}
 }
 
-void Device::CreateBus(int pin_count, std::string const& pin_name_prefix, pin::pin_type type, std::vector<state_descriptor> in_pin_default_states) {
+void Device::CreateBus(int pin_count, std::string const& pin_name_prefix, Pin::Type type, std::vector<StateDescriptor> in_pin_default_states) {
 	std::vector<std::string> pins_to_create = {};
 	for (int pin_index = 0; pin_index < pin_count; pin_index ++) {
 		std::string pin_name = pin_name_prefix + std::to_string(pin_index);
 		pins_to_create.push_back(pin_name);
 	}
-	if (type == pin::pin_type::IN) {
+	if (type == Pin::Type::IN) {
 		CreateInPins(pins_to_create, in_pin_default_states);
-	} else if (type == pin::pin_type::OUT) {
+	} else if (type == Pin::Type::OUT) {
 		CreateOutPins(pins_to_create);
 	} else {
 		std::string build_error = "Device " + GetFullName() + " tried to create a bus with type = " + std::to_string(type) + " but this is not possible.";
@@ -126,29 +128,29 @@ void Device::CreateBus(int pin_count, std::string const& pin_name_prefix, pin::p
 	}
 }
 
-void Device::SetPin(pin& target_pin, std::vector<state_descriptor> pin_default_states) {
+void Device::SetPin(Pin& target_pin, std::vector<StateDescriptor> pin_default_states) {
 	// SetPin() only sets pin logical state & state_changed flag for input and output (type = 1 or 2) pins.
-	std::string pin_name = target_pin.name;
-	if (IsStringInVector(pin_name, m_hidden_in_pins)) {
+	if (std::find(m_hidden_in_pins.begin(), m_hidden_in_pins.end(), target_pin.name) != m_hidden_in_pins.end()) {
 		// If hidden in pin, set type and state accordingly...
-		target_pin.type = pin::pin_type::HIDDEN_IN;
+		target_pin.type = Pin::Type::HIDDEN_IN;
 		target_pin.state_changed = true;
-		if (pin_name == "true") {
+		if (target_pin.name == "true") {
 			target_pin.state = true;
-		} else if (pin_name == "false") {
+		} else if (target_pin.name == "false") {
 			target_pin.state = false;
 		}
-	} else if (IsStringInVector(pin_name, m_hidden_out_pins)) {
+	} else if (std::find(m_hidden_out_pins.begin(), m_hidden_out_pins.end(), target_pin.name) != m_hidden_out_pins.end()) {
 		// ...likewise for hidden out pins.
-		target_pin.type = pin::pin_type::HIDDEN_OUT;
+		target_pin.type = Pin::Type::HIDDEN_OUT;
 		target_pin.state_changed = false;
 		target_pin.state = false;
 	} else {
 		// If this is a user-defined input, handle as normal.
-		std::vector<bool> result = IsStringInStateDescriptorVector(pin_name, pin_default_states);
-		if (result[0]) {
+		auto resultPtr = std::find_if(pin_default_states.begin(), pin_default_states.end(),
+									  [&target_pin](const StateDescriptor& element){ return element.identifier == target_pin.name; });
+		if (resultPtr != pin_default_states.end()) {
 			// If this input is in the defaults list set accordingly...
-			target_pin.state = result[1];
+			target_pin.state = (*resultPtr).state;
 		} else {
 			// ...otherwise set input state to false.
 			target_pin.state = false;
@@ -198,7 +200,7 @@ void Device::Stabilise() {
 	// Ensures that internal device state settles correctly.
 #ifdef VERBOSE_SOLVE
 	std::string message = GenerateHeader("Stabilising new level " + std::to_string(m_nesting_level) + " Device " + GetFullName());
-	m_top_level_sim_pointer->LogMessage(message + "\n");
+	m_top_level_sim_pointer->LogMessage(message);
 #endif
 	// First we call Initialise() for all Components to set their out pins state_changed flags to true and
 	// add their local ids to this Device's propagate next vector.
@@ -209,17 +211,41 @@ void Device::Stabilise() {
 #endif
 		this_component->Initialise();
 	}
+
+	// Configure device monitor (if required).
+	if (m_monitor_on) {	
+		if (m_monitor != nullptr) {
+			delete m_monitor;
+		}
+		std::vector<std::string> pin_names;
+		for (const auto& pin : m_pins) {
+			pin_names.push_back(pin.name);
+		}
+		m_monitor = new Monitor(m_parent_device_pointer, GetName() + ":monitor", pin_names, true);
+		for (const auto pin_port_index : m_out_pin_port_indices) {
+			if (m_pins[pin_port_index].type != Pin::Type::HIDDEN_OUT) {
+				ConnectionDescriptor m;
+				m.target_component_pointer = m_monitor;
+				m.target_pin_port_index = m_monitor->GetPinPortIndex(m_pins[pin_port_index].name);
+				m_ports[pin_port_index].push_back(m);
+				m_monitor->SetPinDrivenFlag(m.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
+			}
+		}
+	}
+
 	// Then we call Solve() for this Device.
 	Solve();
+	
 #ifdef VERBOSE_SOLVE
-	message = "\n" + GenerateHeader("Starting state settled.") + "\n";
+	message = GenerateHeader("Starting state settled.");
 	m_top_level_sim_pointer->LogMessage(message);
 #endif
 	if (this == m_top_level_sim_pointer) {
 		ReportUnConnectedPins();
-		std::string msg = "\n" + GenerateHeader("Simulation build completed.");
+		m_top_level_sim_pointer->PrintAndClearMessages(false);
+		std::string msg = GenerateHeader("Simulation build completed.");
 		m_top_level_sim_pointer->LogMessage(msg);
-		m_top_level_sim_pointer->PrintAndClearMessages();
+		m_top_level_sim_pointer->PrintAndClearMessages(false);
 		m_top_level_sim_pointer->PrintErrorMessages();
 	}
 }
@@ -231,7 +257,7 @@ void Device::Initialise() {
 	// states. Ordinarily we only want to propagate the Device out pin states if they have changed, here they
 	// all need to be propagated so that they 'overwrite' the initial random build-time Gate inputs.
 	for (auto& this_pin : m_pins) {
-		if (this_pin.type == pin::pin_type::OUT) {
+		if (this_pin.type == Pin::Type::OUT) {
 			this_pin.state_changed = true;
 		}
 	}
@@ -285,14 +311,14 @@ void Device::ChildSet(std::string const& target_child_component_name, std::strin
 		m_top_level_sim_pointer->LogError(build_error);
 	} else {
 		int target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
-#ifdef VERBOSE_SOLVE
-		std::string message = std::string(BOLD(FYEL("CHILDSET: "))) + "Component " + BOLD("" + target_component_pointer->GetFullName() + ":" + target_component_pointer->GetComponentType() + "") + " terminal " + BOLD("" + target_pin_name + "") + " set to " + BoolToChar(logical_state);
-		m_top_level_sim_pointer->LogMessage(message + "\n");
-#endif
+
+		std::string message = std::string(BOLD(FGRN("" + std::to_string(m_top_level_sim_pointer->GetGlobalTickIndex()) + ""))) + ": " + std::string(BOLD(FYEL("CHILDSET"))) + ": " + BOLD("" + target_component_pointer->GetFullName() + ":" + target_component_pointer->GetComponentType() + "") + " terminal " + BOLD("" + target_pin_name + "") + " set to " + BoolToChar(logical_state);
+		m_top_level_sim_pointer->LogMessage(message);
+
 		target_component_pointer->Set(target_pin_port_index, logical_state);
 		
 		target_component_pointer->SolveBackwardsFromParent();
-		m_top_level_sim_pointer->PrintAndClearMessages();
+		m_top_level_sim_pointer->PrintAndClearMessages(false);
 	}
 }
 
@@ -340,7 +366,7 @@ void Device::ChildMarkOutputNotConnected(std::string const& target_child_compone
 		for (const auto& this_pin_name : target_component_pointer->GetSortedOutPinNames()) {
 			if (this_pin_name == target_out_pin_name) {
 				int target_pin_port_index = target_component_pointer->GetPinPortIndex(this_pin_name);
-				target_component_pointer->SetPinDrivenFlag(target_pin_port_index, pin::drive_mode::DRIVE_OUT, true);
+				target_component_pointer->SetPinDrivenFlag(target_pin_port_index, Pin::DriveDirection::DRIVE_OUT, true);
 				found = true;
 				break;
 			}
@@ -367,10 +393,10 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 			bool target_component_exists = true;
 			std::string target_component_nature_string = "";
 			bool target_pin_exists = true;
-			pin::pin_type target_pin_type = pin::pin_type::NONE;
+			Pin::Type target_pin_type = Pin::Type::NONE;
 			bool target_pin_type_compatible = false;
 			bool no_existing_connection = true;
-			pin::drive_state target_pin_already_driven{false, false};
+			Pin::Driven target_pin_already_driven{false, false};
 			
 			std::string target_component_name = connection_parameters[1];
 			std::string target_pin_name;
@@ -382,39 +408,39 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 			
 			int origin_pin_type = GetPinType(origin_pin_name);
 			std::string origin_type = "";
-			if (origin_pin_type == pin::pin_type::IN) {
+			if (origin_pin_type == Pin::Type::IN) {
 				origin_type = "input";
-			} else if (origin_pin_type == pin::pin_type::OUT) {
+			} else if (origin_pin_type == Pin::Type::OUT) {
 				origin_type = "output";
-			} else if (origin_pin_type == pin::pin_type::HIDDEN_IN) {
+			} else if (origin_pin_type == Pin::Type::HIDDEN_IN) {
 				origin_type = "hidden input";
-			} else if (origin_pin_type == pin::pin_type::HIDDEN_OUT) {
+			} else if (origin_pin_type == Pin::Type::HIDDEN_OUT) {
 				origin_type = "hidden output";
 			}
 			
 			int origin_pin_port_index = GetPinPortIndex(origin_pin_name);
-			std::vector<pin::pin_type> required_target_types;
+			std::vector<Pin::Type> required_target_types;
 			Component* target_component_pointer = 0;
-			if ((origin_pin_type == pin::pin_type::IN) || (origin_pin_type == pin::pin_type::HIDDEN_IN)) {
+			if ((origin_pin_type == Pin::Type::IN) || (origin_pin_type == Pin::Type::HIDDEN_IN)) {
 				// If the device state is one of it's inputs, it can only be connected to an input terminal
 				// of an internal child device.
-				required_target_types = {pin::pin_type::IN};
+				required_target_types = {Pin::Type::IN};
 				target_component_nature_string = "child";
 				target_component_pointer = GetChildComponentPointer(target_component_name);
 				if (target_component_pointer == 0) {
 					target_component_exists = false;
 				}
-			} else if (origin_pin_type == pin::pin_type::OUT) {
+			} else if (origin_pin_type == Pin::Type::OUT) {
 				if (target_component_name == "parent") {
 					// If the target is the parent device, then we are connecting to an output belonging to the
 					// parent device.
-					required_target_types = {pin::pin_type::OUT, pin::pin_type::HIDDEN_OUT};
+					required_target_types = {Pin::Type::OUT, Pin::Type::HIDDEN_OUT};
 					target_component_nature_string = "parent";
 					target_component_pointer = m_parent_device_pointer;
 				} else {
 					// If the target is not the parent device then it is another colleague device within the
 					// same parent device.
-					required_target_types = {pin::pin_type::IN};
+					required_target_types = {Pin::Type::IN};
 					target_component_nature_string = "sibling";
 					target_component_pointer = m_parent_device_pointer->GetChildComponentPointer(target_component_name);
 					if (target_component_pointer == 0) {
@@ -428,7 +454,7 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 			if (target_component_exists) {
 				target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
 				if (target_pin_exists) {
-					connection_descriptor new_connection_descriptor;
+					ConnectionDescriptor new_connection_descriptor;
 					new_connection_descriptor.target_component_pointer = target_component_pointer;
 					new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
 					target_pin_type = target_component_pointer->GetPinType(new_connection_descriptor.target_pin_port_index);
@@ -449,8 +475,18 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 							target_pin_already_driven = *(target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index));
 							if (!target_pin_already_driven.in) {
 								m_ports[origin_pin_port_index].push_back(new_connection_descriptor);
-								target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, pin::drive_mode::DRIVE_IN, true);
-								m_pins[origin_pin_port_index].drive.out = true;
+								target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
+								m_pins[origin_pin_port_index].driven.out = true;
+
+								// Check if target Component is monitored, and if so also connect to the corresponding monitor pin.
+								Component* monitor = target_component_pointer->GetMonitor();
+								if (monitor != nullptr) {
+									ConnectionDescriptor cd;
+									cd.target_component_pointer = monitor;
+									cd.target_pin_port_index = monitor->GetPinPortIndex(target_pin_name);
+									m_ports[origin_pin_port_index].push_back(cd);
+									monitor->SetPinDrivenFlag(cd.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
+								}
 							}
 						}
 					}
@@ -458,13 +494,13 @@ void Device::Connect(std::vector<std::string> connection_parameters) {
 			}
 			
 			std::string target_type = "";
-			if (target_pin_type == pin::pin_type::IN) {
+			if (target_pin_type == Pin::Type::IN) {
 				target_type = "input";
-			} else if (target_pin_type == pin::pin_type::OUT) {
+			} else if (target_pin_type == Pin::Type::OUT) {
 				target_type = "output";
-			} else if (target_pin_type == pin::pin_type::HIDDEN_IN) {
+			} else if (target_pin_type == Pin::Type::HIDDEN_IN) {
 				target_type = "hidden input";
-			} else if (target_pin_type == pin::pin_type::HIDDEN_OUT) {
+			} else if (target_pin_type == Pin::Type::HIDDEN_OUT) {
 				target_type = "hidden output";
 			}
 			
@@ -579,13 +615,11 @@ void Device::Solve() {
 }
 
 inline void Device::SubTick() {
-	// ------------------------------------------
 	std::swap(m_propagate_this_tick, m_propagate_next_tick);
 	for (const auto& this_component : m_propagate_this_tick) {
 		this_component->Propagate();
 	}
 	m_propagate_this_tick.clear();
-	// ------------------------------------------
 }
 
 void Device::QueueToPropagatePrimary(Component* component_pointer) {
@@ -607,7 +641,7 @@ void Device::QueueToSolve(Device* device_pointer) {
 
 //~void Device::PropagateInputs() {
 	//~for (auto& this_pin : m_pins) {
-		//~if ((this_pin.type == pin::pin_type::IN) || (this_pin.type == pin::pin_type::HIDDEN_IN)) {
+		//~if ((this_pin.type == Pin::Type::IN) || (this_pin.type == Pin::Type::HIDDEN_IN)) {
 			//~if (this_pin.state_changed) {
 //~#ifdef VERBOSE_SOLVE
 				//~std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating input " + this_pin.name + " = " + BoolToChar(this_pin.state);
@@ -639,7 +673,7 @@ void Device::QueueToSolve(Device* device_pointer) {
 
 void Device::PropagateInputs() {
 	for (auto& this_pin_port_index : m_in_pin_port_indices) {
-		pin* this_pin = &m_pins[this_pin_port_index];
+		Pin* this_pin = &m_pins[this_pin_port_index];
 		if (this_pin->state_changed) {
 #ifdef VERBOSE_SOLVE
 			std::string message = std::string(KBLD) + KBLU + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating input " + this_pin->name + " = " + BoolToChar(this_pin->state);
@@ -656,7 +690,7 @@ void Device::PropagateInputs() {
 //~void Device::Propagate() {
 	//~m_queued_for_propagation = false;
 	//~for (auto& this_pin : m_pins) {
-		//~if (this_pin.type == pin::pin_type::OUT) {
+		//~if (this_pin.type == Pin::Type::OUT) {
 			//~if (this_pin.state_changed) {
 //~#ifdef VERBOSE_SOLVE
 				//~std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating output " + this_pin.name + " = " + BoolToChar(this_pin.state);
@@ -690,7 +724,7 @@ void Device::PropagateInputs() {
 void Device::Propagate() {
 	m_queued_for_propagation = false;
 	for (auto this_pin_port_index : m_out_pin_port_indices) {
-		pin* this_pin = &m_pins[this_pin_port_index];
+		Pin* this_pin = &m_pins[this_pin_port_index];
 		if (this_pin->state_changed) {
 #ifdef VERBOSE_SOLVE
 			std::string message = std::string(KBLD) + KYEL + "->" + RST + " Device " + KBLD + GetFullName() + RST + " propagating output " + this_pin->name + " = " + BoolToChar(this_pin->state);
@@ -705,8 +739,8 @@ void Device::Propagate() {
 }
 
 void Device::Set(const int pin_port_index, const bool state_to_set) {
-	pin* this_pin = &m_pins[pin_port_index];
-	if (this_pin->type == pin::pin_type::IN) {
+	Pin* this_pin = &m_pins[pin_port_index];
+	if (this_pin->type == Pin::Type::IN) {
 		if (state_to_set != this_pin->state) {
 #ifdef VERBOSE_SOLVE
 			std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Device " + KBLD + GetFullName() + RST + " input terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
@@ -719,7 +753,7 @@ void Device::Set(const int pin_port_index, const bool state_to_set) {
 				m_parent_device_pointer->QueueToSolve(this);
 			}
 		}
-	} else if (this_pin->type == pin::pin_type::OUT) {
+	} else if (this_pin->type == Pin::Type::OUT) {
 		if (state_to_set != this_pin->state) {
 #ifdef VERBOSE_SOLVE
 			std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Device " + KBLD + GetFullName() + RST + " output terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
@@ -759,7 +793,7 @@ int Device::GetInPinCount() {
 	int acc = 0;
 	int pin_count = (int)m_pins.size();
 	for (int pin_index = 0; pin_index < pin_count; pin_index ++) {
-		if (m_pins[pin_index].type == pin::pin_type::IN) {
+		if (m_pins[pin_index].type == Pin::Type::IN) {
 			acc ++;
 		}
 	}
@@ -772,14 +806,14 @@ void Device::PrintPinStates(int max_levels) {
 		std::cout << GetFullName() << ": [";
 		for (const auto& pin_name : GetSortedInPinNames()) {
 			int pin_port_index = GetPinPortIndex(pin_name);
-			if (m_pins[pin_port_index].type == pin::pin_type::IN) {
+			if (m_pins[pin_port_index].type == Pin::Type::IN) {
 				std::cout << " " << BoolToChar(m_pins[pin_port_index].state) << " ";
 			}
 		}
 		std::cout << "] [";
 		for (const auto& pin_name : GetSortedOutPinNames()) {
 			int pin_port_index = GetPinPortIndex(pin_name);
-			if (m_pins[pin_port_index].type == pin::pin_type::OUT) {
+			if (m_pins[pin_port_index].type == Pin::Type::OUT) {
 				std::cout << " " << BoolToChar(m_pins[pin_port_index].state) << " ";
 			}
 		}
@@ -803,26 +837,26 @@ void Device::ReportUnConnectedPins() {
 		m_top_level_sim_pointer->LogMessage(message);
 #endif
 	for (const auto& this_pin : m_pins) {
-		if (this_pin.type == pin::pin_type::IN) {
+		if (this_pin.type == Pin::Type::IN) {
 			// We don't halt on a build error for un-driven input pins of upper-most level Devices.
-			if ((!this_pin.drive.in) && (m_nesting_level > 1)) {
+			if ((!this_pin.driven.in) && (m_nesting_level > 1)) {
 				// Log undriven Device in pin.
 				std::string build_error = "Device " + GetFullName() + " in pin " + this_pin.name + " is not driven by any Component.";
 				m_top_level_sim_pointer->LogError(build_error);
 			}
-			if (!this_pin.drive.out) {
+			if (!this_pin.driven.out) {
 				// Log undriving Device in pin.
 				std::string build_error = "Device " + GetFullName() + " in pin " + this_pin.name + " drives no child Components.";
 				m_top_level_sim_pointer->LogError(build_error);
 			}
-		} else if (this_pin.type == pin::pin_type::OUT) {
-			if (!this_pin.drive.in) {
+		} else if (this_pin.type == Pin::Type::OUT) {
+			if (!this_pin.driven.in) {
 				// Log undriven Device in pin.
 				std::string build_error = "Device " + GetFullName() + " out pin " + this_pin.name + " is not driven by any child Component.";
 				m_top_level_sim_pointer->LogError(build_error);
 			}
 			// We don't halt on a build error for un-driving output pins of upper-most level Devices.
-			if ((!this_pin.drive.out) && (m_nesting_level > 1)) {
+			if ((!this_pin.driven.out) && (m_nesting_level > 1)) {
 				// Log undriving Device out pin.
 				std::string build_error = "Device " + GetFullName() + " out pin " + this_pin.name + " drives no Component.";
 				m_top_level_sim_pointer->LogError(build_error);
@@ -837,13 +871,13 @@ void Device::ReportUnConnectedPins() {
 }
 
 void Device::MarkInnerTerminalsDisconnected(void) {
-	// As there are no conventional Components inside MagicDevice(s), if we don't mark all of the 'inner terminals' (pin.drive[1] for
-	// in pins and pin.drive[0] for out pins) as 'connected', the end-of-build connections check will get upset.
+	// As there are no conventional Components inside MagicDevice(s), if we don't mark all of the 'inner terminals' (Pin.driven[1] for
+	// in pins and Pin.driven[0] for out pins) as 'connected', the end-of-build connections check will get upset.
 	for (auto& this_pin : m_pins) {
-		if (this_pin.type == pin::pin_type::IN) {
-			this_pin.drive.out = true;
-		} else if (this_pin.type == pin::pin_type::OUT) {
-			this_pin.drive.in = true;
+		if (this_pin.type == Pin::Type::IN) {
+			this_pin.driven.out = true;
+		} else if (this_pin.type == Pin::Type::OUT) {
+			this_pin.driven.in = true;
 		}
 	}
 }
@@ -900,8 +934,8 @@ void Device::SetDeletionFlag(bool flag) {
 }
 
 void Device::PurgeComponent() {
-	std::string header;
 #ifdef VERBOSE_DTORS
+	std::string header;
 	header =  "Purging -> DEVICE :" + GetFullName() + " @ " + PointerToString(static_cast<void*>(this));
 	std::cout << GenerateHeader(header) << std::endl;
 #endif
@@ -909,6 +943,12 @@ void Device::PurgeComponent() {
 	// after themselves (remove connections from sibling components, remove themselves from Clocks,
 	// Probes, etc).
 	m_deletion_flag = true;
+
+	// Delete monitor if present.
+	if (m_monitor != nullptr) {
+		delete m_monitor;		// Monitor's destructor will clear any corresponding local
+	}							// connection references.
+	
 	// First  - Need to Purge and delete all child components.
 	PurgeAllChildComponents();
 	if (!(m_parent_device_pointer->GetDeletionFlag())) {
@@ -933,6 +973,7 @@ void Device::PurgeComponent() {
 		//			it's parent, we do not need to do this.
 		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
 	}
+	
 #ifdef VERBOSE_DTORS
 	header =  "DEVICE : " + GetFullName() + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 	std::cout << GenerateHeader(header) << std::endl;
@@ -962,33 +1003,32 @@ void Device::PurgeChildConnections(Component* target_component_pointer) {
 	for (const auto& this_component : m_components) {
 		this_component->PurgeInboundConnections(target_component_pointer);
 	}
-	
 	// That should be all of the external
 }
 
 void Device::PurgeOutboundConnections() {
 	// Purge the target's outbound connections.
 	// The Components at the end of those outbound connections do not actually hold pointers to the target Component,
-	// as only 'driving' pins or ports hold connection descriptors. However, the destination pins in drive flags need to be set to false.
+	// as only 'driving' pins or ports hold connection descriptors. However, the destination pins in driven flags need to be set to false.
 	int port_index = 0;
 	for (const auto& this_port : m_ports) {
 		int type = GetPinType(port_index);
-		if (type == pin::pin_type::OUT) {		// Type 4 hidden out pins can only be Set() from inside, so they never acquire any connection_descriptor(s) in m_ports.
-			// This is an out pin so we set each target in pin drive in to false.
+		if (type == Pin::Type::OUT) {		// Type 4 hidden out pins can only be Set() from inside, so they never acquire any connection_descriptor(s) in m_ports.
+			// This is an out pin so we set each target in pin driven in to false.
 			for (const auto& this_connection_descriptor : this_port) {
 				Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
-				pin::pin_type target_pin_type = target_component_pointer->GetPinType(this_connection_descriptor.target_pin_port_index);
+				Pin::Type target_pin_type = target_component_pointer->GetPinType(this_connection_descriptor.target_pin_port_index);
 				std::string target_type = "";
-				if (target_pin_type == pin::pin_type::IN) {			// Type 3 hidden in pins can only Set() child inputs, they cannot be Set().
+				if (target_pin_type == Pin::Type::IN) {			// Type 3 hidden in pins can only Set() child inputs, they cannot be Set().
 					target_type = "in";
-				} else if ((target_pin_type == pin::pin_type::OUT) || (target_pin_type == pin::pin_type::HIDDEN_OUT)) {		// We will clear hidden out pin drive in flags for completeness.
+				} else if ((target_pin_type == Pin::Type::OUT) || (target_pin_type == Pin::Type::HIDDEN_OUT)) {		// We will clear hidden out pin driven in flags for completeness.
 					target_type = "out";
 				}
 #ifdef VERBOSE_DTORS
 				std::cout << "Component " << target_component_pointer->GetFullName() << " " << target_type << " pin "
-					<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+					<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " driven in set to false." << std::endl;
 #endif
-				target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, pin::drive_mode::DRIVE_IN, false);
+				target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, false);
 			}
 		}
 		port_index ++;
@@ -997,19 +1037,19 @@ void Device::PurgeOutboundConnections() {
 
 void Device::PurgeInboundConnections(Component* target_component_pointer) {
 	// Purge m_ports (Parent *or* sibling Devices of target Component).
-	// Parent Device in pins may drive out into target Component's in pins.
-	// Sibling Device out pins may drive out into target Component's in pins. 
+	// Parent Device in pins may driven out into target Component's in pins.
+	// Sibling Device out pins may driven out into target Component's in pins. 
 	int port_index = 0;
-	std::vector<std::vector<connection_descriptor>> new_ports = {};
+	std::vector<std::vector<ConnectionDescriptor>> new_ports = {};
 	for (const auto& this_port : m_ports) {
-		std::vector<connection_descriptor> this_new_port = {};
+		std::vector<ConnectionDescriptor> this_new_port = {};
 		int connections_removed = 0;
-		pin::pin_type type = GetPinType(port_index);
+		Pin::Type type = GetPinType(port_index);
 		std::string type_string = "";
 		// Need to catch connections to hidden pins as well, even though they do not set-off the connection checker.
-		if ((type == pin::pin_type::IN) || (type == pin::pin_type::HIDDEN_IN)) {
+		if ((type == Pin::Type::IN) || (type == Pin::Type::HIDDEN_IN)) {
 			type_string = "in";
-		} else if ((type == pin::pin_type::OUT) || (type == pin::pin_type::HIDDEN_OUT)) {
+		} else if ((type == Pin::Type::OUT) || (type == Pin::Type::HIDDEN_OUT)) {
 			type_string = "out";
 		}
 		for (const auto& this_connection_descriptor : this_port) {
@@ -1027,12 +1067,12 @@ void Device::PurgeInboundConnections(Component* target_component_pointer) {
 			}
 		}
 		new_ports.push_back(this_new_port);
-		// If this port has had connection descriptors removed, and is now empty, set it's pin's drive out flag to false.
+		// If this port has had connection descriptors removed, and is now empty, set it's pin's driven out flag to false.
 		if ((this_new_port.size() == 0) && (connections_removed > 0)) {
 #ifdef VERBOSE_DTORS
-			std::cout << "Device " << GetFullName() << " " << type_string << " pin " << GetPinName(port_index) << " drive out set to false."  << std::endl;
+			std::cout << "Device " << GetFullName() << " " << type_string << " pin " << GetPinName(port_index) << " driven out set to false."  << std::endl;
 #endif
-			SetPinDrivenFlag(port_index, pin::drive_mode::DRIVE_OUT, false);
+			SetPinDrivenFlag(port_index, Pin::DriveDirection::DRIVE_OUT, false);
 		}
 		port_index ++;
 	}

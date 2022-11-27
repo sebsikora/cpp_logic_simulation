@@ -31,7 +31,7 @@
 #include "utils.h"
 
 Probe::Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
-	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer, probe_configuration probe_conf) {
+	std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer, ProbeConfiguration probe_conf) {
 	// Probe constructor is called from within top-level Simulation, constructor arguments are all sanity-checked there.
 	m_top_level_sim_pointer = top_level_sim_pointer;
 	m_target_component_pointer = target_component_pointer;
@@ -97,9 +97,9 @@ void Probe::PrintSamples() {
 			int column_index = 1;
 			for (const auto& sub_sample: sample) {
 				if (sub_sample) {
-					std::cout << " " << m_output_characters[1];
+					std::cout << " " << m_output_characters.high;
 				} else {
-					std::cout << " " << m_output_characters[0];
+					std::cout << " " << m_output_characters.low;
 				}
 				if (column_index == m_samples_per_row) {
 					std::string indent(header.length(), ' ');
@@ -125,8 +125,8 @@ std::string Probe::GetName() {
 }
 
 void Probe::PurgeProbe() {
-	std::string header;
 #ifdef VERBOSE_DTORS
+	std::string header;
 	header =  "Purging -> PROBE : " + m_name + " @ " + PointerToString(static_cast<void*>(this)) ;
 	std::cout << GenerateHeader(header) << std::endl;
 #endif

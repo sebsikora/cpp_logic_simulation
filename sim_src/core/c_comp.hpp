@@ -59,14 +59,15 @@ class Component {
 		std::string GetPinName(int pin_port_index);
 		std::vector<std::string> GetSortedInPinNames(void);
 		std::vector<std::string> GetSortedOutPinNames(void);
-		pin::pin_type GetPinType(int pin_port_index);
-		pin::pin_type GetPinType(std::string const& pin_name);
+		Pin::Type GetPinType(int pin_port_index);
+		Pin::Type GetPinType(std::string const& pin_name);
 		int GetPinPortIndex(std::string const& pin_name);
 		bool CheckIfPinExists(std::string const& target_pin_name);
-		pin::drive_state* CheckIfPinDriven(int pin_port_index);
-		void SetPinDrivenFlag(int pin_port_index, pin::drive_mode mode, bool state_to_set);
+		Pin::Driven* CheckIfPinDriven(int pin_port_index);
+		void SetPinDrivenFlag(int pin_port_index, Pin::DriveDirection mode, bool state_to_set);
 		void PrintInPinStates(void);
 		void PrintOutPinStates(void);
+		Component* GetMonitor(void);
 
 	protected:
 		void GenerateFullName(std::string &workingString);
@@ -78,8 +79,11 @@ class Component {
 		std::string m_component_type;
 		Simulation* m_top_level_sim_pointer;
 		Device* m_parent_device_pointer;
-		std::vector<pin> m_pins;
+		std::vector<Pin> m_pins;
 		bool m_queued_for_propagation = false;
+		Component* m_monitor = nullptr;
+		bool m_monitor_on = false;
+
 };
 
 #endif	// LSIM_CORE_COMP_HPP

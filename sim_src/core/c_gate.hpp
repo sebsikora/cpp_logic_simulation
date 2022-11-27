@@ -58,7 +58,7 @@ class Gate : public Component {
 		void Evaluate(void);
 		
 		int m_out_pin_port_index;
-		std::vector<connection_descriptor> m_connections;
+		std::vector<ConnectionDescriptor> m_connections;
 };
 
 #endif // LSIM_CORE_GATE_HPP

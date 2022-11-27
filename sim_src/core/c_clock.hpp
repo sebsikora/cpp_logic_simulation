@@ -48,19 +48,21 @@ class Clock {
 		void PurgeTargetComponentConnections(Component* target_component_pointer);
 		void PurgeClock(void);
 		void PurgeProbeDescriptorFromClock(Probe* target_probe_pointer);
+		Component* GetMonitor(void);
 
 	private:
 		Simulation* m_top_level_sim_pointer;
 		std::string m_name;
 		std::vector<bool> m_toggle_pattern;
 		bool m_monitor_on;
-		std::vector<connection_descriptor> m_connections;
+		std::vector<ConnectionDescriptor> m_connections;
 		bool m_out_pin_state;
 		std::vector<bool> m_state_history;
 		size_t m_index;
 		size_t m_sub_index;
 		std::vector<Probe*> m_probes;
 		bool m_ticked_flag;
+		Component* m_monitor = nullptr;
 };
 
 #endif	// LSIM_CORE_CLOCK_HPP

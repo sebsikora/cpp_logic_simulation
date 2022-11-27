@@ -30,7 +30,7 @@
 
 #include "devices.h"
 
-JK_FF::JK_FF(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+JK_FF::JK_FF(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "jk_ff", {"j", "k", "clk"}, {"q", "not_q"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -85,7 +85,7 @@ void JK_FF::Build() {
 	//PrintInPinStates();
 }
 
-JK_FF_ASPC::JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+JK_FF_ASPC::JK_FF_ASPC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "jk_ff_aspc", {"j", "k", "not_p", "not_c", "clk"}, {"q", "not_q"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -142,7 +142,7 @@ void JK_FF_ASPC::Build() {
 	Connect("clk", "not_1");
 }
 
-Four_Bit_Counter::Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+Four_Bit_Counter::Four_Bit_Counter(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "4_bit_counter", {"run", "clk"}, {"q_0", "q_1", "q_2", "q_3"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -203,7 +203,7 @@ void Four_Bit_Counter::Build() {
 	//PrintOutPinStates();
 }
 
-N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk"}, {}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -211,7 +211,7 @@ N_Bit_Counter::N_Bit_Counter(Device* parent_device_pointer, std::string name, in
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", pin::pin_type::OUT);
+	CreateBus(m_width, "q_", Pin::Type::OUT);
 	Build();
 	Stabilise();
  }
@@ -251,7 +251,7 @@ void N_Bit_Counter::Build() {
 	}
 }
 
-N_Bit_Counter_AIO::N_Bit_Counter_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_Counter_AIO::N_Bit_Counter_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_counter_all_in_one", {"run", "clk"}, {}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -259,7 +259,7 @@ N_Bit_Counter_AIO::N_Bit_Counter_AIO(Device* parent_device_pointer, std::string 
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", pin::pin_type::OUT);
+	CreateBus(m_width, "q_", Pin::Type::OUT);
 	Build();
 	Stabilise();
  }
@@ -320,7 +320,7 @@ void N_Bit_Counter_AIO::Build() {
 	}
 }
 
-N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk", "not_clear"}, {}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -328,7 +328,7 @@ N_Bit_Counter_ASC::N_Bit_Counter_ASC(Device* parent_device_pointer, std::string 
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", pin::pin_type::OUT);
+	CreateBus(m_width, "q_", Pin::Type::OUT);
 	Build();
 	Stabilise();
  }
@@ -376,7 +376,7 @@ void N_Bit_Counter_ASC::Build() {
 	}
 }
 
-N_Bit_Counter_C_ASC::N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_Counter_C_ASC::N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_counter", {"run", "clk", "clear", "not_clear"}, {}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -384,7 +384,7 @@ N_Bit_Counter_C_ASC::N_Bit_Counter_C_ASC(Device* parent_device_pointer, std::str
 		width = 2;
 	}
 	m_width = width;
-	CreateBus(m_width, "q_", pin::pin_type::OUT);
+	CreateBus(m_width, "q_", Pin::Type::OUT);
 	Build();
 	Stabilise();
  }
@@ -476,7 +476,7 @@ void N_Bit_Counter_C_ASC::Build() {
 	}
 }
 
-One_Bit_Register::One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+One_Bit_Register::One_Bit_Register(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "1_bit_register", {"d_in", "load", "clr", "clk"}, {"d_out"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -522,11 +522,11 @@ void One_Bit_Register::Build() {
 	ChildMarkOutputNotConnected("jk_ff_0", "not_q");
 }
 
-N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_Register::N_Bit_Register(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "clk"}, {}, monitor_on, input_default_states) {
 	 m_bus_width = width;
-	 CreateBus(m_bus_width, "d_in_", pin::pin_type::IN, input_default_states);
-	 CreateBus(m_bus_width, "d_out_", pin::pin_type::OUT);
+	 CreateBus(m_bus_width, "d_in_", Pin::Type::IN, input_default_states);
+	 CreateBus(m_bus_width, "d_out_", Pin::Type::OUT);
 	 Build();
 	 Stabilise();
  }
@@ -559,11 +559,11 @@ void N_Bit_Register::Build() {
 	//~PrintInPinStates();
 }
 
-N_Bit_Register_ASC_AIO::N_Bit_Register_ASC_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_Register_ASC_AIO::N_Bit_Register_ASC_AIO(Device* parent_device_pointer, std::string name, int width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_register", {"load", "clr", "not_c", "clk"}, {}, monitor_on, input_default_states) {
 	 m_bus_width = width;
-	 CreateBus(m_bus_width, "d_in_", pin::pin_type::IN, input_default_states);
-	 CreateBus(m_bus_width, "d_out_", pin::pin_type::OUT);
+	 CreateBus(m_bus_width, "d_in_", Pin::Type::IN, input_default_states);
+	 CreateBus(m_bus_width, "d_out_", Pin::Type::OUT);
 	 Build();
 	 Stabilise();
  }
@@ -635,11 +635,11 @@ void N_Bit_Register_ASC_AIO::Build() {
 	}
 }
 
-NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+NxOne_Bit_Mux::NxOne_Bit_Mux(Device* parent_device_pointer, std::string name, int input_count, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "nx1_bit_mux", {}, {"d_out"}, monitor_on, input_default_states) {
 	 m_input_count = input_count;
-	 CreateBus(m_input_count, "d_in_", pin::pin_type::IN, input_default_states);
-	 CreateBus(m_input_count, "sel_in_", pin::pin_type::IN, input_default_states);
+	 CreateBus(m_input_count, "d_in_", Pin::Type::IN, input_default_states);
+	 CreateBus(m_input_count, "sel_in_", Pin::Type::IN, input_default_states);
 	 Build();
 	 Stabilise();
 	 //~PrintInPinStates();
@@ -669,15 +669,15 @@ void NxOne_Bit_Mux::Build() {
 	}
 }
 
-N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+N_Bit_Decoder::N_Bit_Decoder(Device* parent_device_pointer, std::string name, int select_bus_width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "n_bit_decoder", {}, {}, monitor_on, input_default_states) {
 	m_select_bus_width = select_bus_width;
 	if (m_select_bus_width < 1) {
 		m_select_bus_width = 1;
 	}
-	CreateBus(m_select_bus_width, "sel_", pin::pin_type::IN, input_default_states);
+	CreateBus(m_select_bus_width, "sel_", Pin::Type::IN, input_default_states);
 	m_output_bus_width = pow(2, m_select_bus_width);
-	CreateBus(m_output_bus_width, "out_", pin::pin_type::OUT);
+	CreateBus(m_output_bus_width, "out_", Pin::Type::OUT);
 	Build();
 	Stabilise();
  }
@@ -728,7 +728,7 @@ void N_Bit_Decoder::Build() {
 	}
 }
 
-NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bus_count, int bus_width, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "nxm_bit_mux", {}, {}, monitor_on, input_default_states) {
 	 m_d_bus_width = bus_width;
 	 m_d_bus_count = bus_count;
@@ -740,10 +740,10 @@ NxM_Bit_Mux::NxM_Bit_Mux(Device* parent_device_pointer, std::string name, int bu
 	 }
 	 m_s_bus_width = (int)std::ceil(std::log(m_d_bus_count)/std::log(2));
 	 for (int i = 0; i < m_d_bus_count; i ++) {
-		 CreateBus(m_d_bus_width, "d_in_" + std::to_string(i) + "_", pin::pin_type::IN, input_default_states);
+		 CreateBus(m_d_bus_width, "d_in_" + std::to_string(i) + "_", Pin::Type::IN, input_default_states);
 	 }
-	 CreateBus(m_s_bus_width, "sel_", pin::pin_type::IN, input_default_states);
-	 CreateBus(m_d_bus_width, "d_out_", pin::pin_type::OUT);
+	 CreateBus(m_s_bus_width, "sel_", Pin::Type::IN, input_default_states);
+	 CreateBus(m_d_bus_width, "d_out_", Pin::Type::OUT);
 	 Build();
 	 Stabilise();
  }
@@ -802,7 +802,7 @@ void NxM_Bit_Mux::Build() {
 	//~PrintOutPinStates();
 }
 
-RLIC::RLIC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+RLIC::RLIC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "really_long_inverter_chain", {"in"}, {"out"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -826,7 +826,7 @@ void RLIC::Build() {
 	}
 }
 
-MRLIC::MRLIC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> input_default_states) 
+MRLIC::MRLIC(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> input_default_states) 
  : Device(parent_device_pointer, name, "multi_really_long_inverter_chain", {"in"}, {"out_0", "out_1", "out_2", "out_3", "out_4", "out_5", "out_6", "out_7"}, monitor_on, input_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.

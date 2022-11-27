@@ -32,4 +32,3 @@ class Monitor : public Component {
 
 		int m_in_pin_count;
 };
-		

@@ -7,7 +7,7 @@
 #include "sr_latch.h"            // Previously defined SR latch device
 #include "quad_sr_latch.h"       // Our new device
 
-Quad_SR_Latch::Quad_SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+Quad_SR_Latch::Quad_SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
  : Device(parent_device_pointer, name, "quad_sr_latch", {"S_0", "S_1", "S_2", "S_3", "R_0", "R_1", "R_2", "R_3", "R_All"}, {"Out_0", "Out_1", "Out_2", "Out_3"}, monitor_on, in_pin_default_states) {
 	// Following base class constructor (Device), we call the below overridden Build() method to populate the
 	// specific device, then we call the base Stabilise() method to configure initial internal device component state.

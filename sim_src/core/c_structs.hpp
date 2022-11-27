@@ -36,48 +36,52 @@ class Clock;
 class Probe;
 
 // Define data structures.
-struct pin {
-	enum pin_type {
+struct Pin {
+	enum Type {
 		NONE = 0,
 		IN,
 		HIDDEN_IN,
 		OUT,
 		HIDDEN_OUT
 	};
-	enum drive_mode {
+	enum DriveDirection {
 		DRIVE_IN = 0,
 		DRIVE_OUT
 	};
-	struct drive_state {
+	struct Driven {
 		 bool in;
 		 bool out;
 	};
 	
 	std::string name;
-	pin_type type;
+	Type type;
 	bool state;
 	bool state_changed = false;
 	int port_index;
-	drive_state drive;
+	Driven driven;
 };
 
-struct state_descriptor {
+struct StateDescriptor {
 	std::string identifier;
 	bool state;
 };
 
-struct solver_configuration {
+struct SolverConfiguration {
 	bool use_threaded_solver;
 	int threaded_solve_nesting_level;
 };
 
-struct probe_configuration {
+struct ProbeConfiguration {
+	struct OutputChars {
+		char low;
+		char high;
+	};
 	int probe_every_n_ticks;
 	int samples_per_row;
-	std::vector<std::string> output_characters;
+	OutputChars output_characters;
 };
 
-struct connection_descriptor {
+struct ConnectionDescriptor {
 	Component* target_component_pointer;
 	int target_pin_port_index;
 };

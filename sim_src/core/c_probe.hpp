@@ -36,7 +36,7 @@ class Probe {
 	public:
 		Probe(Simulation* top_level_sim_pointer, std::string const& probe_name, Component* target_component_pointer,
 			std::vector<std::string> const& target_pin_names, Clock* trigger_clock_pointer,
-			probe_configuration probe_conf = {1, 0, {"F", "T"}});
+			ProbeConfiguration probe_conf = {1, 0, {'F', 'T'}});
 		~Probe();
 		
 		void PreallocateSampleMemory(int number_of_ticks);
@@ -61,7 +61,7 @@ class Probe {
 		std::vector<int> m_timestamps;
 		std::vector<std::vector<bool>> m_samples;
 		std::vector<bool> m_this_sample;
-		std::vector<std::string> m_output_characters = {};
+		ProbeConfiguration::OutputChars m_output_characters;
 };
 
 #endif // LSIM_CORE_PROBE_HPP

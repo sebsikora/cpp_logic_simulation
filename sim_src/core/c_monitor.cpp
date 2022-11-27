@@ -36,7 +36,7 @@ Monitor::Monitor(Device* parent_device_pointer, std::string const& name, std::ve
 	for (const auto& pin_name : in_pin_names) {
 		// Assign random states to Gate inputs.
 		bool temp_bool = rand() > (RAND_MAX / 2);
-		pin new_in_pin = {pin_name, pin::pin_type::IN, temp_bool, false, new_pin_port_index, {false, false}};
+		Pin new_in_pin = {pin_name, Pin::Type::IN, temp_bool, false, new_pin_port_index, {false, false}};
 		m_pins.push_back(new_in_pin);
 		new_pin_port_index ++;
 	}
@@ -67,10 +67,12 @@ void Monitor::PurgeOutboundConnections() {
 }
 
 void Monitor::Set(const int pin_port_index, const bool state_to_set) {
-	pin* this_pin = &m_pins[pin_port_index];
-	std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Monitor " + KBLD + GetFullName() + RST + " terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
-	m_top_level_sim_pointer->LogMessage(message);
-	this_pin->state = state_to_set;
+	Pin* this_pin = &m_pins[pin_port_index];
+	if (this_pin->state != state_to_set) {
+		std::string message = std::string(KBLD) + KGRN + std::to_string(m_top_level_sim_pointer->GetGlobalTickIndex()) + RST + ": " + KBLD + KYEL + "MONITOR" + RST + ": " + KBLD + GetFullName() + RST + " terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
+		m_top_level_sim_pointer->LogMessage(message);
+		this_pin->state = state_to_set;
+	}
 }
 
 void Monitor::PrintPinStates(int max_levels) {
@@ -82,12 +84,12 @@ void Monitor::PrintPinStates(int max_levels) {
 }
 
 void Monitor::ReportUnConnectedPins() {
-	#ifdef VERBOSE_SOLVE
+#ifdef VERBOSE_SOLVE
 	std::string message = "Checking pins for " + GetFullName();
 	m_top_level_sim_pointer->LogMessage(message);
 #endif
 	for (const auto& this_pin : m_pins) {
-		if (!this_pin.drive.in) {
+		if (!this_pin.driven.in) {
 			// Log undriven Monitor in pin.
 			std::string build_error = "Monitor " + GetFullName() + " in pin " + this_pin.name + " is not driven by any Component.";
 			m_top_level_sim_pointer->LogError(build_error);
@@ -96,8 +98,8 @@ void Monitor::ReportUnConnectedPins() {
 }
 
 void Monitor::PurgeComponent() {
-	std::string header;
 #ifdef VERBOSE_DTORS
+	std::string header;
 	header =  "Purging -> MONITOR : " + GetFullName() + " @ " + PointerToString(static_cast<void*>(this));
 	std::cout << GenerateHeader(header) << std::endl;
 #endif
@@ -108,14 +110,7 @@ void Monitor::PurgeComponent() {
 		m_parent_device_pointer->PurgeChildConnections(this);
 	}
 	if (!(m_top_level_sim_pointer->GetDeletionFlag())) {
-		//~// Second - Purge component from Simulation Clocks, Probes and probable_components vector.
-		//~//			This will 'automatically' get rid of any Probes associated with the Component
-		//~//			(as otherwise they would target cleared memory).
-		//~//			If we are deleting this component because we are in the process of deleting
-		//~//			the top-level Simulation, we do not need to do this.
-		//~m_top_level_sim_pointer->PurgeComponentFromClocks(this);
-		//~m_top_level_sim_pointer->PurgeComponentFromProbes(this);
-		// Third  - Clear component entry from parent device's m_components.
+		// Second - Clear component entry from parent device's m_components (in case this monitor has been added manually...)
 		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
 	}
 #ifdef VERBOSE_DTORS

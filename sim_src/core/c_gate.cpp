@@ -26,6 +26,7 @@
 #include <cstdlib>					// rand()
 
 #include "c_gate.hpp"
+#include "c_monitor.hpp"
 #include "c_structs.hpp"
 #include "c_device.hpp"
 #include "c_sim.hpp"
@@ -44,6 +45,7 @@ Gate::~Gate() {
 void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name, std::string const& gate_type,
 					 std::vector<std::string> in_pin_names, bool monitor_on) {
 	m_device_flag = false;
+	m_monitor_on = monitor_on;
 	m_name = gate_name;
 	m_parent_device_pointer = parent_device_pointer;
 	m_top_level_sim_pointer = m_parent_device_pointer->GetTopLevelSimPointer();
@@ -62,15 +64,28 @@ void Gate::Configure(Device* parent_device_pointer, std::string const& gate_name
 	for (const auto& pin_name : in_pin_names) {
 		// Assign random states to Gate inputs.
 		bool temp_bool = rand() > (RAND_MAX / 2);
-		pin new_in_pin = {pin_name, pin::pin_type::IN, temp_bool, false, new_pin_port_index, {false, false}};
+		Pin new_in_pin = {pin_name, Pin::Type::IN, temp_bool, false, new_pin_port_index, {false, false}};
 		m_pins.push_back(new_in_pin);
 		new_pin_port_index ++;
 	}
 	
 	std::string out_pin_name = "output";
 	m_out_pin_port_index = new_pin_port_index;
-	pin new_out_pin = {out_pin_name, pin::pin_type::OUT, false, false, new_pin_port_index, {false, false}};
+	Pin new_out_pin = {out_pin_name, Pin::Type::OUT, false, false, new_pin_port_index, {false, false}};
 	m_pins.push_back(new_out_pin);
+
+	std::vector<std::string> pin_names;
+	pin_names.insert(pin_names.end(), in_pin_names.begin(), in_pin_names.end());
+	pin_names.push_back(out_pin_name);
+	
+	if (m_monitor_on) {
+		m_monitor = new Monitor(m_parent_device_pointer, GetName() + ":monitor", pin_names, true);
+		ConnectionDescriptor m;
+		m.target_component_pointer = m_monitor;
+		m.target_pin_port_index = m_monitor->GetPinPortIndex(out_pin_name);
+		m_connections.push_back(m);
+		m_monitor->SetPinDrivenFlag(m.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
+	}
 }
 
 void Gate::Reset() {
@@ -80,7 +95,7 @@ void Gate::Reset() {
 		m_top_level_sim_pointer->Reset();
 	} else {
 		for (auto& this_pin : m_pins) {
-			if (this_pin.type == pin::pin_type::IN) {
+			if (this_pin.type == Pin::Type::IN) {
 				bool temp_bool = rand() > (RAND_MAX / 2);
 				this_pin.state = temp_bool;
 			} else {
@@ -126,7 +141,7 @@ void Gate::Connect(std::vector<std::string> connection_parameters) {
 		if (target_component_exists) {
 			bool target_pin_exists = target_component_pointer->CheckIfPinExists(target_pin_name);
 			if (target_pin_exists) {
-				connection_descriptor new_connection_descriptor;
+				ConnectionDescriptor new_connection_descriptor;
 				new_connection_descriptor.target_component_pointer = target_component_pointer;
 				new_connection_descriptor.target_pin_port_index = target_component_pointer->GetPinPortIndex(target_pin_name);
 				bool no_existing_connection = true;
@@ -137,11 +152,21 @@ void Gate::Connect(std::vector<std::string> connection_parameters) {
 					}
 				}
 				if (no_existing_connection) {
-					pin::drive_state target_pin_already_driven = *(target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index));
+					Pin::Driven target_pin_already_driven = *(target_component_pointer->CheckIfPinDriven(new_connection_descriptor.target_pin_port_index));
 					if (!target_pin_already_driven.in) {
 						m_connections.push_back(new_connection_descriptor);
-						target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, pin::drive_mode::DRIVE_IN, true);
-						m_pins[m_out_pin_port_index].drive.out = true;
+						target_component_pointer->SetPinDrivenFlag(new_connection_descriptor.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
+						m_pins[m_out_pin_port_index].driven.out = true;
+
+						// Check if target Component is monitored, and if so also connect to the corresponding monitor pin.
+						Component* monitor = target_component_pointer->GetMonitor();
+						if (monitor != nullptr) {
+							ConnectionDescriptor cd;
+							cd.target_component_pointer = monitor;
+							cd.target_pin_port_index = monitor->GetPinPortIndex(target_pin_name);
+							m_connections.push_back(cd);
+							monitor->SetPinDrivenFlag(cd.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, true);
+						}
 					} else {
 						// Log build error here.		-- This target pin is already driven by another pin.
 						std::string build_error = "Gate " + GetFullName() + " tried to connect to " + target_component_name + " pin " + target_pin_name + " but it is already driven by another pin.";
@@ -170,7 +195,7 @@ void Gate::Connect(std::vector<std::string> connection_parameters) {
 }
 
 void Gate::Set(const int pin_port_index, const bool state_to_set) {
-	pin* this_pin = &m_pins[pin_port_index];
+	Pin* this_pin = &m_pins[pin_port_index];
 	if (this_pin->state != state_to_set) {
 #ifdef VERBOSE_SOLVE
 		std::string message = std::string(KBLD) + KGRN + "  ->" + RST + " Gate " + KBLD + GetFullName() + RST + " terminal " + KBLD + this_pin->name + RST + " set from " + BoolToChar(this_pin->state) + " to " + BoolToChar(state_to_set);
@@ -183,7 +208,7 @@ void Gate::Set(const int pin_port_index, const bool state_to_set) {
 
 inline void Gate::Evaluate() {
 	bool new_state = Operate();
-	pin* out_pin = &m_pins[m_out_pin_port_index];
+	Pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state != new_state) {
 #ifdef VERBOSE_SOLVE
 		std::string message = std::string(KBLD) + KRED + "  ->" + RST + " Gate " + KBLD + GetFullName() + RST + " output terminal set to " + BoolToChar(new_state);
@@ -202,7 +227,7 @@ inline void Gate::Evaluate() {
 
 void Gate::Propagate() {
 	m_queued_for_propagation = false;
-	pin* out_pin = &m_pins[m_out_pin_port_index];
+	Pin* out_pin = &m_pins[m_out_pin_port_index];
 	if (out_pin->state_changed) {
 #ifdef VERBOSE_SOLVE
 		std::string message = std::string(KBLD) + KYEL + "->" + RST + " Gate " + KBLD + GetFullName() + RST + " propagating output = " + BoolToChar(out_pin->state);
@@ -230,17 +255,17 @@ void Gate::ReportUnConnectedPins() {
 	m_top_level_sim_pointer->LogMessage(message);
 #endif
 	for (const auto& this_pin : m_pins) {
-		if (this_pin.type == pin::pin_type::IN) {
-			if (!this_pin.drive.in) {
+		if (this_pin.type == Pin::Type::IN) {
+			if (!this_pin.driven.in) {
 				// Log undriven Gate in pin.
 				std::string build_error = "Gate " + GetFullName() + " in pin " + this_pin.name + " is not driven by any Component.";
 				m_top_level_sim_pointer->LogError(build_error);
 			}
-		} else if (this_pin.type == pin::pin_type::OUT) {
+		} else if (this_pin.type == Pin::Type::OUT) {
 			// We don't halt on a build error for un-driven output pins of upper-most level Gates.
 			// (If we don't it's a lot harder to play with them...)
 			if (m_nesting_level > 1) {
-				if (!this_pin.drive.out) {
+				if (!this_pin.driven.out) {
 					// Log undriving Gate out pin.
 					std::string build_error = "Gate " + GetFullName() + " out pin " + this_pin.name + " drives no Component.";
 					m_top_level_sim_pointer->LogError(build_error);
@@ -251,11 +276,17 @@ void Gate::ReportUnConnectedPins() {
 }
 
 void Gate::PurgeComponent() {
-	std::string header;
 #ifdef VERBOSE_DTORS
+	std::string header;
 	header =  "Purging -> GATE : " + GetFullName() + " @ " + PointerToString(static_cast<void*>(this));
 	std::cout << GenerateHeader(header) << std::endl;
 #endif
+
+	// Delete monitor if present.
+	if (m_monitor != nullptr) {
+		delete m_monitor;			// Monitor's destructor will clear any corresponding local
+	}								// connection references.
+	
 	if (!(m_parent_device_pointer->GetDeletionFlag())) {
 		// First  - Ask parent device to purge all local references to this Gate...
 		//			If we are deleting this Component because we are in the process of deleting
@@ -273,6 +304,7 @@ void Gate::PurgeComponent() {
 		// Third  - Clear component entry from parent device's m_components.
 		m_parent_device_pointer->PurgeChildComponentIdentifiers(this);
 	}
+	
 #ifdef VERBOSE_DTORS
 	header =  "GATE : " + GetFullName() + " @ " + PointerToString(static_cast<void*>(this)) + " -> Purged.";
 	std::cout << GenerateHeader(header) << std::endl;
@@ -282,7 +314,7 @@ void Gate::PurgeComponent() {
 
 void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 	// Loop over outbound connections and remove any that refer to target component.
-	std::vector<connection_descriptor> new_connections = {};
+	std::vector<ConnectionDescriptor> new_connections = {};
 	int connections_removed = 0;
 	for (const auto& this_connection_descriptor : m_connections) {
 		if (this_connection_descriptor.target_component_pointer != target_component_pointer) {
@@ -299,28 +331,28 @@ void Gate::PurgeInboundConnections(Component* target_component_pointer) {
 	}
 	if ((new_connections.size() == 0) && (connections_removed > 0)) {
 #ifdef VERBOSE_DTORS
-		std::cout << "Gate " + GetFullName() + " out pin drive out set to false." << std::endl;
+		std::cout << "Gate " + GetFullName() + " out pin driven out set to false." << std::endl;
 #endif
-		SetPinDrivenFlag(m_out_pin_port_index, pin::drive_mode::DRIVE_OUT, false);
+		SetPinDrivenFlag(m_out_pin_port_index, Pin::DriveDirection::DRIVE_OUT, false);
 	}
 	m_connections = new_connections;
 }
 
 void Gate::PurgeOutboundConnections() {
-	// Loop over onward connection from out pin and reset destination pins drive-in state.
+	// Loop over onward connection from out pin and reset destination pins driven-in state.
 	for (const auto& this_connection_descriptor : m_connections) {
 		Component* target_component_pointer = this_connection_descriptor.target_component_pointer;
-		pin::pin_type type = target_component_pointer->GetPinType(this_connection_descriptor.target_pin_port_index);
+		Pin::Type type = target_component_pointer->GetPinType(this_connection_descriptor.target_pin_port_index);
 		std::string type_string = "";
-		if (type == pin::pin_type::IN) {
+		if (type == Pin::Type::IN) {
 			type_string = " in";
-		} else if (type == pin::pin_type::OUT) {
+		} else if (type == Pin::Type::OUT) {
 			type_string = " out";
 		}
 #ifdef VERBOSE_DTORS
 		std::cout << "Component " << target_component_pointer->GetFullName() << type_string << " pin "
-			<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " drive in set to false." << std::endl;
+			<< target_component_pointer->GetPinName(this_connection_descriptor.target_pin_port_index) << " driven in set to false." << std::endl;
 #endif
-		target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, pin::drive_mode::DRIVE_IN, false);
+		target_component_pointer->SetPinDrivenFlag(this_connection_descriptor.target_pin_port_index, Pin::DriveDirection::DRIVE_IN, false);
 	}
 }

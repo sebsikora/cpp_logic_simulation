@@ -6,7 +6,7 @@
 
 #include "sr_latch.h"       // Our new SR_latch device.
 
-SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+SR_Latch::SR_Latch(Device* parent_device_pointer, std::string name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
  : Device(parent_device_pointer, name, "sr_latch", {"S", "R"}, {"Out"}, monitor_on, in_pin_default_states) {
 	// Following base class constructor (Device), we call the below overridden Build() method to populate the
 	// specific device, then we call the base Stabilise() method to configure initial internal device component state.

@@ -3,18 +3,17 @@
 
 int main () {
 	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool monitor_on = false;
 	bool print_probe_samples = true;
 	
 	// Instantiate the top-level Device (the Simulation).
 	Simulation* sim = new Simulation("test_sim", {false, 1});
 	
 	// Add a 4-bit counter device.
-	sim->AddComponent(new Four_Bit_Counter(sim, "test_counter", monitor_on, {{"run", true}}));
+	sim->AddComponent(new Four_Bit_Counter(sim, "test_counter", false, {{"run", true}}));
 	
 	// Add a Clock and connect it to the clk input on the counter.
 	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
-	sim->AddClock("clock_0", {false, true}, monitor_on);
+	sim->AddClock("clock_0", {false, true}, true);
 	sim->ClockConnect("clock_0", "test_counter", "clk");
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.

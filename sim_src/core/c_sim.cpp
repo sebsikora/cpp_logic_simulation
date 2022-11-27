@@ -42,7 +42,7 @@
 #include "utils.h"
 #include "colors.h"
 
-Simulation::Simulation(std::string const& simulation_name, solver_configuration solver_conf, int max_propagations)
+Simulation::Simulation(std::string const& simulation_name, SolverConfiguration solver_conf, int max_propagations)
  : Device(this, simulation_name, "simulation", {}, {}, false, {}, max_propagations) {
 	m_next_new_CUID = 1;
 	m_simulation_running = false;
@@ -50,11 +50,9 @@ Simulation::Simulation(std::string const& simulation_name, solver_configuration 
 	m_use_threaded_solver = solver_conf.use_threaded_solver;
 	m_threaded_solve_nesting_level = solver_conf.threaded_solve_nesting_level;
 	m_solve_children_in_own_threads = (m_use_threaded_solver && (m_nesting_level == m_threaded_solve_nesting_level));
-	std::string message = "\n" + GenerateHeader("Simulation build started.") + "\n";
-	LogMessage(message);
+	std::cout << GenerateHeader("Simulation build started.") + "\n" << std::endl;
 #ifndef VERBOSE_SOLVE
-	message = "(Simulation verbose output is off)";
-	LogMessage(message);
+	std::cout << "(Simulation verbose output is off)\n" << std::endl;
 #endif
 	// Start up the Simulation's solver threadpool.
 	if (m_use_threaded_solver) {
@@ -115,8 +113,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 		m_simulation_running = true;
 		if (restart_flag) {
 			if (!force_no_messages) {
-				std::string message = GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").");
-				std::cout << std::endl << message << std::endl;
+				std::cout << GenerateHeader("Simulation started (" + std::to_string(number_of_ticks) + ").") + "\n" << std::endl;
 			}
 			m_global_tick_index = 0;
 			for (const auto& this_clock : m_clocks) {
@@ -124,8 +121,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 			}
 		} else {
 			if (!force_no_messages) {
-				std::string message = GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").");
-				std::cout << std::endl << message << std::endl;
+				std::cout << GenerateHeader("Simulation restarted @ tick " + std::to_string(m_global_tick_index) + " (" + std::to_string(number_of_ticks) + ").") + "\n" << std::endl;
 			}
 		}
 		// Preallocate vectors for storage of Probe samples.
@@ -134,8 +130,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 		}
 #ifndef VERBOSE_SOLVE
 		if (!force_no_messages) {
-			std::string message = std::string("\n(Simulation verbose output is off)");
-			std::cout << message << std::endl;
+			std::cout << "(Simulation verbose output is off)\n" << std::endl;
 		}
 #endif
 		// Turn terminal to 'raw' mode (does not wait for newline before making input available to getchar()).
@@ -147,8 +142,8 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 		while (true) {
 #ifdef VERBOSE_SOLVE
 			if (!force_no_messages) {
-				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index));
-				LogMessage("\n" + message);
+				std::string message = GenerateHeader("Start of global tick " + std::to_string(m_global_tick_index)) + "\n";
+				LogMessage(message);
 			}
 #endif
 			// Advance all clocks.
@@ -157,11 +152,10 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 			}
 			// Solve top-level simulation state.
 			Solve();
-			
-#ifdef VERBOSE_SOLVE
+
 			// Print any messages logged this tick.
-			PrintAndClearMessages();
-#endif
+			PrintAndClearMessages(force_no_messages);
+			
 			// If any errors have been reported this tick, break here and finish.
 			// Asserted the __ALL_STOP__ internal input of a Device will log an error message and hence stop the simulation.
 			if (m_error_messages.size() > 0) {
@@ -195,7 +189,7 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
 		EnableTerminalRawIO(false);	
 		if (!force_no_messages) {
-			std::cout << std::endl << GenerateHeader("Done.") << std::endl;
+			std::cout << GenerateHeader("Done.") << std::endl;
 		}
 		// Print probe samples.
 		if (print_probes_flag) {
@@ -242,7 +236,7 @@ void Simulation::ClockConnect(std::string const& target_clock_name, std::string 
 	}
 }
 
-void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name, probe_configuration probe_conf) {
+void Simulation::AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names, std::string const& trigger_clock_name, ProbeConfiguration probe_conf) {
 	Component* target_component_pointer = SearchForComponentPointer(target_component_full_name);
 	if (target_component_pointer != 0) {
 		bool pins_exist = true;
@@ -338,48 +332,20 @@ void Simulation::LogMessage(std::string const& message) {
 	}
 }
 
-void Simulation::PrintAndClearMessages() {
-	std::unordered_map<int, std::vector<std::string>> message_collations;
-	for (auto& this_message : m_messages) {
-		std::cout << this_message << std::endl;
-		
-		//~std::string start_prefix = std::string("~S");	// Solution branch start.
-		//~std::string end_prefix = std::string("~E");		// Solution branch end.
-		//~std::string message_to_collate_prefix = std::string("~");		// Prefixed message.
-		//~if (std::equal(start_prefix.begin(), start_prefix.end(), this_message.begin())) {
-			//~// Start of messages from a new solution branch.
-			//~this_message.erase(0, 2);
-			//~int branch_prefix = std::stoi(this_message);
-			//~message_collations[branch_prefix].clear();		// operator[] will create an entry via default constructor if none with key branch_prefix.
-			//~std::cout << std::endl << "Started collating messages from branch " << branch_prefix << std::endl;
-		//~} else if (std::equal(end_prefix.begin(), end_prefix.end(), this_message.begin())) {
-			//~// End of this solution branch.
-			//~this_message.erase(0, 2);
-			//~int branch_prefix = std::stoi(this_message);
-			//~std::cout << std::endl << "Finished collating messages from branch " << branch_prefix << std::endl;
-			//~// Print messages from this branch to the console and then clear the dictionary entry.
-			//~for (const auto& this_collated_message : message_collations[branch_prefix]) {
-				//~std::cout << this_collated_message << std::endl;
-			//~}
-			//~message_collations.erase(branch_prefix);
-		//~} else if (std::equal(message_to_collate_prefix.begin(), message_to_collate_prefix.end(), this_message.begin())) {
-			//~// Message with a branch prefix.
-			//~this_message.erase(0, 1);
-			//~int prefix = std::stoi(this_message.substr(0, this_message.find(":", 0)));
-			//~// operator[] will create an entry under that key if none exists, which can lead to fairly quiet
-			//~// if not silent failure in the event that anything unexpected gets through.
-			//~try {
-				//~message_collations.at(prefix).push_back(this_message);
-			//~}
-			//~catch (const std::out_of_range& oor_error) {
-				//~std::cerr << "Unexpected branch prefix on this message: " << this_message << std::endl;
-			//~}
-		//~} else {
-			//~// No prefix at all, just print the message.
-			//~std::cout << this_message << std::endl;
-		//~}
+void Simulation::PrintAndClearMessages(bool force_no_messages) {
+	if (!force_no_messages) {
+		if (m_messages.size() > 0) {
+			for (auto& this_message : m_messages) {
+				std::cout << this_message << std::endl;
+			}
+			std::cout << std::endl;
+		}
 	}
 	m_messages.clear();
+}
+
+int Simulation::GetGlobalTickIndex() {
+	return m_global_tick_index;
 }
 
 void Simulation::PrintErrorMessages(void) {
