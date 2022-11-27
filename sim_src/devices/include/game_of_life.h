@@ -29,26 +29,26 @@
 
 class GameOfLife_Cell_Decider : public Device {
 	public:
-		GameOfLife_Cell_Decider(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {});
+		GameOfLife_Cell_Decider(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<StateDescriptor> in_pin_default_states = {});
 		void Build(void);
 };
 
 class GameOfLife_Cell_SiblingSelector : public Device {
 	public:
-		GameOfLife_Cell_SiblingSelector(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {});
+		GameOfLife_Cell_SiblingSelector(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<StateDescriptor> in_pin_default_states = {});
 		void Build(void);
 };
 
 class GameOfLife_Cell : public Device {
 	public:
-		GameOfLife_Cell(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {});
+		GameOfLife_Cell(Device* parent_device_pointer, std::string name, bool monitor_on = false, std::vector<StateDescriptor> in_pin_default_states = {});
 		void Build(void);
 };
 
 class GameOfLife : public Device {
 	public:
-		GameOfLife(Device* parent_device_pointer, std::string name, int x_dimension, bool monitor_on = false, std::vector<state_descriptor> in_pin_default_states = {});
-		void ConfigureBusses(std::vector<state_descriptor> in_pin_default_states);
+		GameOfLife(Device* parent_device_pointer, std::string name, int x_dimension, bool monitor_on = false, std::vector<StateDescriptor> in_pin_default_states = {});
+		void ConfigureBusses(std::vector<StateDescriptor> in_pin_default_states);
 		void Build(void);
 		int m_x_dimension;
 		int m_cell_count;

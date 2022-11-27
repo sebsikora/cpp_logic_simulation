@@ -27,7 +27,7 @@
 #include "devices.h"
 #include "game_of_life.h"
 
-GameOfLife_Cell_Decider::GameOfLife_Cell_Decider(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+GameOfLife_Cell_Decider::GameOfLife_Cell_Decider(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
  : Device(parent_device_pointer, cell_name, "g_o_l_cell_decider", {"count_in_0", "count_in_1", "count_in_2", "alive_in"}, {"alive_out"}, monitor_on, in_pin_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -72,7 +72,7 @@ void GameOfLife_Cell_Decider::Build() {
 	ChildConnect("or_1", {"parent", "alive_out"});
 }
 
-GameOfLife_Cell_SiblingSelector::GameOfLife_Cell_SiblingSelector(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+GameOfLife_Cell_SiblingSelector::GameOfLife_Cell_SiblingSelector(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
  : Device(parent_device_pointer, cell_name, "g_o_l_cell_siblingselector", {"clk", "not_clear", "sibling_0", "sibling_1", "sibling_2", "sibling_3", "sibling_4", "sibling_5", "sibling_6", "sibling_7"}, {"selected_sibling", "update_flag"}, monitor_on, in_pin_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -108,7 +108,7 @@ void GameOfLife_Cell_SiblingSelector::Build() {
 	ChildConnect("sibling_mux", {"d_out", "parent", "selected_sibling"});
 }
 
-GameOfLife_Cell::GameOfLife_Cell(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+GameOfLife_Cell::GameOfLife_Cell(Device* parent_device_pointer, std::string cell_name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
  : Device(parent_device_pointer, cell_name, "g_o_l_cell", {"clk", "not_clear_cycle", "not_clear_state", "not_preset_state", "sibling_0_in",
 	 "sibling_1_in", "sibling_2_in", "sibling_3_in", "sibling_4_in", "sibling_5_in", "sibling_6_in", "sibling_7_in"},
 	 {"sibling_0_out", "sibling_1_out", "sibling_2_out", "sibling_3_out", "sibling_4_out", "sibling_5_out", "sibling_6_out", "sibling_7_out"}, monitor_on, in_pin_default_states) {
@@ -180,7 +180,7 @@ void GameOfLife_Cell::Build() {
 	ChildMarkOutputNotConnected("state_ff", "not_q");
 }
 
-GameOfLife::GameOfLife(Device* parent_device_pointer, std::string name, int x_dimension, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+GameOfLife::GameOfLife(Device* parent_device_pointer, std::string name, int x_dimension, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
  : Device(parent_device_pointer, name, "game_of_life", {"clk", "not_clear_cycle"}, {}, monitor_on, in_pin_default_states) {
 	 // Following base class constructor (Device), we call the below overridden Build() method to populate the
 	 // specific device, then we call the base Stabilise() method to configure initial internal device component state.
@@ -191,7 +191,7 @@ GameOfLife::GameOfLife(Device* parent_device_pointer, std::string name, int x_di
 	 Stabilise();
  }
 
-void GameOfLife::ConfigureBusses(std::vector<state_descriptor> in_pin_default_states) {
+void GameOfLife::ConfigureBusses(std::vector<StateDescriptor> in_pin_default_states) {
 	std::vector<std::string> inputs_to_create;
 	for (int cell_index = 0; cell_index < m_cell_count; cell_index ++) {
 		std::string not_clear_identifier = "cell_" + std::to_string(cell_index) + "_not_clear_state";
