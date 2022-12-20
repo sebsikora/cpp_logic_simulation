@@ -19,46 +19,37 @@
 
 */
 
-#ifndef LSIM_UART_H
-#define LSIM_UART_H
+#ifndef LSIM_ROM_H
+#define LSIM_ROM_H
 
 #include <string>					// std::string.
 #include <vector>					// std::vector
-#include <thread>
-#include <atomic>
 
 #include "c_device.hpp"					// Core simulator functionality
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-class Uart : public Device {
+class Rom : public Device {
 	public:
 		// Constructor.
-		Uart(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
-		~Uart();
+		Rom(Device* parent_device_pointer, std::string device_name, std::string const& data_file_path, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states = {});
+		~Rom();
 		// Methods common to base Device class.
 		void Build(void) override;
 		void Solve(void) override;
 
 	private:
 		// Methods.
-		void Configure(std::vector<state_descriptor> in_pin_default_states);
-		void CreatePty(void);
-		void PtyReadRuntime(void);
-		void PtyWriteByte(uint8_t byte);
-		
+		void Configure(int address_bus_width, int data_bus_width, std::vector<StateDescriptor> in_pin_default_states);
+		void LoadData(std::string const& data_file_path, int address_bus_width);
+
 		// Data.
-		int m_master_fd;
-		std::thread m_thread_pty;
-		std::mutex m_mutex_master_fd;
-		std::atomic_bool m_pty_available_flag = false;
-		std::atomic_bool m_run_pty_thread_flag = true;
+		std::vector<unsigned long> m_data;
 		
+		std::vector<int> m_address_bus_indices;
 		std::vector<int> m_data_bus_indices;
 		
-		int m_data_ready_pin_index;
 		int m_read_pin_index;
-		int m_write_pin_index;
 		int m_clk_pin_index;
 };
 
-#endif // LSIM_UART_H
+#endif // LSIM_RAM_H

@@ -32,6 +32,7 @@
 #include "c_structs.hpp"
 #include "c_gates.hpp"
 #include "c_sim.hpp"
+#include "c_special.hpp"
 
 #include "utils.h"
 #include "strnatcmp.h"
@@ -637,7 +638,11 @@ void Device::QueueToPropagateSecondary(Component* component_pointer) {
 
 void Device::QueueToSolve(Device* device_pointer) {
 	m_solve_this_tick.emplace_back(device_pointer);
-} 
+}
+
+//~void Device::QueueForPropagation(void) {
+
+//~}
 
 //~void Device::PropagateInputs() {
 	//~for (auto& this_pin : m_pins) {

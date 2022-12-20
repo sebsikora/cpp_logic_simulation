@@ -37,6 +37,7 @@
 #include "c_sim.hpp"
 #include "c_clock.hpp"
 #include "c_probe.hpp"
+#include "c_special.hpp"
 
 #include "void_thread_pool.hpp"
 #include "utils.h"
@@ -146,6 +147,11 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 				LogMessage(message);
 			}
 #endif
+			// Update all special devices.
+			for (const auto& special_device : m_special_devices) {
+				special_device->Update();
+			}
+			
 			// Advance all clocks.
 			for (const auto& this_clock : m_clocks) {
 				this_clock->Tick();
@@ -206,6 +212,10 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 	if (print_errors_flag) {
 		PrintErrorMessages();
 	}
+}
+
+void Simulation::AddSpecialDevice(SpecialInterface* special_device) {
+	m_special_devices.push_back(special_device);
 }
 
 void Simulation::AddClock(std::string const& clock_name, std::vector<bool> const& toggle_pattern, bool monitor_on) {

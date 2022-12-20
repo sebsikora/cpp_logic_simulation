@@ -19,37 +19,70 @@
 
 */
 
-#ifndef LSIM_ROM_H
-#define LSIM_ROM_H
+#ifndef LSIM_UART_H
+#define LSIM_UART_H
 
 #include <string>					// std::string.
 #include <vector>					// std::vector
+#include <thread>
+#include <atomic>
+#include <deque>
 
 #include "c_device.hpp"					// Core simulator functionality
+#include "c_special.hpp"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-class Rom : public Device {
+class PtyManager {
+	public:
+		PtyManager();
+		~PtyManager();
+
+		void stop();
+
+		bool uartAvailable();
+		bool rxBytesAvailable();
+		uint8_t rxByte();
+		void txByte(uint8_t byte);
+
+	private:
+		void CreatePty(void);
+		void PtyReadRuntime(void);
+
+		int m_master_fd;
+
+		std::thread m_thread_pty;
+		std::mutex m_mutex_master_fd;
+		std::mutex m_mutex_rx_buffer;
+
+		std::atomic_bool m_pty_available_flag;
+		std::atomic_bool m_run_pty_thread_flag;
+		std::deque<uint8_t> m_rx_buffer;
+};
+
+class Uart : public Device, public SpecialInterface {
 	public:
 		// Constructor.
-		Rom(Device* parent_device_pointer, std::string device_name, std::string const& data_file_path, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
-		~Rom();
+		Uart(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states = {});
+		~Uart();
 		// Methods common to base Device class.
 		void Build(void) override;
 		void Solve(void) override;
 
+		void Update(void) override;
+
 	private:
 		// Methods.
-		void Configure(int address_bus_width, int data_bus_width, std::vector<state_descriptor> in_pin_default_states);
-		void LoadData(std::string const& data_file_path, int address_bus_width);
+		void Configure(std::vector<StateDescriptor> in_pin_default_states);
 
-		// Data.
-		std::vector<unsigned long> m_data;
+		PtyManager m_ptyManager;
 		
-		std::vector<int> m_address_bus_indices;
-		std::vector<int> m_data_bus_indices;
+		std::vector<int> m_data_bus_in_indices;
+		std::vector<int> m_data_bus_out_indices;
 		
+		int m_data_ready_pin_index;
 		int m_read_pin_index;
+		int m_write_pin_index;
 		int m_clk_pin_index;
 };
 
-#endif // LSIM_RAM_H
+#endif // LSIM_UART_H

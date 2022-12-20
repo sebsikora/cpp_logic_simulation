@@ -1,18 +1,16 @@
 // n_bit_counter_demo.cpp
 
-#include "c_core.h"			// Core simulator functionality
-#include "devices.h"		// N_Bit_Counter Device
+#include "c_sim.hpp"			// Core simulator functionality
+#include "devices.h"			// N_Bit_Counter Device
 
 int main () {
-	// Verbosity flags. Set verbose & monitor_on equal to true to display verbose simulation output in the console.
-	bool verbose = false;
-	bool monitor_on = false;
+	bool monitor_on = true;
 	
 	// Set the desired bit-width of the counter here.
 	int counter_width = 3;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation sim("test_sim", verbose);
+	Simulation sim("test_sim");
 	
 	// Add the n-bit counter Device. Note the parameterised counter width.
 	sim.AddComponent(new N_Bit_Counter(&sim, "test_counter", counter_width, monitor_on, {{"run", true}}));
@@ -38,7 +36,7 @@ int main () {
 	bool restart_flag = true;
 	bool print_probe_samples = true;
 	int number_of_ticks = 16;
-	sim.Run(number_of_ticks, restart_flag, verbose, print_probe_samples);
+	sim.Run(number_of_ticks, restart_flag, print_probe_samples);
 	
 	return 0;
 }

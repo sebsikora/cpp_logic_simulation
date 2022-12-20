@@ -88,6 +88,7 @@ class Device : public Component {
 	protected:
 		// Device class protected methods.
 		void QueueToSolve(Device* device_pointer);
+		//~void QueueForPropagation(void);
 		
 		int m_max_propagations;
 		bool m_solve_children_in_own_threads = false;

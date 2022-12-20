@@ -31,7 +31,7 @@
 #include "rom.hpp"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
-Rom::Rom(Device* parent_device_pointer, std::string device_name, std::string const& data_file_path, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states) 
+Rom::Rom(Device* parent_device_pointer, std::string device_name, std::string const& data_file_path, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
  : Device(parent_device_pointer, device_name, "rom", {"read", "clk"}, {}, monitor_on, in_pin_default_states, 0) {
 	// Create all the address and data bus inputs and outputs and set their default states.
 	Configure(address_bus_width, data_bus_width, in_pin_default_states);
@@ -46,15 +46,15 @@ Rom::~Rom() {
 #endif
 }
 
-void Rom::Configure(int address_bus_width, int data_bus_width, std::vector<state_descriptor> in_pin_default_states) {
+void Rom::Configure(int address_bus_width, int data_bus_width, std::vector<StateDescriptor> in_pin_default_states) {
 	// Zero the data array.
 	m_data.resize(pow(2, address_bus_width), 0);
 
 	std::string address_bus_prefix = "a_";
 	std::string data_bus_prefix = "d_";
 	
-	CreateBus(address_bus_width, address_bus_prefix, pin::pin_type::IN, in_pin_default_states);
-	CreateBus(data_bus_width, data_bus_prefix, pin::pin_type::OUT, {});
+	CreateBus(address_bus_width, address_bus_prefix, Pin::Type::IN, in_pin_default_states);
+	CreateBus(data_bus_width, data_bus_prefix, Pin::Type::OUT, {});
 
 	m_clk_pin_index = GetPinPortIndex("clk");
 	m_read_pin_index = GetPinPortIndex("read");

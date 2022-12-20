@@ -31,7 +31,7 @@
 class Ram : public Device {
 	public:
 		// Constructor.
-		Ram(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<state_descriptor> in_pin_default_states = {});
+		Ram(Device* parent_device_pointer, std::string device_name, int address_bus_width, int data_bus_width, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states = {});
 		~Ram();
 		// Methods common to base Device class.
 		void Build(void) override;
@@ -39,7 +39,7 @@ class Ram : public Device {
 
 	private:
 		// Methods.
-		void Configure(int address_bus_width, int data_bus_width, std::vector<state_descriptor> in_pin_default_states);
+		void Configure(int address_bus_width, int data_bus_width, std::vector<StateDescriptor> in_pin_default_states);
 
 		// Data.
 		std::vector<unsigned long> m_data;

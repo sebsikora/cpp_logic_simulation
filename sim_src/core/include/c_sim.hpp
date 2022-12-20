@@ -27,6 +27,7 @@
 #include <thread>
 
 #include "c_device.hpp"
+#include "c_special.hpp"
 #include "void_thread_pool.hpp"
 #include <termios.h>				// terminal settings data structure
 
@@ -54,6 +55,7 @@ class Simulation : public Device {
 		void AddProbe(std::string const& probe_name, std::string const& target_component_full_name, std::vector<std::string> const& target_pin_names,
 			std::string const& trigger_clock_name, ProbeConfiguration probe_conf = {1, 0, {'F', 'T'}}
 		);
+		void AddSpecialDevice(SpecialInterface* special_device);
 		int GetTopLevelMaxPropagations(void);
 		int GetNewCUID(void);
 		Clock* GetClockPointer(std::string const& target_clock_name);
@@ -95,6 +97,8 @@ class Simulation : public Device {
 		int m_next_new_CUID;
 		bool m_searching_flag = false;
 		std::mutex m_sim_lock;
+
+		std::vector<SpecialInterface*> m_special_devices;
 };
 
 #endif	// LSIM_CORE_SIM_HPP
