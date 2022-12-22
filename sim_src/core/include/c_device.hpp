@@ -74,7 +74,6 @@ class Device : public Component {
 		int GetNestingLevel(void);
 		int GetInPinCount(void);
 		void QueueToPropagatePrimary(Component* component_pointer);
-		void QueueToPropagateSecondary(Component* component_pointer);
 		void PrintInternalPinStates(int max_levels);
 		void MarkInnerTerminalsDisconnected(void);
 		Component* SearchForComponentPointer(std::string const& target_component_full_name);
@@ -88,7 +87,7 @@ class Device : public Component {
 	protected:
 		// Device class protected methods.
 		void QueueToSolve(Device* device_pointer);
-		//~void QueueForPropagation(void);
+		void QueueToPropagateSecondary(Component* component_pointer);
 		
 		int m_max_propagations;
 		bool m_solve_children_in_own_threads = false;

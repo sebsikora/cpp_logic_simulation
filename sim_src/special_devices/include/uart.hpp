@@ -34,28 +34,27 @@
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 class PtyManager {
 	public:
-		PtyManager();
 		~PtyManager();
-
+		
+		void start();
 		void stop();
 
-		bool uartAvailable();
 		bool rxBytesAvailable();
 		uint8_t rxByte();
 		void txByte(uint8_t byte);
 
 	private:
-		void CreatePty(void);
-		void PtyReadRuntime(void);
+		void createPty(void);
+		void ptyReadRuntime(void);
 
 		int m_master_fd;
 
-		std::thread m_thread_pty;
+		std::thread m_pty_read_thread;
 		std::mutex m_mutex_master_fd;
 		std::mutex m_mutex_rx_buffer;
 
-		std::atomic_bool m_pty_available_flag;
-		std::atomic_bool m_run_pty_thread_flag;
+		std::atomic_bool m_pty_available{false};
+		std::atomic_bool m_run_threads{false};
 		std::deque<uint8_t> m_rx_buffer;
 };
 
@@ -68,7 +67,9 @@ class Uart : public Device, public SpecialInterface {
 		void Build(void) override;
 		void Solve(void) override;
 
+		void Start(void) override;
 		void Update(void) override;
+		void Stop(void) override;
 
 	private:
 		// Methods.

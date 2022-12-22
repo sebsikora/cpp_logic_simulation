@@ -55,7 +55,7 @@ Uart::~Uart() {
 #ifdef VERBOSE_DTORS
 	std::cout << "Uart dtor for " << GetFullName() << " @ " << this << std::endl;
 #endif
-	m_ptyManager.stop();
+	Stop();
 }
 
 void Uart::Configure(std::vector<StateDescriptor> in_pin_default_states) {
@@ -90,44 +90,80 @@ void Uart::Build() {
 }
 
 void Uart::Solve() {
+	if ((m_pins[m_clk_pin_index].state_changed) && (!m_pins[m_clk_pin_index].state)) {
+
+		if (m_pins[m_read_pin_index].state) {		// Read byte
+			unsigned long data_read = m_ptyManager.rxByte();
+			for (size_t i = 0; i < m_data_bus_out_indices.size(); i++) {
+				Set(m_data_bus_out_indices[i], ((data_read >> i) & 1ul));
+			}
+			std::cout << "READ BYTE!" << std::endl;
+			if (!m_ptyManager.rxBytesAvailable()) {
+				Set(m_data_ready_pin_index, false);
+			}
+		} else if (!m_pins[m_read_pin_index].state) {
+			// Set all data out pins low (F)
+			for (size_t i = 0; i < m_data_bus_out_indices.size(); i++) {
+				Set(m_data_bus_out_indices[i], false);
+			}
+		}
+		
+		if (m_pins[m_write_pin_index].state) {		// Write byte
+			unsigned long data_to_write = 0;
+			for (size_t i = 0; i < m_data_bus_in_indices.size(); i++) {
+				if (m_pins[m_data_bus_in_indices[i]].state) {
+					data_to_write |= (1ul << i);
+				}
+			}
+			std::cout << data_to_write << std::endl;
+			m_ptyManager.txByte(static_cast<uint8_t>(data_to_write));
+		}
+	}
 	
 	Device::Solve();
+}
+
+void Uart::Start() {
+	m_ptyManager.start();
 }
 
 void Uart::Update() {
 	bool outputChanged = false;
 
-	if ((!m_pins[m_data_ready_pin_index].state) && (m_ptyManager.rxBytesAvailable())) {
-		std::cout << "Updating..." << std::endl;
-		Set(m_data_ready_pin_index, true);
-		outputChanged = true;
+	if (!m_pins[m_data_ready_pin_index].state) {
+		if (m_ptyManager.rxBytesAvailable()) {
+			std::cout << "Updating..." << std::endl;
+			Set(m_data_ready_pin_index, true);
+			outputChanged = true;
+		}
 	}
 
 	if (outputChanged) {
-		m_parent_device_pointer->QueueToPropagateSecondary(this);
+		m_parent_device_pointer->QueueToPropagatePrimary(this);
 		SolveBackwardsFromParent();
 	}
 }
 
-PtyManager::PtyManager() :
-  m_pty_available_flag(false),
-  m_run_pty_thread_flag(true)
-{
-	m_thread_pty = std::thread(&PtyManager::PtyReadRuntime, this);	
+void Uart::Stop() {
+	m_ptyManager.stop();
 }
 
 PtyManager::~PtyManager() {
 	stop();
 }
 
-void PtyManager::stop() {
-	m_run_pty_thread_flag = false;
-	close(m_master_fd);
-	m_thread_pty.join();
+void PtyManager::start() {
+	m_run_threads = true;
+	m_pty_read_thread = std::thread(&PtyManager::ptyReadRuntime, this);
 }
 
-bool PtyManager::uartAvailable() {
-	return m_pty_available_flag;
+void PtyManager::stop() {
+	if (m_run_threads) {
+		m_run_threads = false;
+		close(m_master_fd);
+		m_pty_read_thread.join();
+		m_pty_available = false;
+	}
 }
 
 bool PtyManager::rxBytesAvailable() {
@@ -145,57 +181,54 @@ uint8_t PtyManager::rxByte() {
 	return byte;
 }
 
-void PtyManager::CreatePty() {
+void PtyManager::txByte(uint8_t byte) {
+	if (m_pty_available) {
+		write(m_master_fd, (void*)(&byte), 1);
+	}
+}
+
+void PtyManager::createPty() {
 	std::unique_lock<std::mutex> lock(m_mutex_master_fd);
 	int master_fd = posix_openpt(O_RDWR);
 	if (master_fd > 0) {
 		m_master_fd = master_fd;
 		grantpt(m_master_fd);
 		unlockpt(m_master_fd);
-		printf("Slave: %s\n", ptsname(m_master_fd));
-		m_pty_available_flag = true;
+		printf("PTY created at %s\n", ptsname(m_master_fd));
+		m_pty_available = true;
 	} else {
-		printf("Unable to create pseudoterminal\n");
-		m_pty_available_flag = false;
+		printf("Unable to create PTY\n");
+		m_pty_available = false;
 	}
 }
 
-void PtyManager::PtyReadRuntime() {
+void PtyManager::ptyReadRuntime() {
 	char rxbuf[1];
 	int c; /* to catch read's return value */
+	
+	while(m_run_threads) {/* main loop */
+		if (m_pty_available) {
+			/* read from the master file descriptor */
+			c = read(m_master_fd, rxbuf, 1);
+			if (c == 1) { /* If c is 1, add the received character to the deque */
 
-	CreatePty();
-	while(m_run_pty_thread_flag) {/* main loop */
-		/* read from the master file descriptor */
-		c = read(m_master_fd, rxbuf, 1);
-		if (c == 1) {
-			/* convert carriage return to '\n\r' */
-			if (rxbuf[0] == '\r') {
-				printf("\n\r"); /* on master */
-				txByte(static_cast<uint8_t>('\n'));
-				txByte(static_cast<uint8_t>('\r'));
+				//~/* convert carriage return to '\n\r' */
+				//~if (rxbuf[0] == '\r') {
+					//~txByte(static_cast<uint8_t>('\n'));
+					//~txByte(static_cast<uint8_t>('\r'));
+				//~}
+				//~else { 
+					//~txByte(static_cast<uint8_t>(rxbuf[0]));
+				//~}
+				
+				std::unique_lock<std::mutex> lock(m_mutex_rx_buffer);
+				m_rx_buffer.push_back(static_cast<uint8_t>(rxbuf[0]));
+			} else { /* if c is not 1, it has disconnected */
+				m_pty_available = false;
+				printf("PTY disconnected\n\r");
 			}
-			else { 
-				printf("%c", rxbuf[0]); 
-				txByte(static_cast<uint8_t>(rxbuf[0]));
-			}
-			fflush(stdout);
-			
-			m_rx_buffer.push_back(static_cast<uint8_t>(rxbuf[0]));
-			printf("%lu bytes in RX buffer\n", m_rx_buffer.size()); /* on master */
-		} else { /* if c is not 1, it has disconnected */
-			m_pty_available_flag = false;
-			printf("Disconnected\n\r");
-			if (m_run_pty_thread_flag) {
-				CreatePty();
-			}
+		} else {
+			createPty();
 		}
-	}
-}
-
-void PtyManager::txByte(uint8_t byte) {
-	std::unique_lock<std::mutex> lock(m_mutex_master_fd);
-	if (m_pty_available_flag) {
-		write(m_master_fd, (void*)(&byte), 1);
 	}
 }

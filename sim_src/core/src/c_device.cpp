@@ -640,10 +640,6 @@ void Device::QueueToSolve(Device* device_pointer) {
 	m_solve_this_tick.emplace_back(device_pointer);
 }
 
-//~void Device::QueueForPropagation(void) {
-
-//~}
-
 //~void Device::PropagateInputs() {
 	//~for (auto& this_pin : m_pins) {
 		//~if ((this_pin.type == Pin::Type::IN) || (this_pin.type == Pin::Type::HIDDEN_IN)) {

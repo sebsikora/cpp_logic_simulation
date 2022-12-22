@@ -139,6 +139,12 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 		EnableTerminalRawIO(true);
 		int tick_count = 0;
 		int input_check_count = 0, input_check_count_limit = 1000;
+
+		// Start all special devices.
+		for (const auto& special_device : m_special_devices) {
+			special_device->Start();
+		}
+		
 		// And we're live - Spin main simulation loop.
 		while (true) {
 #ifdef VERBOSE_SOLVE
@@ -192,6 +198,12 @@ void Simulation::Run(int number_of_ticks, bool restart_flag, bool print_probes_f
 				}
 			}
 		}
+
+		// Stop all special devices.
+		for (const auto& special_device : m_special_devices) {
+			special_device->Stop();
+		}
+		
 		// Turn terminal back to 'buffered' mode (waits for newline before making input available to getchar()).
 		EnableTerminalRawIO(false);	
 		if (!force_no_messages) {

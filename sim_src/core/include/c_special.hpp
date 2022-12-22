@@ -24,7 +24,9 @@
 
 class SpecialInterface {
 	public:
+		virtual void Start(void) = 0;
 		virtual void Update(void) = 0;
+		virtual void Stop(void) = 0;
 };
 
 #endif // LSIM_CORE_SPECIAL_HPP
