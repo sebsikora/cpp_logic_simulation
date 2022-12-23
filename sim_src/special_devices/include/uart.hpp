@@ -28,7 +28,7 @@
 #include <atomic>
 #include <deque>
 
-#include "c_device.hpp"					// Core simulator functionality
+#include "c_device.hpp"
 #include "c_special.hpp"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -39,20 +39,23 @@ class PtyManager {
 		void start();
 		void stop();
 
+		bool isErrorFlagSet();
 		bool rxBytesAvailable();
 		uint8_t rxByte();
 		void txByte(uint8_t byte);
 
 	private:
-		void createPty(void);
-		void ptyReadRuntime(void);
+		void createPty();
+		void ptyReadRuntime();
 
 		int m_master_fd;
+		int m_pty_error_counter = 0;
+		bool m_pty_error_flag = false;
 
 		std::thread m_pty_read_thread;
 		std::mutex m_mutex_master_fd;
 		std::mutex m_mutex_rx_buffer;
-
+		
 		std::atomic_bool m_pty_available{false};
 		std::atomic_bool m_run_threads{false};
 		std::deque<uint8_t> m_rx_buffer;
@@ -63,23 +66,25 @@ class Uart : public Device, public SpecialInterface {
 		// Constructor.
 		Uart(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states = {});
 		~Uart();
-		// Methods common to base Device class.
+		
+		// Device class method overrides.
 		void Build(void) override;
 		void Solve(void) override;
 
+		// SpecialInterface class method overrides.
 		void Start(void) override;
 		void Update(void) override;
 		void Stop(void) override;
 
 	private:
-		// Methods.
+		static const int s_data_bus_width = 8;
+		
 		void Configure(std::vector<StateDescriptor> in_pin_default_states);
 
 		PtyManager m_ptyManager;
 		
 		std::vector<int> m_data_bus_in_indices;
 		std::vector<int> m_data_bus_out_indices;
-		
 		int m_data_ready_pin_index;
 		int m_read_pin_index;
 		int m_write_pin_index;

@@ -19,30 +19,29 @@
 
 */
 
-#include <string>					// std::string.
-#include <iostream>					// std::cout, std::endl.
-#include <vector>					// std::vector
-#include <cmath>					// pow()
+#include <string>				// std::string.
+#include <iostream>				// std::cout, std::endl.
+#include <vector>				// std::vector
+#include <cmath>				// pow()
 #include <thread>
 #include <mutex>
 #include <deque>
 
 #define _XOPEN_SOURCE 600
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
+
+#include <stdlib.h>				// grantpt(), posix_openpt(), ptsname(), unlockpt()
+#include <fcntl.h>				// posix_openpt()
+#include <unistd.h>				// close(), read(), write()
+#include <errno.h>
 
 #include "c_structs.hpp"
-#include "c_device.hpp"					// Core simulator functionality
+#include "c_device.hpp"
 #include "c_sim.hpp"
 #include "uart.hpp"
 
 // -----------------------------------------------------------------------------------------------------------------------------------------------------
 Uart::Uart(Device* parent_device_pointer, std::string device_name, bool monitor_on, std::vector<StateDescriptor> in_pin_default_states) 
-: Device(parent_device_pointer, device_name, "uart", {"read", "write", "clk"}, {"data_ready"}, monitor_on, in_pin_default_states, 0),
-  m_ptyManager()
+: Device(parent_device_pointer, device_name, "uart", {"read", "write", "clk"}, {"data_ready"}, monitor_on, in_pin_default_states, 0)
 {
 	// Create all the address and data bus inputs and outputs and set their default states.
 	Configure(in_pin_default_states);
@@ -59,23 +58,22 @@ Uart::~Uart() {
 }
 
 void Uart::Configure(std::vector<StateDescriptor> in_pin_default_states) {
-	int data_bus_width = 8;
 
 	std::string data_bus_in_prefix = "d_in_";
 	std::string data_bus_out_prefix = "d_out_";
 	
-	CreateBus(data_bus_width, data_bus_in_prefix, Pin::Type::IN, in_pin_default_states);
-	CreateBus(data_bus_width, data_bus_out_prefix, Pin::Type::OUT, {});
+	CreateBus(s_data_bus_width, data_bus_in_prefix, Pin::Type::IN, in_pin_default_states);
+	CreateBus(s_data_bus_width, data_bus_out_prefix, Pin::Type::OUT, {});
 
 	m_clk_pin_index = GetPinPortIndex("clk");
 	m_read_pin_index = GetPinPortIndex("read");
 	m_write_pin_index = GetPinPortIndex("write");
 	m_data_ready_pin_index = GetPinPortIndex("data_ready");
 
-	m_data_bus_in_indices.resize(data_bus_width, 0);
-	m_data_bus_out_indices.resize(data_bus_width, 0);
+	m_data_bus_in_indices.resize(s_data_bus_width, 0);
+	m_data_bus_out_indices.resize(s_data_bus_width, 0);
 
-	for (int i = 0; i < data_bus_width; i++) {
+	for (int i = 0; i < s_data_bus_width; i++) {
 		m_data_bus_in_indices[i] = GetPinPortIndex(data_bus_in_prefix + std::to_string(i));
 		m_data_bus_out_indices[i] = GetPinPortIndex(data_bus_out_prefix + std::to_string(i));
 	}
@@ -94,23 +92,23 @@ void Uart::Solve() {
 
 		if (m_pins[m_read_pin_index].state) {		// Read byte
 			unsigned long data_read = m_ptyManager.rxByte();
-			for (size_t i = 0; i < m_data_bus_out_indices.size(); i++) {
+			for (size_t i = 0; i < s_data_bus_width; i++) {
 				Set(m_data_bus_out_indices[i], ((data_read >> i) & 1ul));
 			}
-			std::cout << "READ BYTE!" << std::endl;
+			std::cout << "Byte read..." << std::endl;
 			if (!m_ptyManager.rxBytesAvailable()) {
 				Set(m_data_ready_pin_index, false);
 			}
 		} else if (!m_pins[m_read_pin_index].state) {
 			// Set all data out pins low (F)
-			for (size_t i = 0; i < m_data_bus_out_indices.size(); i++) {
+			for (size_t i = 0; i < s_data_bus_width; i++) {
 				Set(m_data_bus_out_indices[i], false);
 			}
 		}
 		
 		if (m_pins[m_write_pin_index].state) {		// Write byte
 			unsigned long data_to_write = 0;
-			for (size_t i = 0; i < m_data_bus_in_indices.size(); i++) {
+			for (size_t i = 0; i < s_data_bus_width; i++) {
 				if (m_pins[m_data_bus_in_indices[i]].state) {
 					data_to_write |= (1ul << i);
 				}
@@ -128,19 +126,23 @@ void Uart::Start() {
 }
 
 void Uart::Update() {
-	bool outputChanged = false;
+	if (!m_ptyManager.isErrorFlagSet()) {
+		bool outputChanged = false;
 
-	if (!m_pins[m_data_ready_pin_index].state) {
-		if (m_ptyManager.rxBytesAvailable()) {
-			std::cout << "Updating..." << std::endl;
-			Set(m_data_ready_pin_index, true);
-			outputChanged = true;
+		if (!m_pins[m_data_ready_pin_index].state) {
+			if (m_ptyManager.rxBytesAvailable()) {
+				std::cout << "Updating..." << std::endl;
+				Set(m_data_ready_pin_index, true);
+				outputChanged = true;
+			}
 		}
-	}
 
-	if (outputChanged) {
-		m_parent_device_pointer->QueueToPropagatePrimary(this);
-		SolveBackwardsFromParent();
+		if (outputChanged) {
+			m_parent_device_pointer->QueueToPropagatePrimary(this);
+			SolveBackwardsFromParent();
+		}
+	} else {
+		m_top_level_sim_pointer->LogError("UART unable to open PTY");
 	}
 }
 
@@ -154,21 +156,28 @@ PtyManager::~PtyManager() {
 
 void PtyManager::start() {
 	m_run_threads = true;
+	m_pty_error_counter = 0;
+	m_pty_error_flag = false;
 	m_pty_read_thread = std::thread(&PtyManager::ptyReadRuntime, this);
 }
 
 void PtyManager::stop() {
 	if (m_run_threads) {
+		m_pty_available = false;
 		m_run_threads = false;
 		close(m_master_fd);
+		
 		m_pty_read_thread.join();
-		m_pty_available = false;
 	}
 }
 
 bool PtyManager::rxBytesAvailable() {
 	std::unique_lock<std::mutex> lock(m_mutex_rx_buffer);
 	return m_rx_buffer.size() > 0;
+}
+
+bool PtyManager::isErrorFlagSet() {
+	return m_pty_error_flag;
 }
 
 uint8_t PtyManager::rxByte() {
@@ -189,16 +198,24 @@ void PtyManager::txByte(uint8_t byte) {
 
 void PtyManager::createPty() {
 	std::unique_lock<std::mutex> lock(m_mutex_master_fd);
-	int master_fd = posix_openpt(O_RDWR);
+	int master_fd = posix_openpt(O_RDWR | O_NONBLOCK);
+	
 	if (master_fd > 0) {
 		m_master_fd = master_fd;
 		grantpt(m_master_fd);
 		unlockpt(m_master_fd);
-		printf("PTY created at %s\n", ptsname(m_master_fd));
 		m_pty_available = true;
+		m_pty_error_counter = 0;
+		std::cout << "UART available on PTY created at " << ptsname(m_master_fd) << std::endl << std::endl;
+		
 	} else {
-		printf("Unable to create PTY\n");
 		m_pty_available = false;
+		m_pty_error_counter ++;
+		std::cout << "UART unable to create PTY" << std::endl << std::endl;
+
+		if (m_pty_error_counter >= 5) {
+			m_pty_error_flag = true;
+		}
 	}
 }
 
@@ -223,12 +240,19 @@ void PtyManager::ptyReadRuntime() {
 				
 				std::unique_lock<std::mutex> lock(m_mutex_rx_buffer);
 				m_rx_buffer.push_back(static_cast<uint8_t>(rxbuf[0]));
-			} else { /* if c is not 1, it has disconnected */
-				m_pty_available = false;
-				printf("PTY disconnected\n\r");
+				
+			} else if (c <= 0) { /* if c is not 1, check errno */
+				if (errno != EAGAIN) {	// Connection is closed...
+					m_pty_available = false;
+					std::cout << "UART PTY closed" << std::endl << std::endl;
+				}
+				// ...otherwise, no waiting data.
 			}
 		} else {
-			createPty();
+			if (!m_pty_error_flag) {
+				createPty();
+			}
 		}
 	}
+	std::cout << "UART reader thread finished" << std::endl << std::endl;
 }

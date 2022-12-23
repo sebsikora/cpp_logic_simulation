@@ -7,7 +7,8 @@ int main () {
 	// Instantiate the top-level Device (the Simulation).
 	Simulation sim("test_sim");
 	
-	// Add a jk flip-flop Device.
+	// Add the UART, and an inverter and jk flip-flop which we will use to delay the write
+	// signal by 1 clock cycle.
 	sim.AddComponent(new Uart(&sim, "test_uart", true));
 	sim.AddComponent(new Inverter(&sim, "not", false));
 	sim.AddComponent(new JK_FF_ASPC(&sim, "jk_ff", false, {{"not_c", true}}));
@@ -38,7 +39,7 @@ int main () {
 	sim.ChildSet("jk_ff", "not_c", false);
 	sim.ChildSet("jk_ff", "not_c", true);
 
-	sim.Run(0, true);
+	sim.Run(50000000, true);
 	
 	return 0;
 }
