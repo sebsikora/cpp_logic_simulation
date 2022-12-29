@@ -1,4 +1,0 @@
-/home/sebsikora/Documents/cpp_projects/logic_sim/sim_src/special_devices/front_panel/lib/build/CMakeFiles/rebuild_cache.dir
-/home/sebsikora/Documents/cpp_projects/logic_sim/sim_src/special_devices/front_panel/lib/build/CMakeFiles/edit_cache.dir
-/home/sebsikora/Documents/cpp_projects/logic_sim/sim_src/special_devices/front_panel/lib/build/CMakeFiles/fp_demo.dir
-/home/sebsikora/Documents/cpp_projects/logic_sim/sim_src/special_devices/front_panel/lib/build/CMakeFiles/fp_lib.dir
