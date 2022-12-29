@@ -4,10 +4,10 @@
 #include "devices.h"			// N_Bit_Counter Device
 
 int main () {
-	bool monitor_on = true;
+	bool monitor_on = false;
 	
 	// Set the desired bit-width of the counter here.
-	int counter_width = 3;
+	int counter_width = 18;
 	
 	// Instantiate the top-level Device (the Simulation).
 	Simulation sim("test_sim");
@@ -36,7 +36,7 @@ int main () {
 	bool restart_flag = true;
 	bool print_probe_samples = true;
 	int number_of_ticks = 16;
-	sim.Run(number_of_ticks, restart_flag, print_probe_samples);
+	sim.Run(1000, restart_flag, print_probe_samples);
 	
 	return 0;
 }

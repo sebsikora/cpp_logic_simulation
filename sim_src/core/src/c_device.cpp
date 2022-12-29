@@ -258,7 +258,7 @@ void Device::Initialise() {
 	// states. Ordinarily we only want to propagate the Device out pin states if they have changed, here they
 	// all need to be propagated so that they 'overwrite' the initial random build-time Gate inputs.
 	for (auto& this_pin : m_pins) {
-		if (this_pin.type == Pin::Type::OUT) {
+		if (this_pin.type != Pin::Type::HIDDEN_OUT) {
 			this_pin.state_changed = true;
 		}
 	}

@@ -11,28 +11,37 @@ int main () {
 	bool monitor_on = false;
 	
 	int number_of_runs = 50;
+
+	// Set the desired bit-width of the counter here.
+	int counter_width = 18;
 	
 	// Instantiate the top-level Device (the Simulation).
-	Simulation* sim = new Simulation("test_sim");
+	Simulation sim("test_sim");
 	
 	// Add a 4-bit counter device.
-	sim->AddComponent(new N_Bit_Counter_AIO(sim, "test_counter", 4, monitor_on, {{"run", true}}));
+	sim.AddComponent(new N_Bit_Counter_AIO(&sim, "test_counter", counter_width, monitor_on, {{"run", true}}));
 	
 	// Once we have added all our devices, call the simulation's Stabilise() method to finish setup.
-	sim->Stabilise();
+	sim.Stabilise();
 	
 	// Add a Clock and connect it to the clk input on the counter.
 	// The Clock output will be a repeating pattern of false, true, false, true, etc, starting on false on the first tick.
-	sim->AddClock("clock_0", {false, true}, monitor_on);
-	sim->ClockConnect("clock_0", "test_counter", "clk");
+	sim.AddClock("clock_0", {false, true}, monitor_on);
+	sim.ClockConnect("clock_0", "test_counter", "clk");
 	
 	// We need a pointer to the Device so we can directly interrogate it's out pins rather than using a Probe,
 	// as a Probe will slow things down significantly.
-	Component* counter = sim->GetChildComponentPointer("test_counter");
+	Component* counter = sim.GetChildComponentPointer("test_counter");
 	
-	Converter count_converter(4);
+	Converter count_converter(counter_width);
+
+	// Programmatically generate the required vector of counter output pin names.
+	std::vector<std::string> counter_output_names = {};
+	for (int i = 0; i < counter_width; i ++) {
+		std::string this_out_pin = "q_" + std::to_string(i);
+		counter_output_names.push_back(this_out_pin);
+	}
 	
-	std::vector<std::string> counter_output_names = {"q_0", "q_1", "q_2", "q_3"};
 	std::vector<bool> read_states = {};
 	std::vector<int> last_5_counts = {};
 	std::vector<long long> run_times = {};
@@ -40,10 +49,10 @@ int main () {
 	for (int run_index = 0; run_index < number_of_runs; run_index ++) {
 		std::cout << std::endl << "Run : " << run_index << std::endl;
 		auto t1 = std::chrono::high_resolution_clock::now();
-		sim->Run(49990, true, false, true);
+		sim.Run(49990, true, false, true);
 		for (int last_5_index = 0; last_5_index < 5; last_5_index ++) {
-			sim->Run(2, false, false, true);
-			for (int pin_index = 0; pin_index < 4; pin_index ++) {
+			sim.Run(2, false, false, true);
+			for (int pin_index = 0; pin_index < counter_width; pin_index ++) {
 				read_states.emplace_back(counter->GetPinState(counter->GetPinPortIndex(counter_output_names[pin_index])));
 			}
 			last_5_counts.emplace_back(count_converter.StatesToInt(read_states));
@@ -62,8 +71,6 @@ int main () {
 	for (int index = 0; index < number_of_runs; index ++) {
 		std::cout << run_times[index] << std::endl;
 	}
-	
-	delete sim;
 	
 	return 0;
 }

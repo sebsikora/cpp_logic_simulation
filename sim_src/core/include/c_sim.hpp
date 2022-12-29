@@ -39,7 +39,7 @@ class VoidThreadPool;
 // Top-level Simulation Device sub-class.
 class Simulation : public Device {
 	public:
-		Simulation(std::string const& simulation_name, SolverConfiguration solver_conf = {false, 0}, int max_propagations = 10);
+		Simulation(std::string const& simulation_name, SolverConfiguration solver_conf = {false, 0}, int max_propagations = 100);
 		virtual ~Simulation();
 		
 		// Override Component virtual methods.
