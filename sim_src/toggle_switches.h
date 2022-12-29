@@ -29,10 +29,9 @@ public:
 	}
 
 	static void staticSwitchChangeCallback(Fl_Widget* w, void* f) {((Switches*)f)->switchChangeCallback(w); }
-
-protected:
 	virtual void switchChangeCallback(Fl_Widget* w);
 	
+protected:
 	int m_index = 0;
 	std::vector<Fl_Button*> m_buttons;
 	unsigned long m_value = 0ul;
@@ -64,9 +63,6 @@ class RadioSwitches : public Switches
 public:
 	RadioSwitches(std::string const& name, int count, int x, int y, int labelWidth, int buttonWidth, int height);
 	virtual ~RadioSwitches() {}
-
-protected:
-	void switchChangeCallback(Fl_Widget* w) override;
 
 private:
 	Fl_Box* m_label;

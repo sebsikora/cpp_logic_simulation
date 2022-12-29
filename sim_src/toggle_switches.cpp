@@ -12,24 +12,18 @@
 
 void Switches::switchChangeCallback(Fl_Widget* w)
 {
-	Fl_Button* button = (Fl_Button*)w;
-	auto it = std::find(m_buttons.begin(), m_buttons.end(), button);
-
-	if (it != m_buttons.end()) {
-		int index = it - m_buttons.begin();
-		unsigned long bit = button->value();
-		
-		if (bit) {
-			m_value |= (1ul << index);
+	for (int i = 0; i < m_buttons.size(); i ++) {
+		if (m_buttons[i]->value()) {
+			m_value |= (1ul << i);
 		} else {
-			m_value &= ~(1ul << index);
+			m_value &= ~(1ul << i);
 		}
-		
-		std::cout << "ToggleSwitches value is " << std::to_string(m_value) << std::endl;
+	}
 
-		if (m_valueChangeCallback != 0) {
-			m_valueChangeCallback(this, (void*)parent());
-		}
+	std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
+
+	if (m_valueChangeCallback != 0) {
+		m_valueChangeCallback(this, static_cast<void*>(parent()));
 	}
 }
 
@@ -41,6 +35,13 @@ PanelManager::PanelManager(std::string const& name, int x, int y, int width, int
 	addPanelWidget("radio, radio, 6, 0, 80, 70, 30, 30");
 
 	end();
+
+	for (int i = 0; i < m_widgets.size(); i++) {
+		auto ptr = dynamic_cast<Switches*>(m_widgets[i]);
+		if (ptr != NULL) {
+			ptr->switchChangeCallback(m_widgets[i]);
+		}
+	}
 }
 
 void PanelManager::switchChangeCallback(Fl_Widget* w)
@@ -105,7 +106,7 @@ ToggleSwitches::ToggleSwitches(std::string const& name, int count, int x, int y,
 		Fl_Toggle_Button* button = new Fl_Toggle_Button(buttonX, y, buttonWidth, height, "");
 		button->copy_label(std::to_string(i).c_str());
 		button->when(FL_WHEN_RELEASE);
-		button->callback(staticSwitchChangeCallback, (void*)this);
+		button->callback(staticSwitchChangeCallback, static_cast<void*>(this));
 		m_buttons.push_back(button);
 		buttonX += buttonWidth;
 	}
@@ -125,7 +126,7 @@ MomentarySwitches::MomentarySwitches(std::string const& name, int count, int x, 
 		Fl_Button* button = new Fl_Button(buttonX, y, buttonWidth, height, "");
 		button->copy_label(std::to_string(i).c_str());
 		button->when(FL_WHEN_CHANGED);
-		button->callback(staticSwitchChangeCallback, (void*)this);
+		button->callback(staticSwitchChangeCallback, static_cast<void*>(this));
 		m_buttons.push_back(button);
 		buttonX += buttonWidth;
 	}
@@ -146,7 +147,7 @@ RadioSwitches::RadioSwitches(std::string const& name, int count, int x, int y, i
 		button->copy_label(std::to_string(i).c_str());
 		button->type(FL_RADIO_BUTTON);
 		button->when(FL_WHEN_RELEASE);
-		button->callback(staticSwitchChangeCallback, (void*)this);
+		button->callback(staticSwitchChangeCallback, static_cast<void*>(this));
 		m_buttons.push_back(button);
 		buttonX += buttonWidth;
 	}
@@ -154,26 +155,4 @@ RadioSwitches::RadioSwitches(std::string const& name, int count, int x, int y, i
 	end();
 
 	m_buttons[0]->setonly();
-}
-
-void RadioSwitches::switchChangeCallback(Fl_Widget* w)
-{
-	Fl_Button* button = (Fl_Button*)w;
-	auto it = std::find(m_buttons.begin(), m_buttons.end(), button);
-
-	if (it != m_buttons.end()) {
-		for (int i = 0; i < m_buttons.size(); i ++) {
-			if (m_buttons[i]->value()) {
-				m_value |= (1ul << i);
-			} else {
-				m_value &= ~(1ul << i);
-			}
-		}
-
-		std::cout << "ToggleSwitches value is " << std::to_string(m_value) << std::endl;
-
-		if (m_valueChangeCallback != 0) {
-			m_valueChangeCallback(this, (void*)parent());
-		}
-	}
 }
