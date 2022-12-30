@@ -7,10 +7,12 @@
 #include <array>
 #include <iostream>
 #include <mutex>
+#include <atomic>
 
 #include <FL/Fl.H>
 #include <FL/Fl_Toggle_Button.H>
 #include <FL/Fl_Group.H>
+#include <FL/Fl_Window.H>
 #include <FL/Fl_Box.H>
 
 class Indicators : public Fl_Group
@@ -47,7 +49,7 @@ public:
 	virtual void switchChangeCallback(Fl_Widget* w);
 	
 protected:
-	std::vector<Fl_Button*> m_buttons;
+	std::vector<Fl_Widget*> m_buttons;
 	unsigned long m_value = 0ul;
 	Fl_Callback* m_valueChangeCallback = 0;
 };
@@ -96,18 +98,31 @@ private:
 	Fl_Box* m_label;
 };
 
-class PanelManager : public Fl_Group 
+class PanelManager : public Fl_Window
 {
 public:
-	PanelManager(std::string const& name, int x, int y, int width, int height, std::vector<std::string> const& panelConfig);
+	PanelManager(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo = false);
 	virtual ~PanelManager() {}
 	
 	static void staticSwitchChangeCallback(Fl_Widget* w, void* f) {((PanelManager*)f)->switchChangeCallback(w); }
+	static void staticPromptedHideCallback(Fl_Widget* w, void* f) {((PanelManager*)f)->promptedHideCallback(); }
+	
+	//~static void staticRequestShowCallback(void* data) {((PanelManager*)data)->requestShowCallback(); }
+	//~static void staticRequestHideCallback(void* data) {((PanelManager*)data)->requestHideCallback(); }
+	static void staticRequestShowCallback(void* data) {((Fl_Widget*)data)->show(); }
+	static void staticRequestHideCallback(void* data) {((Fl_Widget*)data)->hide(); }
 
 	void addPanelWidget(std::string const& widgetParams);
+
+	void open();
+	std::atomic_bool const& isOpen() const;
+	void close();
+
 	bool haveSwitchesChanged() const;
 	std::vector<int> getChangedSwitchesIndices();
 	unsigned long getChangedSwitchesValue(int widgetIndex) const;
+
+	void setIndicatorsValue(int indicatorIndex, unsigned long value);
 
 	std::mutex m_valueChangeMutex;
 
@@ -115,12 +130,21 @@ private:
 	void switchChangeCallback(Fl_Widget* w);
 	void switchesChanged(int widgetIndex, unsigned long value);
 
+	void promptedHideCallback();
+	void requestShowCallback();
+	void requestHideCallback();
+
+	bool m_echo;
+	std::atomic_bool m_panelOpen;
+	
 	std::vector<Fl_Widget*> m_switchesWidgets;
 	bool m_switchesHaveChanged = false;
 	std::vector<int> m_changedSwitches;
 	std::vector<unsigned long> m_switchesWidgetValues;
 
 	std::vector<Fl_Widget*> m_indicatorsWidgets;
+
+	std::atomic_bool m_busy;
 };
 
 #endif // TOGGLE_SWITCHES_HPP

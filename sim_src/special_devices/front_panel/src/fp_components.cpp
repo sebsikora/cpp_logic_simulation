@@ -3,18 +3,18 @@
 #include <algorithm>
 #include <string>
 
-#include "toggle_switches.h"
+#include "fp_components.h"
 
 #include <FL/Fl_Toggle_Button.H>
 #include <FL/Fl_Button.H>
-#include <FL/Fl_Group.H>
 #include <FL/Fl_Box.H>
+#include <FL/fl_ask.H>
 
 void Switches::switchChangeCallback(Fl_Widget* w)
 {
 	if (w == NULL) {		
 		for (int i = 0; i < m_buttons.size(); i ++) {
-			if (m_buttons[i]->value()) {
+			if (static_cast<Fl_Button*>(m_buttons[i])->value()) {
 				m_value |= (1ul << i);
 			} else {
 				m_value &= ~(1ul << i);
@@ -33,19 +33,26 @@ void Switches::switchChangeCallback(Fl_Widget* w)
 		}
 	}
 
-	std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
+	//~std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
 
 	if (m_valueChangeCallback != 0) {
 		m_valueChangeCallback(this, static_cast<void*>(parent()));
 	}
 }
 
-PanelManager::PanelManager(std::string const& name, int x, int y, int width, int height, std::vector<std::string> const& panelConfig) :
-	Fl_Group(x, y, width, height)
+PanelManager::PanelManager(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo) :
+	Fl_Window(width, height),
+	m_echo(echo)
 {
+	m_panelOpen = false;
+	
+	copy_label(name.c_str());
+	
 	for (const auto& widgetConfig : panelConfig) {
 		addPanelWidget(widgetConfig);
 	}
+
+	callback(staticPromptedHideCallback, this);
 
 	end();
 
@@ -57,18 +64,58 @@ PanelManager::PanelManager(std::string const& name, int x, int y, int width, int
 	}
 }
 
+void PanelManager::promptedHideCallback()
+{
+	switch (fl_choice("Close the front panel?", "Yes", "No", 0) ) {
+	case 0:		// Yes
+		hide();
+		m_panelOpen = false;
+		break;
+	case 1:		// No (default)
+		break;
+	}
+}
+
+void PanelManager::requestShowCallback()
+{
+	m_panelOpen = true;
+	show();
+}
+
+void PanelManager::requestHideCallback()
+{
+	hide();
+	m_panelOpen = false;
+}
+
+void PanelManager::open()
+{
+	Fl::awake(staticRequestShowCallback, this);
+}
+
+void PanelManager::close()
+{
+	Fl::awake(staticRequestHideCallback, this);
+}
+
+std::atomic_bool const& PanelManager::isOpen() const
+{
+	return m_panelOpen;
+}
+
 void PanelManager::switchChangeCallback(Fl_Widget* w)
 {
 	auto it = std::find(m_switchesWidgets.begin(), m_switchesWidgets.end(), w);
 
 	if (it != m_switchesWidgets.end()) {
-		int index = it - m_switchesWidgets.begin();
-		
-		Switches* s = static_cast<Switches*>(w);
 
+		int index = it - m_switchesWidgets.begin();
+		Switches* s = static_cast<Switches*>(w);
 		unsigned long value = s->getValue();
 				
-		std::cout << "SwitchesWidget " << index << " Value changed to " << std::to_string(value) << std::endl;
+		if (m_echo) {
+			std::cout << "SwitchesWidget " << index << " Value changed to " << std::to_string(value) << std::endl;
+		}
 
 		switchesChanged(index, value);
 	}
@@ -156,6 +203,15 @@ void PanelManager::switchesChanged(int widgetIndex, unsigned long value)
 	m_switchesWidgetValues[widgetIndex] = value;
 }
 
+void PanelManager::setIndicatorsValue(int indicatorsIndex, unsigned long value)
+{
+	Fl::lock();
+
+	static_cast<Indicators*>(m_indicatorsWidgets[indicatorsIndex])->setValue(value);
+	
+	Fl::unlock();
+}
+
 BasicIndicators::BasicIndicators(std::string const& name, int count, int x, int y, int labelWidth, int indicatorWidth, int height) :
 	Indicators(x, y, labelWidth + (count * indicatorWidth), height)
 {
@@ -170,8 +226,6 @@ BasicIndicators::BasicIndicators(std::string const& name, int count, int x, int 
 	}
 	
 	end();
-
-	setValue(4);
 }
 
 void BasicIndicators::setValue(unsigned long value)
@@ -250,22 +304,22 @@ RadioSwitches::RadioSwitches(std::string const& name, int count, std::vector<std
 	
 	end();
 
-	m_buttons[0]->setonly();
+	static_cast<Fl_Button*>(m_buttons[0])->setonly();
 }
 
 void RadioSwitches::switchChangeCallback(Fl_Widget* w)
 {
 	for (int i = 0; i < m_buttons.size(); i ++) {
-		if (m_buttons[i]->value()) {
+		if (static_cast<Fl_Button*>(m_buttons[i])->value()) {
 			m_value |= (1ul << i);
 		} else {
 			m_value &= ~(1ul << i);
 		}
 	}
 
-	std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
+	//~std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
 
-	if (m_valueChangeCallback != 0) {
+	if (m_valueChangeCallback != NULL) {
 		m_valueChangeCallback(this, static_cast<void*>(parent()));
 	}
 }
