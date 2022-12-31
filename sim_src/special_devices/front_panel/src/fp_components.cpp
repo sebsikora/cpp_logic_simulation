@@ -33,28 +33,32 @@ void Switches::switchChangeCallback(Fl_Widget* w)
 		}
 	}
 
-	//~std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
+	std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
 
 	if (m_valueChangeCallback != 0) {
+		std::cout << "YES" << std::endl;
 		m_valueChangeCallback(this, static_cast<void*>(parent()));
+	} else {
+		std::cout << "NO" << std::endl;
 	}
 }
 
 PanelManager::PanelManager(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo) :
-	Fl_Window(width, height),
 	m_echo(echo)
 {
+	m_window = new Fl_Window(width, height);
+	
 	m_panelOpen = false;
 	
-	copy_label(name.c_str());
+	m_window->copy_label(name.c_str());
 	
 	for (const auto& widgetConfig : panelConfig) {
 		addPanelWidget(widgetConfig);
 	}
 
-	callback(staticPromptedHideCallback, this);
+	m_window->callback(staticPromptedHideCallback, this);
 
-	end();
+	m_window->end();
 
 	for (int i = 0; i < m_switchesWidgets.size(); i++) {
 		auto ptr = dynamic_cast<Switches*>(m_switchesWidgets[i]);
@@ -68,7 +72,7 @@ void PanelManager::promptedHideCallback()
 {
 	switch (fl_choice("Close the front panel?", "Yes", "No", 0) ) {
 	case 0:		// Yes
-		hide();
+		m_window->hide();
 		m_panelOpen = false;
 		break;
 	case 1:		// No (default)
@@ -79,12 +83,12 @@ void PanelManager::promptedHideCallback()
 void PanelManager::requestShowCallback()
 {
 	m_panelOpen = true;
-	show();
+	m_window->show();
 }
 
 void PanelManager::requestHideCallback()
 {
-	hide();
+	m_window->hide();
 	m_panelOpen = false;
 }
 
