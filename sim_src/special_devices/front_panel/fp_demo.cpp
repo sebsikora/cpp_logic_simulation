@@ -58,7 +58,6 @@ void GuiManager::start()
 
 void GuiManager::stop()
 {
-	//~Fl::awake(GuiManager::staticHideAllCallback, (void*)(&m_windowOpen));
 	Fl::awake(GuiManager::staticHideAllCallback, (void*)m_window);
 	m_runtimeThread.join();
 }
@@ -89,65 +88,32 @@ void GuiManager::guiRuntime()
 	}
 }
 
-PanelManager* pm;
-
-//~struct PanelConfig {
-	//~std::string name;
-	//~int width;
-	//~int height;
-	//~std::vector<std::string> params;
-	//~bool echo;
+struct PanelConfig {
+	std::string name;
+	int width;
+	int height;
+	std::vector<std::string> params;
+	bool echo;
 	//~std::atomic<bool> busy{true};
 	//~std::mutex mtx;
 	//~std::condition_variable cv;
-//~};
+};
 
-//~void openPanelCallback(void* data)
-//~{	
-	//~PanelConfig* pc = (PanelConfig*)data;
-
-	//~std::cout << "About to instantiate panel" << std::endl;
-	
-	//~pm = new PanelManager(pc->name,
-						  //~pc->width,
-						  //~pc->height,
-						  //~pc->params,
-						  //~pc->echo);
-
-	//~std::cout << "Panel instantiated" << std::endl;
-
-	//~std::unique_lock<std::mutex> lock(pc->mtx);
-	//~pc->busy = false;
-	//~pc->cv.notify_all();
-//~}
-
-class DummyDevice {
+class PanelManager {
 public:
-	DummyDevice(std::string const& name, int width, int height, std::vector<std::string> const& params, bool echo) :
-		m_panelConfig{name, width, height, params, echo},
-		m_panelManager{nullptr}
-	{
-		m_panelConfig.busy = true;
-		std::unique_lock<std::mutex> lock(m_panelConfig.mtx);
-		
-		std::pair<std::unique_ptr<PanelManager>*, PanelConfig*> p{&m_panelManager, &m_panelConfig};
-		Fl::awake(PanelManager::staticCreatePanelCallback, (void*)(&p));
+	PanelManager(std::string const& name, int width, int height, std::vector<std::string> const& params, bool echo) :
+		m_panelConfig{name, width, height, params, echo}
+	{ }
+	~PanelManager() { }
 
-		while (m_panelConfig.busy == true) {
-			m_panelConfig.cv.wait(lock);
-		}
+	static void staticCreatePanelCallback(void* data) { ((PanelManager*)data)->createPanelCallback(); }
 
-		if (m_panelManager != nullptr) {
-			m_panelManager->setIndicatorsValue(0, 4);
-		}
-	}
-	~DummyDevice() { }
-
+	void initialise();
 	void show();
 	void hide();
 	
 private:
-	void openPanelCallback();
+	void createPanelCallback();
 	
 	PanelConfig m_panelConfig;
 
@@ -155,54 +121,61 @@ private:
 	std::mutex m_guiMutex;
 	std::condition_variable m_guiCv;
 
-	std::unique_ptr<PanelManager> m_panelManager;
+	Panel* m_panel;
 };
 
-//~void DummyDevice::openPanelCallback()
-//~{	
-	//~std::cout << "About to instantiate panel" << std::endl;
+void PanelManager::createPanelCallback()
+{	
+	std::cout << "About to instantiate panel" << std::endl;
 	
-	//~m_panelManager = new PanelManager(m_panelConfig.name,
-						  //~m_panelConfig.width,
-						  //~m_panelConfig.height,
-						  //~m_panelConfig.params,
-						  //~m_panelConfig.echo);
+	m_panel = new Panel(m_panelConfig.name,
+					    m_panelConfig.width,
+					    m_panelConfig.height,
+					    m_panelConfig.params,
+					    m_panelConfig.echo);
 
-	//~std::cout << "Panel instantiated" << std::endl;
+	std::cout << "Panel instantiated" << std::endl;
 
-	//~std::unique_lock<std::mutex> lock(m_guiMutex);
-	//~m_guiBusy = false;
-	//~m_guiCv.notify_all();
-//~}
-
-void DummyDevice::show()
-{
-	//~std::cout << Fl::awake(PanelManager::staticRequestShowCallback, (void*)(m_panelManager)) << std::endl;
-	m_panelManager->open();
+	std::unique_lock<std::mutex> lock(m_guiMutex);
+	m_guiBusy = false;
+	m_guiCv.notify_all();
 }
 
-void DummyDevice::hide()
+void PanelManager::initialise()
 {
-	//~std::cout << Fl::awake(PanelManager::staticRequestHideCallback, (void*)(m_panelManager)) << std::endl;
-	m_panelManager->close();
+	std::unique_lock<std::mutex> lock(m_guiMutex);
+
+	std::cout << Fl::awake(PanelManager::staticCreatePanelCallback, (void*)(this)) << std::endl;
+
+	while (m_guiBusy == true) {
+		m_guiCv.wait(lock);
+	}
+	
+	if (m_panel != nullptr) {
+		m_panel->setIndicatorsValue(0, 4);
+	}
+}
+
+void PanelManager::show()
+{
+	if (m_panel != nullptr) {
+		m_panel->open();
+	}
+}
+
+void PanelManager::hide()
+{
+	if (m_panel != nullptr) {
+		m_panel->close();
+	}
 }
 
 int main(int argc, char **argv)
 {
 	
-	GuiManager gm;
-	gm.start();
-
-	//~PanelConfig pc {"test",
-				   //~300,
-				   //~180,
-				   //~{"toggle, toggle, 6, 0, 0, 70, 30, 30",
-					//~"momentary, momentary, 6, 0, 40, 70, 30, 30",
-					//~"radio, radio, 6, A. B. C. D. E. F, 0, 80, 70, 30, 30",
-					//~"indicator, lamps, 6, 0, 120, 70, 30, 30"
-				   //~},
-				   //~true};
-	DummyDevice dd("test",
+	GuiManager gm;		// Member of Simulation, constructor called in Simulation constructor.
+	
+	PanelManager dd("test",	// Member of SpecialDevice class
 				   300,
 				   180,
 				   {"toggle, toggle, 6, 0, 0, 70, 30, 30",
@@ -212,41 +185,18 @@ int main(int argc, char **argv)
 				   },
 				   true);
 
+	gm.start();			// Called during setup phase at start of Simulation::run() call.
+	
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
+	dd.initialise();	// Called during setup phase at start of Simulation::run() call.
 	dd.show();
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-	dd.hide();
+	dd.hide();			// Called at end of Simulation::run()
 	
-	gm.stop();
+	gm.stop();			// Called at end of Simulation::run()
 	
 	return 0;
 }
-
-
-//~pm = new PanelManager("test",
-							//~300,
-							//~180,
-							//~{"toggle, toggle, 6, 0, 0, 70, 30, 30",
-							 //~"momentary, momentary, 6, 0, 40, 70, 30, 30",
-							 //~"radio, radio, 6, A. B. C. D. E. F, 0, 80, 70, 30, 30",
-							 //~"indicator, lamps, 6, 0, 120, 70, 30, 30"
-							//~},
-							//~true);
-
-//~void guiRuntime()
-//~{
-	//~Fl::lock();
-
-	//~std::cout << "GUI thread running" << std::endl;
-
-	//~Fl_Window* w = new Fl_Window(100, 100, "test");
-	//~w->end();
-	//~w->show();
-
-	//~g_ready = true;
-	
-	//~while (Fl::wait() > 0) {}
-//~}

@@ -8,8 +8,6 @@
 #include <iostream>
 #include <mutex>
 #include <atomic>
-#include <memory>
-#include <condition_variable>
 
 #include <FL/Fl.H>
 #include <FL/Fl_Toggle_Button.H>
@@ -100,38 +98,17 @@ private:
 	Fl_Box* m_label;
 };
 
-struct PanelConfig {
-	std::string name;
-	int width;
-	int height;
-	std::vector<std::string> params;
-	bool echo;
-	std::atomic<bool> busy{true};
-	std::mutex mtx;
-	std::condition_variable cv;
-};
-
-class PanelManager
+class Panel : public Fl_Window
 {
 public:
-	PanelManager(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo);
-	virtual ~PanelManager() {}
-
-	static void staticCreatePanelCallback(void* data)
-	{
-		std::pair<std::unique_ptr<PanelManager>*, PanelConfig*> payload = *((std::pair<std::unique_ptr<PanelManager>*, PanelConfig*>*)data);
-		PanelConfig* pc = payload.second;
-		*payload.first = std::make_unique<PanelManager>(pc->name, pc->width, pc->height, pc->params, pc->echo);
-		std::unique_lock<std::mutex> lock(pc->mtx);
-		pc->busy = false;
-		pc->cv.notify_all();
-	}
-
-	static void staticSwitchChangeCallback(Fl_Widget* w, void* f) {((PanelManager*)f)->switchChangeCallback(w); }
-	static void staticPromptedHideCallback(Fl_Widget* w, void* f) {((PanelManager*)f)->promptedHideCallback(); }
+	Panel(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo = false);
+	virtual ~Panel() {}
 	
-	static void staticRequestShowCallback(void* data) {((PanelManager*)data)->requestShowCallback(); }
-	static void staticRequestHideCallback(void* data) {((PanelManager*)data)->requestHideCallback(); }
+	static void staticSwitchChangeCallback(Fl_Widget* w, void* f) {((Panel*)f)->switchChangeCallback(w); }
+	static void staticPromptedHideCallback(Fl_Widget* w, void* f) {((Panel*)f)->promptedHideCallback(); }
+	
+	static void staticRequestShowCallback(void* data) {((Panel*)data)->requestShowCallback(); }
+	static void staticRequestHideCallback(void* data) {((Panel*)data)->requestHideCallback(); }
 
 	void addPanelWidget(std::string const& widgetParams);
 

@@ -33,32 +33,28 @@ void Switches::switchChangeCallback(Fl_Widget* w)
 		}
 	}
 
-	std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
+	//~std::cout << "Switches value is now " << std::to_string(m_value) << std::endl;
 
 	if (m_valueChangeCallback != 0) {
-		std::cout << "YES" << std::endl;
 		m_valueChangeCallback(this, static_cast<void*>(parent()));
-	} else {
-		std::cout << "NO" << std::endl;
 	}
 }
 
-PanelManager::PanelManager(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo) :
+Panel::Panel(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo) :
+	Fl_Window(width, height),
 	m_echo(echo)
 {
-	m_window = new Fl_Window(width, height);
-	
 	m_panelOpen = false;
 	
-	m_window->copy_label(name.c_str());
+	copy_label(name.c_str());
 	
 	for (const auto& widgetConfig : panelConfig) {
 		addPanelWidget(widgetConfig);
 	}
 
-	m_window->callback(staticPromptedHideCallback, this);
+	callback(staticPromptedHideCallback, this);
 
-	m_window->end();
+	end();
 
 	for (int i = 0; i < m_switchesWidgets.size(); i++) {
 		auto ptr = dynamic_cast<Switches*>(m_switchesWidgets[i]);
@@ -68,11 +64,11 @@ PanelManager::PanelManager(std::string const& name, int width, int height, std::
 	}
 }
 
-void PanelManager::promptedHideCallback()
+void Panel::promptedHideCallback()
 {
 	switch (fl_choice("Close the front panel?", "Yes", "No", 0) ) {
 	case 0:		// Yes
-		m_window->hide();
+		hide();
 		m_panelOpen = false;
 		break;
 	case 1:		// No (default)
@@ -80,34 +76,34 @@ void PanelManager::promptedHideCallback()
 	}
 }
 
-void PanelManager::requestShowCallback()
+void Panel::requestShowCallback()
 {
 	m_panelOpen = true;
-	m_window->show();
+	show();
 }
 
-void PanelManager::requestHideCallback()
+void Panel::requestHideCallback()
 {
-	m_window->hide();
+	hide();
 	m_panelOpen = false;
 }
 
-void PanelManager::open()
+void Panel::open()
 {
 	Fl::awake(staticRequestShowCallback, this);
 }
 
-void PanelManager::close()
+void Panel::close()
 {
 	Fl::awake(staticRequestHideCallback, this);
 }
 
-std::atomic_bool const& PanelManager::isOpen() const
+std::atomic_bool const& Panel::isOpen() const
 {
 	return m_panelOpen;
 }
 
-void PanelManager::switchChangeCallback(Fl_Widget* w)
+void Panel::switchChangeCallback(Fl_Widget* w)
 {
 	auto it = std::find(m_switchesWidgets.begin(), m_switchesWidgets.end(), w);
 
@@ -125,7 +121,7 @@ void PanelManager::switchChangeCallback(Fl_Widget* w)
 	}
 }
 
-void PanelManager::addPanelWidget(std::string const& widgetParams)
+void Panel::addPanelWidget(std::string const& widgetParams)
 {
 	std::vector<std::string> args;
 
@@ -181,12 +177,12 @@ void PanelManager::addPanelWidget(std::string const& widgetParams)
 	}
 }
 
-bool PanelManager::haveSwitchesChanged() const
+bool Panel::haveSwitchesChanged() const
 {
 	return m_switchesHaveChanged;
 }
 
-std::vector<int> PanelManager::getChangedSwitchesIndices()
+std::vector<int> Panel::getChangedSwitchesIndices()
 {
 	std::vector<int> changedSwitches;
 	std::swap(m_changedSwitches, changedSwitches);
@@ -194,12 +190,12 @@ std::vector<int> PanelManager::getChangedSwitchesIndices()
 	return changedSwitches;
 }
 
-unsigned long PanelManager::getChangedSwitchesValue(int widgetIndex) const
+unsigned long Panel::getChangedSwitchesValue(int widgetIndex) const
 {
 	return m_switchesWidgetValues[widgetIndex];
 }
 
-void PanelManager::switchesChanged(int widgetIndex, unsigned long value)
+void Panel::switchesChanged(int widgetIndex, unsigned long value)
 {
 	std::unique_lock<std::mutex> lock (m_valueChangeMutex);
 	m_switchesHaveChanged = true;
@@ -207,7 +203,7 @@ void PanelManager::switchesChanged(int widgetIndex, unsigned long value)
 	m_switchesWidgetValues[widgetIndex] = value;
 }
 
-void PanelManager::setIndicatorsValue(int indicatorsIndex, unsigned long value)
+void Panel::setIndicatorsValue(int indicatorsIndex, unsigned long value)
 {
 	Fl::lock();
 
