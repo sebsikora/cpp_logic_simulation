@@ -12,7 +12,7 @@
 
 void Switches::switchChangeCallback(Fl_Widget* w)
 {
-	if (w == NULL) {		
+	if (w == NULL) {	// If no switch widget specified, recalculate value according to all switches.
 		for (int i = 0; i < m_buttons.size(); i ++) {
 			if (static_cast<Fl_Button*>(m_buttons[i])->value()) {
 				m_value |= (1ul << i);
@@ -20,7 +20,7 @@ void Switches::switchChangeCallback(Fl_Widget* w)
 				m_value &= ~(1ul << i);
 			}
 		}
-	} else {
+	} else {			// Otherwise, recalculate value according to changed switch only.
 		Fl_Button* button = (Fl_Button*)w;
 		auto it = std::find(m_buttons.begin(), m_buttons.end(), button);
 		int index = it - m_buttons.begin();
@@ -66,36 +66,56 @@ Panel::Panel(std::string const& name, int width, int height, std::vector<std::st
 
 void Panel::promptedHideCallback()
 {
-	switch (fl_choice("Close the front panel?", "Yes", "No", 0) ) {
-	case 0:		// Yes
-		hide();
-		m_panelOpen = false;
-		break;
-	case 1:		// No (default)
-		break;
-	}
+	//~switch (fl_choice("Close the front panel?", "Yes", "No", 0) ) {
+	//~case 0:		// Yes
+		//~hide();
+		//~m_panelOpen = false;
+		//~break;
+	//~case 1:		// No (default)
+		//~break;
+	//~}
 }
 
 void Panel::requestShowCallback()
 {
-	m_panelOpen = true;
 	show();
+	m_panelOpen = true;
+
+	std::unique_lock<std::mutex> lock(m_panelMutex);
+	m_panelCv.notify_all();
 }
 
 void Panel::requestHideCallback()
 {
 	hide();
 	m_panelOpen = false;
+
+	std::unique_lock<std::mutex> lock(m_panelMutex);
+	m_panelCv.notify_all();
 }
 
 void Panel::open()
 {
+	std::unique_lock<std::mutex> lock(m_panelMutex);
+	
 	Fl::awake(staticRequestShowCallback, this);
+
+	while (m_panelOpen == false) {
+		m_panelCv.wait_for(lock, std::chrono::seconds(1));
+	}
 }
 
 void Panel::close()
 {
-	Fl::awake(staticRequestHideCallback, this);
+	if (m_panelOpen == true) {
+		std::unique_lock<std::mutex> lock(m_panelMutex);
+		
+		Fl::awake(staticRequestHideCallback, this);
+
+		while (m_panelOpen == true) {
+			m_panelCv.wait_for(lock, std::chrono::seconds(1));
+		}
+	}
 }
 
 std::atomic_bool const& Panel::isOpen() const

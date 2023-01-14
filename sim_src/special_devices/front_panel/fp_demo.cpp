@@ -17,19 +17,22 @@ public:
 			copy_label(name.c_str());
 			end();
 		}
-		~DefaultGui() { }
+		~DefaultGui() {}
 	};
 	
-	GuiManager() { m_guiRunning = 0; }
+	GuiManager()
+	{
+		m_guiRunning = 0;
+		m_started = false;
+	}
 	~GuiManager() {}
 
 	static void staticHideAllCallback(void* data)
 	{
-		//~while (Fl::first_window()) {
-			//~Fl::first_window()->hide();
-		//~}
-		//~*((std::atomic_bool*)data) = false;
-		((Fl_Window*)data)->hide();
+		while (Fl::first_window()) {	// Hide all shown windows.
+			Fl::first_window()->hide();
+		}
+		//~((Fl_Window*)data)->hide();
 	}
 
 	void start();
@@ -43,27 +46,43 @@ private:
 	std::atomic_int m_guiRunning;
 	Fl_Window* m_window;
 	std::thread m_runtimeThread;
+	std::atomic_bool m_started;
 };
 
 void GuiManager::start()
 {
-	std::unique_lock<std::mutex> lock(m_guiMutex);
-	
-	m_runtimeThread = std::thread(&GuiManager::guiRuntime, this);
+	if (m_started == false) {
+		std::unique_lock<std::mutex> lock(m_guiMutex);
+		
+		m_runtimeThread = std::thread(&GuiManager::guiRuntime, this);
 
-	while (m_guiRunning == 0) {
-		m_guiCv.wait_for(lock, std::chrono::seconds(1));
+		while (m_guiRunning == 0) {
+			m_guiCv.wait_for(lock, std::chrono::seconds(1));
+		}
+
 	}
 }
 
 void GuiManager::stop()
 {
-	Fl::awake(GuiManager::staticHideAllCallback, (void*)m_window);
-	m_runtimeThread.join();
+	if (m_guiRunning > 0) {		
+		Fl::awake(GuiManager::staticHideAllCallback, (void*)m_window);
+	}
+
+	if (m_started == true) {
+		m_runtimeThread.join();
+		m_started = false;
+		m_guiRunning = 0;
+	}
+
+	if (m_window != nullptr) {
+		delete m_window;
+	}
 }
 
 void GuiManager::guiRuntime()
 {
+	m_started = true;
 	std::cout << "GUI thread running" << std::endl;
 	
 	Fl::lock();		/* "start" the FLTK lock mechanism */
@@ -94,23 +113,25 @@ struct PanelConfig {
 	int height;
 	std::vector<std::string> params;
 	bool echo;
-	//~std::atomic<bool> busy{true};
-	//~std::mutex mtx;
-	//~std::condition_variable cv;
 };
 
 class PanelManager {
 public:
 	PanelManager(std::string const& name, int width, int height, std::vector<std::string> const& params, bool echo) :
-		m_panelConfig{name, width, height, params, echo}
-	{ }
-	~PanelManager() { }
+		m_panelConfig{name, width, height, params, echo},
+		m_panel(nullptr)
+	{}
+	~PanelManager() {
+		if (m_panel != nullptr) {
+			delete m_panel;
+		}
+	}
 
 	static void staticCreatePanelCallback(void* data) { ((PanelManager*)data)->createPanelCallback(); }
 
 	void initialise();
-	void show();
-	void hide();
+	void open();
+	void close();
 	
 private:
 	void createPanelCallback();
@@ -126,15 +147,16 @@ private:
 
 void PanelManager::createPanelCallback()
 {	
-	std::cout << "About to instantiate panel" << std::endl;
-	
-	m_panel = new Panel(m_panelConfig.name,
-					    m_panelConfig.width,
-					    m_panelConfig.height,
-					    m_panelConfig.params,
-					    m_panelConfig.echo);
+	if (m_panel == nullptr) {
+		std::cout << "About to instantiate panel" << std::endl;
+		m_panel = new Panel(m_panelConfig.name,
+							m_panelConfig.width,
+							m_panelConfig.height,
+							m_panelConfig.params,
+							m_panelConfig.echo);
 
-	std::cout << "Panel instantiated" << std::endl;
+		std::cout << "Panel instantiated" << std::endl;
+	}
 
 	std::unique_lock<std::mutex> lock(m_guiMutex);
 	m_guiBusy = false;
@@ -143,6 +165,8 @@ void PanelManager::createPanelCallback()
 
 void PanelManager::initialise()
 {
+	m_guiBusy = true;
+
 	std::unique_lock<std::mutex> lock(m_guiMutex);
 
 	std::cout << Fl::awake(PanelManager::staticCreatePanelCallback, (void*)(this)) << std::endl;
@@ -156,14 +180,14 @@ void PanelManager::initialise()
 	}
 }
 
-void PanelManager::show()
+void PanelManager::open()
 {
 	if (m_panel != nullptr) {
 		m_panel->open();
 	}
 }
 
-void PanelManager::hide()
+void PanelManager::close()
 {
 	if (m_panel != nullptr) {
 		m_panel->close();
@@ -190,11 +214,11 @@ int main(int argc, char **argv)
 	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
 	dd.initialise();	// Called during setup phase at start of Simulation::run() call.
-	dd.show();
+	dd.open();
 
-	std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	std::this_thread::sleep_for(std::chrono::milliseconds(6000));
 
-	dd.hide();			// Called at end of Simulation::run()
+	dd.close();			// Called at end of Simulation::run()
 	
 	gm.stop();			// Called at end of Simulation::run()
 	

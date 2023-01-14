@@ -8,6 +8,7 @@
 #include <iostream>
 #include <mutex>
 #include <atomic>
+#include <condition_variable>
 
 #include <FL/Fl.H>
 #include <FL/Fl_Toggle_Button.H>
@@ -59,7 +60,7 @@ class BasicIndicators : public Indicators
 public:
 	BasicIndicators(std::string const& name, int count, int x, int y, int labelWidth, int indicatorWidth, int height);
 	virtual ~BasicIndicators() {}
-
+	
 	void setValue(unsigned long value) override;
 	
 private:
@@ -71,7 +72,7 @@ class ToggleSwitches : public Switches
 public:
 	ToggleSwitches(std::string const& name, int count, int x, int y, int labelWidth, int buttonWidth, int height);
 	virtual ~ToggleSwitches() {}
-
+	
 private:	
 	Fl_Box* m_label;
 };
@@ -81,7 +82,7 @@ class MomentarySwitches : public Switches
 public:
 	MomentarySwitches(std::string const& name, int count, int x, int y, int labelWidth, int buttonWidth, int height);
 	virtual ~MomentarySwitches() {}
-
+	
 private:
 	Fl_Box* m_label;
 };
@@ -102,7 +103,7 @@ class Panel : public Fl_Window
 {
 public:
 	Panel(std::string const& name, int width, int height, std::vector<std::string> const& panelConfig, bool echo = false);
-	virtual ~Panel() {}
+	virtual ~Panel() { close(); }
 	
 	static void staticSwitchChangeCallback(Fl_Widget* w, void* f) {((Panel*)f)->switchChangeCallback(w); }
 	static void staticPromptedHideCallback(Fl_Widget* w, void* f) {((Panel*)f)->promptedHideCallback(); }
@@ -133,18 +134,18 @@ private:
 	void requestHideCallback();
 
 	bool m_echo;
+
 	std::atomic_bool m_panelOpen;
+	std::mutex m_panelMutex;
+	std::condition_variable m_panelCv;
 	
 	std::vector<Fl_Widget*> m_switchesWidgets;
 	bool m_switchesHaveChanged = false;
 	std::vector<int> m_changedSwitches;
 	std::vector<unsigned long> m_switchesWidgetValues;
-
 	std::vector<Fl_Widget*> m_indicatorsWidgets;
-
 	std::atomic_bool m_busy;
 
-	Fl_Window* m_window;
 };
 
 #endif // TOGGLE_SWITCHES_HPP
